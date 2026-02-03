@@ -1,0 +1,5 @@
+/* TEMPORARY MINIMAL CSS - Fixing build error */
+.main-layout {
+  display: flex;
+  min-height: 100vh;
+}

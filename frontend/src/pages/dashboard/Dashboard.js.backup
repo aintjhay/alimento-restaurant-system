@@ -1,0 +1,373 @@
+import React, { useState, useEffect } from 'react';
+import { 
+  FiDollarSign, 
+  FiShoppingCart, 
+  FiUsers, 
+  FiPackage,
+  FiTrendingUp,
+  FiClock,
+  FiStar
+} from 'react-icons/fi';
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell
+} from 'recharts';
+import axios from 'axios';
+import { motion } from 'framer-motion';
+import './Dashboard.css';
+
+const Dashboard = () => {
+  const [stats, setStats] = useState({
+    totalSales: 0,
+    totalOrders: 0,
+    activeCustomers: 0,
+    lowStockItems: 0,
+    todayRevenue: 0,
+    avgOrderValue: 0
+  });
+  
+  const [salesData, setSalesData] = useState([]);
+  const [topItems, setTopItems] = useState([]);
+  const [recentOrders, setRecentOrders] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      // Fetch from your backend API
+      const [menuRes, ordersRes] = await Promise.all([
+        axios.get('http://localhost:5000/api/menu'),
+        axios.get('http://localhost:5000/api/orders')
+      ]);
+
+      // Calculate stats
+      const totalSales = ordersRes.data.data.reduce((sum, order) => sum + order.total, 0);
+      const todayRevenue = totalSales * 0.3; // Mock today's revenue
+      
+      setStats({
+        totalSales,
+        totalOrders: ordersRes.data.data.length,
+        activeCustomers: 24, // Mock data
+        lowStockItems: 3, // Mock data
+        todayRevenue,
+        avgOrderValue: totalSales / ordersRes.data.data.length || 0
+      });
+
+      // Sales data for chart
+      const mockSalesData = [
+        { day: 'Mon', sales: 4200, orders: 24 },
+        { day: 'Tue', sales: 5200, orders: 28 },
+        { day: 'Wed', sales: 4800, orders: 26 },
+        { day: 'Thu', sales: 5800, orders: 32 },
+        { day: 'Fri', sales: 6500, orders: 38 },
+        { day: 'Sat', sales: 7200, orders: 42 },
+        { day: 'Sun', sales: 6800, orders: 40 }
+      ];
+      setSalesData(mockSalesData);
+
+      // Top items
+      const mockTopItems = [
+        { name: 'CHORIZO JALAPENO', sales: 42, revenue: 8400 },
+        { name: 'TEQUILA SUNRISE', sales: 38, revenue: 4560 },
+        { name: 'CLASSIC CARBONARA', sales: 31, revenue: 6820 },
+        { name: 'NACHORIZO', sales: 28, revenue: 5320 },
+        { name: 'THICK CUT BACON', sales: 25, revenue: 4500 }
+      ];
+      setTopItems(mockTopItems);
+
+      // Recent orders
+      setRecentOrders(ordersRes.data.data.slice(0, 5));
+
+      setLoading(false);
+    } catch (error) {
+      console.error('Error fetching dashboard data:', error);
+      setLoading(false);
+    }
+  };
+
+  const statCards = [
+    { 
+      title: 'Total Sales', 
+      value: `₱${stats.totalSales.toLocaleString()}`, 
+      icon: <FiDollarSign />, 
+      color: '#10B981',
+      change: '+12.5%'
+    },
+    { 
+      title: 'Today\'s Revenue', 
+      value: `₱${stats.todayRevenue.toLocaleString()}`, 
+      icon: <FiTrendingUp />, 
+      color: '#3B82F6',
+      change: '+8.2%'
+    },
+    { 
+      title: 'Total Orders', 
+      value: stats.totalOrders, 
+      icon: <FiShoppingCart />, 
+      color: '#8B5CF6',
+      change: '+5.3%'
+    },
+    { 
+      title: 'Active Customers', 
+      value: stats.activeCustomers, 
+      icon: <FiUsers />, 
+      color: '#F59E0B',
+      change: '+3.1%'
+    },
+    { 
+      title: 'Low Stock Items', 
+      value: stats.lowStockItems, 
+      icon: <FiPackage />, 
+      color: '#EF4444',
+      change: 'Need Restock'
+    },
+    { 
+      title: 'Avg Order Value', 
+      value: `₱${stats.avgOrderValue.toFixed(2)}`, 
+      icon: <FiStar />, 
+      color: '#EC4899',
+      change: '+2.8%'
+    }
+  ];
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#FF8042', '#8884D8'];
+
+  if (loading) {
+    return (
+      <div className="dashboard-loading">
+        <div className="loading-spinner"></div>
+        <p>Loading dashboard data...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="dashboard">
+      {/* Header */}
+      <div className="dashboard-header">
+        <h1>Dashboard Overview</h1>
+        <div className="header-actions">
+          <button className="btn-refresh" onClick={fetchDashboardData}>
+            <FiClock /> Refresh Data
+          </button>
+          <div className="date-range">
+            Last 7 Days • Updated just now
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Grid */}
+      <div className="stats-grid">
+        {statCards.map((stat, index) => (
+          <motion.div
+            key={index}
+            className="stat-card"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: index * 0.1 }}
+            whileHover={{ y: -5 }}
+          >
+            <div className="stat-header">
+              <div className="stat-icon" style={{ backgroundColor: `${stat.color}20`, color: stat.color }}>
+                {stat.icon}
+              </div>
+              <span className="stat-change" style={{ color: stat.change.includes('+') ? '#10B981' : '#EF4444' }}>
+                {stat.change}
+              </span>
+            </div>
+            <div className="stat-content">
+              <h3 className="stat-value">{stat.value}</h3>
+              <p className="stat-title">{stat.title}</p>
+            </div>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* Charts Section */}
+      <div className="charts-section">
+        {/* Sales Chart */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3>Sales & Orders Trend</h3>
+            <span className="chart-subtitle">Last 7 Days Performance</span>
+          </div>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={salesData}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
+                <XAxis dataKey="day" stroke="#6B7280" />
+                <YAxis stroke="#6B7280" />
+                <Tooltip 
+                  formatter={(value) => [`₱${value.toLocaleString()}`, 'Value']}
+                  labelStyle={{ color: '#374151' }}
+                />
+                <Legend />
+                <Bar dataKey="sales" name="Sales (₱)" fill="#3B82F6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="orders" name="Orders" fill="#10B981" radius={[4, 4, 0, 0]} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Top Items Chart */}
+        <div className="chart-card">
+          <div className="chart-header">
+            <h3>Top Selling Items</h3>
+            <span className="chart-subtitle">By Quantity Sold</span>
+          </div>
+          <div className="chart-container">
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={topItems.slice(0, 5)}
+                  cx="50%"
+                  cy="50%"
+                  labelLine={false}
+                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  outerRadius={80}
+                  fill="#8884d8"
+                  dataKey="sales"
+                >
+                  {topItems.slice(0, 5).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip formatter={(value) => [value, 'Units Sold']} />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+      </div>
+
+      {/* Tables Section */}
+      <div className="tables-section">
+        {/* Recent Orders */}
+            <h3>Recent Orders</h3>
+            <button className="btn-view-all">View All →</button>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+
+              <thead>
+                <tr>
+                  <th>Order #</th>
+                  <th>Customer</th>
+                  <th>Type</th>
+                  <th>Total</th>
+                  <th>Status</th>
+                  <th>Time</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentOrders.map((order) => (
+                  <tr key={order.id}>
+
+                    <td>
+                      <strong>{order.order_number}</strong>
+                    </td>
+                    <td>{order.customer_name}</td>
+                    <td>
+                      <span className={`order-type ${order.order_type}`}>
+                        {order.order_type}
+                      </span>
+                    </td>
+                    <td>
+                      <strong>₱{order.total}</strong>
+                    </td>
+                    <td>
+                      <span className={`status-badge ${order.status}`}>
+                        {order.status}
+                      </span>
+                    </td>
+                    <td>
+                      {new Date(order.created_at).toLocaleTimeString([], { 
+                        hour: '2-digit', 
+                        minute: '2-digit' 
+                      })}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        {/* Top Items Table */}
+        <div className="table-card">
+          <div className="table-header">
+            <h3>Top Performing Items</h3>
+            <button className="btn-view-all">View All →</button>
+          </div>
+          <div className="table-container">
+            <table className="data-table">
+              <thead>
+                <tr>
+                  <th>Item</th>
+                  <th>Category</th>
+                  <th>Units Sold</th>
+                  <th>Revenue</th>
+                  <th>Trend</th>
+                </tr>
+              </thead>
+              <tbody>
+                {topItems.map((item, index) => (
+                  <tr key={index}>
+                    <td>
+                      <div className="item-info">
+                        <div className="item-name">{item.name}</div>
+                      </div>
+                    </td>
+                    <td>Main Dish</td>
+                    <td>
+                      <strong>{item.sales}</strong>
+                    </td>
+                    <td>
+                      <strong className="revenue">₱{item.revenue.toLocaleString()}</strong>
+                    </td>
+                    <td>
+                      <span className="trend-up">↑ 12%</span>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      {/* Quick Actions */}
+      <div className="quick-actions">
+        <h3>Quick Actions</h3>
+        <div className="actions-grid">
+          <button className="action-btn">
+            <FiShoppingCart /> New Order
+          </button>
+          <button className="action-btn">
+            <FiPackage /> Add Menu Item
+          </button>
+          <button className="action-btn">
+            <FiUsers /> View Reports
+          </button>
+          <button className="action-btn">
+            <FiTrendingUp /> Forecast Analysis
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default Dashboard;

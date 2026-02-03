@@ -1,0 +1,130 @@
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { ToastContainer } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
+
+// Layout Components
+import MainLayout from './components/layout/MainLayout';
+import AuthLayout from './components/layout/AuthLayout';
+
+// Page Components
+import Dashboard from './pages/dashboard/Dashboard';
+import PosSystem from './pages/pos/PosSystem';
+import MenuManagement from './pages/admin/MenuManagement';
+import OrderManagement from './pages/admin/OrderManagement';
+import InventoryManagement from './pages/admin/InventoryManagement';
+import Forecasting from './pages/admin/Forecasting';
+import Settings from './pages/admin/Settings';
+import Login from './pages/auth/Login';
+
+// Context Providers
+import { AuthProvider } from './contexts/AuthContext';
+import { RestaurantProvider } from './contexts/RestaurantContext';
+
+// Protected Route Component
+const ProtectedRoute = ({ children, allowedRoles }) => {
+  const user = { role: 'admin' }; // Mock user - replace with real auth
+  
+  if (!user) {
+    return <Navigate to="/login" replace />;
+  }
+  
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    return <Navigate to="/" replace />;
+  }
+  
+  return children;
+};
+
+function App() {
+  return (
+    <AuthProvider>
+      <RestaurantProvider>
+        <Router>
+          <Routes>
+            {/* Auth Routes */}
+            <Route path="/login" element={
+              <AuthLayout>
+                <Login />
+              </AuthLayout>
+            } />
+            
+            {/* Protected Routes */}
+            <Route path="/" element={
+              <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                <MainLayout>
+                  <Dashboard />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/pos" element={
+              <ProtectedRoute allowedRoles={['admin', 'staff']}>
+                <MainLayout>
+                  <PosSystem />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/menu" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MainLayout>
+                  <MenuManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/orders" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MainLayout>
+                  <OrderManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/inventory" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MainLayout>
+                  <InventoryManagement />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/forecasting" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MainLayout>
+                  <Forecasting />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            <Route path="/admin/settings" element={
+              <ProtectedRoute allowedRoles={['admin']}>
+                <MainLayout>
+                  <Settings />
+                </MainLayout>
+              </ProtectedRoute>
+            } />
+            
+            {/* Redirect unknown routes */}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Router>
+        
+        <ToastContainer 
+          position="top-right"
+          autoClose={5000}
+          hideProgressBar={false}
+          newestOnTop
+          closeOnClick
+          rtl={false}
+          pauseOnFocusLoss
+          draggable
+          pauseOnHover
+        />
+      </RestaurantProvider>
+    </AuthProvider>
+  );
+}
+
+export default App;

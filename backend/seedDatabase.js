@@ -1,85 +1,80 @@
 require('dotenv').config();
 const mongoose = require('mongoose');
+const { MongoMemoryServer } = require('mongodb-memory-server');
 const MenuItem = require('./src/models/MenuItem');
 
-const sampleMenu = [
-    {
-        name: "Alimento Signature Burger",
-        description: "100% beef patty with cheese, lettuce, tomato, and special sauce",
-        price: 185,
-        category: "Meals",
-        preparationTime: 15
-    },
-    {
-        name: "Crispy Chicken Wings",
-        description: "6 pieces of crispy chicken wings with buffalo sauce",
-        price: 220,
-        category: "Meals",
-        preparationTime: 20
-    },
-    {
-        name: "Seafood Pasta Alfredo",
-        description: "Creamy Alfredo pasta with shrimp and mussels",
-        price: 265,
-        category: "Meals",
-        preparationTime: 25
-    },
-    {
-        name: "Caesar Salad",
-        description: "Fresh romaine lettuce with Caesar dressing and croutons",
-        price: 125,
-        category: "Appetizers",
-        preparationTime: 10
-    },
-    {
-        name: "Iced Tea (Bottomless)",
-        description: "Refreshing brewed iced tea with free refills",
-        price: 45,
-        category: "Drinks",
-        preparationTime: 5
-    },
-    {
-        name: "Coke / Pepsi",
-        description: "Carbonated soft drink",
-        price: 35,
-        category: "Drinks",
-        preparationTime: 2
-    },
-    {
-        name: "Chocolate Lava Cake",
-        description: "Warm chocolate cake with molten center, served with vanilla ice cream",
-        price: 95,
-        category: "Desserts",
-        preparationTime: 8
-    },
-    {
-        name: "Garlic Rice with Egg",
-        description: "Fried garlic rice with sunny-side-up egg",
-        price: 75,
-        category: "Breakfast",
-        preparationTime: 10
-    }
+// PASTE THE ENTIRE COMPLETE MENU ARRAY HERE
+// Copy the completeMenu array from my earlier message (the one with 70+ items)
+// It should start with:
+const completeMenu = [
+  {
+    name: "TEQUILA SUNRISE",
+    description: "Vibrant tequila cocktail with orange juice and grenadine",
+    price: 120,
+    category: "Cocktails",
+    image: "cocktails/tequila_sunrise.jpg",
+    preparationTime: 8,
+    tags: ["alcoholic", "popular"],
+    displayOrder: 1
+  },
+  // ... and continue with all 70+ items
 ];
 
 async function seed() {
     try {
-        await mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/alimento');
-        console.log('Connected to MongoDB');
+        // Create in-memory MongoDB server
+        const mongod = await MongoMemoryServer.create();
+        const uri = mongod.getUri();
+        
+        console.log('🔧 Starting in-memory MongoDB...');
+        await mongoose.connect(uri);
+        console.log('✅ Connected to in-memory MongoDB');
         
         // Clear existing menu items
         await MenuItem.deleteMany({});
-        console.log('Cleared existing menu items');
+        console.log('✅ Cleared existing menu items');
         
-        // Insert new items
-        await MenuItem.insertMany(sampleMenu);
-        console.log(`Added ${sampleMenu.length} sample menu items`);
+        // Insert complete menu
+        await MenuItem.insertMany(completeMenu);
+        console.log(`✅ Added ${completeMenu.length} menu items`);
         
-        console.log('✅ Database seeded successfully!');
-        process.exit(0);
+        // Display statistics by category
+        const categories = await MenuItem.aggregate([
+            { $group: { _id: '$category', count: { $sum: 1 } } },
+            { $sort: { _id: 1 } }
+        ]);
+        
+        console.log('\n📊 Menu Statistics by Category:');
+        console.log('===============================');
+        categories.forEach(cat => {
+            console.log(`   ${cat._id}: ${cat.count} items`);
+        });
+        
+        console.log('\n✅ Database seeded successfully!');
+        
+        // Keep the connection open
+        console.log('\n💡 Press Ctrl+C to exit and start the server.');
+        console.log('   Then run: npm run dev');
+        
+        // Don't exit - keep it running so data stays in memory
+        process.on('SIGINT', async () => {
+            await mongoose.disconnect();
+            await mongod.stop();
+            console.log('\n🛑 Database connection closed.');
+            process.exit(0);
+        });
+        
     } catch (error) {
         console.error('❌ Seeding error:', error);
         process.exit(1);
     }
+}
+
+// Check if menu array is defined
+if (!completeMenu || completeMenu.length === 0) {
+    console.error('❌ Error: completeMenu array is empty!');
+    console.log('Please copy the 70+ item menu array into this file.');
+    process.exit(1);
 }
 
 seed();

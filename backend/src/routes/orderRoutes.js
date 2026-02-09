@@ -5,8 +5,17 @@ const Order = require('../models/Order');
 // POST - Create new order
 router.post('/', async (req, res) => {
     try {
+        // Generate orderNumber if not provided
+        let orderNumber = req.body.orderNumber;
+        if (!orderNumber) {
+            const lastOrder = await Order.findOne().sort({ createdAt: -1 });
+            const nextNumber = lastOrder ? parseInt(lastOrder.orderNumber?.replace(/\D/g, '') || 0) + 1 : 1;
+            orderNumber = `ORD-${String(nextNumber).padStart(5, '0')}`;
+        }
+
         const orderData = {
             ...req.body,
+            orderNumber: orderNumber,
             status: 'pending',
             paymentStatus: 'unpaid'
         };
@@ -174,6 +183,42 @@ router.patch('/:id/status', async (req, res) => {
     } catch (error) {
         console.error('❌ Update status error:', error);
         res.status(500).json({ success: false, error: error.message });
+    }
+});
+
+// PUT - Update order (alternative endpoint for updating status)
+router.put('/:id', async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { status } = req.body;
+
+        const order = await Order.findByIdAndUpdate(
+            id,
+            { status: status, updatedAt: new Date() },
+            { new: true }
+        );
+
+        if (!order) {
+            return res.status(404).json({
+                success: false,
+                message: 'Order not found'
+            });
+        }
+
+        console.log(`✅ Order ${id} status updated to ${status}`);
+
+        res.json({
+            success: true,
+            message: `Order status updated to ${status}`,
+            order: order
+        });
+    } catch (error) {
+        console.error('❌ Update order error:', error);
+        res.status(500).json({ 
+            success: false, 
+            message: 'Failed to update order',
+            error: error.message 
+        });
     }
 });
 

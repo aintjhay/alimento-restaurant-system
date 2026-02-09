@@ -9,6 +9,23 @@ import {
   FaShoppingCart, FaTrash, FaPlus, FaMinus
 } from 'react-icons/fa';
 
+// Import images
+import logoImg from '../../assets/images/logo/alimentologo.png';
+import chorizoImg from '../../assets/images/food/Chorizojalapeno.jpg';
+import carbonaraImg from '../../assets/images/food/Classiccarbonara.jpg';
+import spanishImg from '../../assets/images/food/SpanishStyle.jpg';
+import pinostyImg from '../../assets/images/food/Pinoystyle.jpg';
+import thickbaconImg from '../../assets/images/food/ThickCutBacon.JPG';
+import crispychixImg from '../../assets/images/food/CrispyChix.JPG';
+import choricheeseImg from '../../assets/images/food/Choricheeseburger.JPG';
+import nachoImg from '../../assets/images/food/Nachorizo.jpg';
+import wingsImg from '../../assets/images/food/BuffaloWings12s(2).jpg';
+import riceWingsImg from '../../assets/images/food/Buffalowingsricemeal.jpg';
+import chorizo_eggImg from '../../assets/images/food/Homemadechorizo.jpg';
+import tacinoImg from '../../assets/images/food/Chickentocino.jpg';
+import baconsteakImg from '../../assets/images/food/Baconsteak.jpg';
+import spanishLatteImg from '../../assets/images/food/SpanishLatte.jpg';
+
 function PosSystem() {
   // States
   const [menuItems, setMenuItems] = useState([]);
@@ -40,8 +57,154 @@ function PosSystem() {
 
   // Sample menu data (fallback if API fails)
   const sampleMenu = [
+    // ================ COCKTAILS ================
     {
       _id: '1',
+      name: "TEQUILA SUNRISE",
+      description: "Vibrant tequila cocktail with orange juice and grenadine",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic", "popular"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '2',
+      name: "MOJITO",
+      description: "Refreshing Cuban cocktail with mint, lime, and rum",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic", "refreshing"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '3',
+      name: "AMARETTO SOUR",
+      description: "Sweet and sour cocktail with amaretto liqueur",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '4',
+      name: "WHISKY-RETTO",
+      description: "Classic whisky cocktail with a twist",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '5',
+      name: "FROZEN BLUEBERRY DAIQUIRI",
+      description: "Frozen rum cocktail with fresh blueberries",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 10,
+      tags: ["alcoholic", "frozen", "sweet"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '6',
+      name: "BLUE LAGOON",
+      description: "Vibrant blue vodka cocktail with lemonade",
+      price: 120,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic", "colorful"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '7',
+      name: "MARGARITA",
+      description: "Classic tequila cocktail with lime and salt rim",
+      price: 110,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic", "classic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '8',
+      name: "PURPLE HEARTS",
+      description: "Violet-colored cocktail with berry flavors",
+      price: 100,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '9',
+      name: "WHISKY SOUR",
+      description: "Classic whisky cocktail with lemon and sugar",
+      price: 90,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 8,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '10',
+      name: "WHISKY COKE",
+      description: "Simple whisky mixed with Coca-Cola",
+      price: 90,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 5,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '11',
+      name: "GIN TONIC",
+      description: "Classic gin and tonic with lime",
+      price: 90,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 5,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '12',
+      name: "TEQUILA SHOT",
+      description: "Straight tequila shot with lime and salt",
+      price: 50,
+      category: "Cocktails",
+      image: "",
+      preparationTime: 2,
+      tags: ["alcoholic"],
+      modifiers: [],
+      addons: []
+    },
+    // ================ PASTA ================
+    {
+      _id: '13',
       name: "CHORIZO JALAPENO",
       description: "Spicy pasta with chorizo and jalapeño peppers",
       price: 200,
@@ -53,7 +216,7 @@ function PosSystem() {
       addons: []
     },
     {
-      _id: '2',
+      _id: '14',
       name: "CLASSIC CARBONARA",
       description: "Creamy pasta with bacon, egg, and parmesan",
       price: 220,
@@ -65,12 +228,49 @@ function PosSystem() {
       addons: []
     },
     {
-      _id: '3',
-      name: "THICK CUT BACON SANDWICH",
+      _id: '15',
+      name: "SPANISH STYLE",
+      description: "Spanish-inspired pasta with chorizo and paprika",
+      price: 190,
+      category: "Pasta",
+      image: "SpanishStyle.jpg",
+      preparationTime: 15,
+      tags: ["spicy"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '16',
+      name: "FILIPINO STYLE",
+      description: "Local Filipino-style pasta with a sweet twist",
+      price: 190,
+      category: "Pasta",
+      image: "Pinoystyle.jpg",
+      preparationTime: 15,
+      tags: ["sweet", "local"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '17',
+      name: "SEAFOOD PASTA",
+      description: "Pasta with mixed seafood in white wine sauce",
+      price: 220,
+      category: "Pasta",
+      image: "",
+      preparationTime: 20,
+      tags: ["seafood"],
+      modifiers: [],
+      addons: []
+    },
+    // ================ SANDWICHES ================
+    {
+      _id: '18',
+      name: "THICK CUT BACON",
       description: "Sandwich with thick-cut bacon and fresh vegetables",
       price: 180,
       category: "Sandwiches",
-      image: "ThickCutBacon.jpg",
+      image: "ThickCutBacon.JPG",
       preparationTime: 12,
       tags: ["bacon", "popular"],
       modifiers: [],
@@ -79,12 +279,88 @@ function PosSystem() {
       ]
     },
     {
-      _id: '4',
+      _id: '19',
+      name: "CRISPY CHIX",
+      description: "Crispy chicken sandwich with your choice of sauce",
+      price: 170,
+      category: "Sandwiches",
+      image: "CrispyChix.JPG",
+      preparationTime: 15,
+      tags: ["chicken", "popular"],
+      modifiers: [
+        {
+          name: "Flavor",
+          required: true,
+          options: [
+            { name: "Buffalo", price: 0 },
+            { name: "BBQ", price: 0 }
+          ]
+        }
+      ],
+      addons: [
+        { name: "Add Cajun Fries", price: 50 }
+      ]
+    },
+    {
+      _id: '20',
+      name: "CHORI CHEESEBURGER",
+      description: "Burger with chorizo patty and melted cheese",
+      price: 180,
+      category: "Sandwiches",
+      image: "Choricheeseburger.JPG",
+      preparationTime: 15,
+      tags: ["chorizo", "burger"],
+      modifiers: [],
+      addons: [
+        { name: "Add Cajun Fries", price: 50 }
+      ]
+    },
+    {
+      _id: '21',
+      name: "BBQ CHEESEBURGER",
+      description: "Classic cheeseburger with BBQ sauce",
+      price: 190,
+      category: "Sandwiches",
+      image: "",
+      preparationTime: 15,
+      tags: ["burger", "bbq"],
+      modifiers: [],
+      addons: [
+        { name: "Add Cajun Fries", price: 50 }
+      ]
+    },
+    // ================ SIDES ================
+    {
+      _id: '22',
+      name: "NACHORIZO",
+      description: "Nachos with chorizo, cheese, and toppings",
+      price: 190,
+      category: "Sides",
+      image: "Nachorizo.jpg",
+      preparationTime: 10,
+      tags: ["chorizo", "snack"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '23',
+      name: "CAJUN FRIES",
+      description: "Crispy fries with cajun seasoning",
+      price: 130,
+      category: "Sides",
+      image: "",
+      preparationTime: 8,
+      tags: ["fries", "snack"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '24',
       name: "CHICKEN WINGS",
       description: "Crispy chicken wings with your choice of flavor",
       price: 260,
       category: "Sides",
-      image: "BuffaloWings12(2).jpg",
+      image: "BuffaloWings12s(2).jpg",
       preparationTime: 20,
       tags: ["chicken", "popular"],
       modifiers: [
@@ -108,8 +384,107 @@ function PosSystem() {
       ],
       addons: []
     },
+    // ================ RICE MEALS ================
     {
-      _id: '5',
+      _id: '25',
+      name: "CHICKEN WINGS RICE MEAL",
+      description: "Chicken wings served with rice",
+      price: 160,
+      category: "Rice Meals",
+      image: "Buffalowingsricemeal.jpg",
+      preparationTime: 15,
+      tags: ["chicken", "rice"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '26',
+      name: "BURGER STEAK RICE MEAL",
+      description: "Burger patty with mushroom gravy and rice",
+      price: 170,
+      category: "Rice Meals",
+      image: "",
+      preparationTime: 15,
+      tags: ["beef", "rice"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '27',
+      name: "HOMEMADE CHORIZO WITH EGG",
+      description: "Homemade chorizo with sunny-side-up egg and rice",
+      price: 160,
+      category: "Rice Meals",
+      image: "Homemadechorizo.jpg",
+      preparationTime: 12,
+      tags: ["chorizo", "egg"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '28',
+      name: "CHICKEN TOCINO WITH EGG",
+      description: "Sweet chicken tocino with egg and rice",
+      price: 170,
+      category: "Rice Meals",
+      image: "Chickentocino.jpg",
+      preparationTime: 12,
+      tags: ["chicken", "sweet", "egg"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '29',
+      name: "BACON STEAK WITH EGG",
+      description: "Bacon steak with sunny-side-up egg and rice",
+      price: 180,
+      category: "Rice Meals",
+      image: "Baconsteak.jpg",
+      preparationTime: 12,
+      tags: ["bacon", "egg"],
+      modifiers: [],
+      addons: []
+    },
+    // ================ YOGURT MILKSHAKES ================
+    {
+      _id: '30',
+      name: "MANGO YOGURT MILKSHAKE",
+      description: "Creamy yogurt milkshake with mango flavor",
+      price: 120,
+      category: "Yogurt Milkshakes",
+      image: "",
+      preparationTime: 8,
+      tags: ["dessert", "refreshing"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '31',
+      name: "STRAWBERRY YOGURT MILKSHAKE",
+      description: "Creamy yogurt milkshake with strawberry flavor",
+      price: 120,
+      category: "Yogurt Milkshakes",
+      image: "",
+      preparationTime: 8,
+      tags: ["dessert", "refreshing"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '32',
+      name: "BLUEBERRY YOGURT MILKSHAKE",
+      description: "Creamy yogurt milkshake with blueberry flavor",
+      price: 120,
+      category: "Yogurt Milkshakes",
+      image: "",
+      preparationTime: 8,
+      tags: ["dessert", "refreshing"],
+      modifiers: [],
+      addons: []
+    },
+    // ================ COFFEE ================
+    {
+      _id: '33',
       name: "AMERICANO",
       description: "Classic black coffee",
       price: 70,
@@ -132,14 +507,249 @@ function PosSystem() {
       ]
     },
     {
-      _id: '6',
-      name: "TEQUILA SUNRISE",
-      description: "Vibrant tequila cocktail with orange juice and grenadine",
-      price: 120,
-      category: "Cocktails",
+      _id: '34',
+      name: "CAFE LATTE",
+      description: "Espresso with steamed milk",
+      price: 100,
+      category: "Coffee",
+      image: "Coffee.jpg",
+      preparationTime: 7,
+      tags: ["coffee", "milk"],
+      modifiers: [
+        {
+          name: "Temperature",
+          required: true,
+          options: [
+            { name: "Hot", price: 90 },
+            { name: "Cold", price: 100 }
+          ]
+        }
+      ],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '35',
+      name: "CAFE MOCHA",
+      description: "Chocolate-flavored latte",
+      price: 100,
+      category: "Coffee",
       image: "",
-      preparationTime: 8,
-      tags: ["alcoholic", "popular"],
+      preparationTime: 7,
+      tags: ["coffee", "chocolate"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '36',
+      name: "VANILLA LATTE",
+      description: "Latte with vanilla flavor",
+      price: 105,
+      category: "Coffee",
+      image: "",
+      preparationTime: 7,
+      tags: ["coffee", "vanilla"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '37',
+      name: "SPANISH LATTE",
+      description: "Latte with condensed milk",
+      price: 105,
+      category: "Coffee",
+      image: "SpanishLatte.jpg",
+      preparationTime: 7,
+      tags: ["coffee", "sweet"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '38',
+      name: "CARAMEL LATTE",
+      description: "Latte with caramel flavor",
+      price: 105,
+      category: "Coffee",
+      image: "",
+      preparationTime: 7,
+      tags: ["coffee", "caramel"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '39',
+      name: "HAZELNUT LATTE",
+      description: "Latte with hazelnut flavor",
+      price: 105,
+      category: "Coffee",
+      image: "",
+      preparationTime: 7,
+      tags: ["coffee", "nutty"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '40',
+      name: "SALTED LATTE",
+      description: "Latte with a hint of salt",
+      price: 105,
+      category: "Coffee",
+      image: "Coffee.jpg",
+      preparationTime: 7,
+      tags: ["coffee", "salted"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '41',
+      name: "SALTED CARAMEL LATTE",
+      description: "Latte with salted caramel flavor",
+      price: 110,
+      category: "Coffee",
+      image: "",
+      preparationTime: 7,
+      tags: ["coffee", "caramel", "salted"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    {
+      _id: '42',
+      name: "COCO-FREE (COCONUT MILK LATTE)",
+      description: "Latte made with coconut milk",
+      price: 110,
+      category: "Coffee",
+      image: "",
+      preparationTime: 7,
+      tags: ["coffee", "dairy-free", "coconut"],
+      modifiers: [],
+      addons: [
+        { name: "Add Double Shot", price: 25 }
+      ]
+    },
+    // ================ COOLERS ================
+    {
+      _id: '43',
+      name: "ALIMENTO SUNRISE",
+      description: "Refreshing sunrise cooler",
+      price: 140,
+      category: "Coolers",
+      image: "",
+      preparationTime: 5,
+      tags: ["refreshing", "non-alcoholic"],
+      modifiers: [
+        {
+          name: "Temperature",
+          required: true,
+          options: [
+            { name: "Hot", price: 75 },
+            { name: "Cold", price: 140 }
+          ]
+        }
+      ],
+      addons: []
+    },
+    {
+      _id: '44',
+      name: "ALIMENTO CUCUMBER LEMONADE",
+      description: "Refreshing cucumber lemonade",
+      price: 140,
+      category: "Coolers",
+      image: "",
+      preparationTime: 5,
+      tags: ["refreshing", "non-alcoholic"],
+      modifiers: [
+        {
+          name: "Temperature",
+          required: true,
+          options: [
+            { name: "Hot", price: 75 },
+            { name: "Cold", price: 140 }
+          ]
+        }
+      ],
+      addons: []
+    },
+    {
+      _id: '45',
+      name: "ALIMENTO ICED TEA",
+      description: "Refreshing iced tea",
+      price: 140,
+      category: "Coolers",
+      image: "",
+      preparationTime: 5,
+      tags: ["refreshing", "non-alcoholic"],
+      modifiers: [
+        {
+          name: "Temperature",
+          required: true,
+          options: [
+            { name: "Hot", price: 75 },
+            { name: "Cold", price: 140 }
+          ]
+        }
+      ],
+      addons: []
+    },
+    {
+      _id: '46',
+      name: "COKE",
+      description: "Regular Coca-Cola",
+      price: 65,
+      category: "Coolers",
+      image: "",
+      preparationTime: 2,
+      tags: ["soda"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '47',
+      name: "COKE ZERO",
+      description: "Coca-Cola Zero Sugar",
+      price: 65,
+      category: "Coolers",
+      image: "",
+      preparationTime: 2,
+      tags: ["soda", "zero-sugar"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '48',
+      name: "SPRITE",
+      description: "Lemon-lime soda",
+      price: 65,
+      category: "Coolers",
+      image: "",
+      preparationTime: 2,
+      tags: ["soda", "lemon-lime"],
+      modifiers: [],
+      addons: []
+    },
+    {
+      _id: '49',
+      name: "RITE N LITE",
+      description: "Light and refreshing drink",
+      price: 60,
+      category: "Coolers",
+      image: "",
+      preparationTime: 2,
+      tags: ["light", "refreshing"],
       modifiers: [],
       addons: []
     }
@@ -359,15 +969,26 @@ function PosSystem() {
   };
 
   // Get image source
-const getImageSource = (imageName) => {
-  if (!imageName) {
-    return '/images/food/placeholder.jpg';
-  }
-  
-  // For local development, use public folder
-  // Your images should be in: frontend/public/images/food/
-  return `/images/food/${imageName}`;
-};
+  const imageMap = {
+    'Chorizojalapeno.jpg': chorizoImg,
+    'Classiccarbonara.jpg': carbonaraImg,
+    'SpanishStyle.jpg': spanishImg,
+    'Pinoystyle.jpg': pinostyImg,
+    'ThickCutBacon.JPG': thickbaconImg,
+    'CrispyChix.JPG': crispychixImg,
+    'Choricheeseburger.JPG': choricheeseImg,
+    'Nachorizo.jpg': nachoImg,
+    'BuffaloWings12s(2).jpg': wingsImg,
+    'Buffalowingsricemeal.jpg': riceWingsImg,
+    'Homemadechorizo.jpg': chorizo_eggImg,
+    'Chickentocino.jpg': tacinoImg,
+    'Baconsteak.jpg': baconsteakImg,
+    'SpanishLatte.jpg': spanishLatteImg,
+  };
+
+  const getImageSource = (imageName) => {
+    return imageMap[imageName] || null;
+  };
 
   // Get category color
   const getCategoryColor = (category) => {
@@ -390,7 +1011,7 @@ const getImageSource = (imageName) => {
       <div className="pos-header">
         <div className="header-left">
           <h1>
-            <span className="logo-icon">🍽️</span>
+            <img src={logoImg} alt="Alimento" className="header-logo" style={{ height: '40px', marginRight: '10px' }} />
             Alimento POS
           </h1>
           <div className="header-stats">
@@ -498,11 +1119,11 @@ const getImageSource = (imageName) => {
                     <div 
                       className="item-image"
                       style={{
-                        backgroundImage: `url(${getImageSource(item.image)})`,
+                        backgroundImage: getImageSource(item.image) ? `url(${getImageSource(item.image)})` : 'none',
                         backgroundColor: getCategoryColor(item.category)
                       }}
                     >
-                      {!item.image && (
+                      {!getImageSource(item.image) && (
                         <span className="image-fallback">
                           {item.name.charAt(0)}
                         </span>
@@ -539,7 +1160,17 @@ const getImageSource = (imageName) => {
                         )}
                       </div>
                       
-                      <button className="add-to-cart-btn">
+                      <button 
+                        className="add-to-cart-btn"
+                        onClick={() => {
+                          if (item.modifiers && item.modifiers.length > 0) {
+                            setSelectedItem(item);
+                            setIsModifierModalOpen(true);
+                          } else {
+                            addToCart(item);
+                          }
+                        }}
+                      >
                         <FaPlus /> Add
                       </button>
                     </div>

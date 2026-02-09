@@ -5,6 +5,7 @@ function Dashboard() {
     const [orders, setOrders] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [updatingOrderId, setUpdatingOrderId] = useState(null);
     const [dashboardData, setDashboardData] = useState({
         totalRevenue: 0,
         todayRevenue: 0,
@@ -28,37 +29,111 @@ function Dashboard() {
         try {
             setRefreshing(true);
             
-            // Simulate API delay for smooth animation
-            await new Promise(resolve => setTimeout(resolve, 300));
-            
-            // Fetch all orders summary
-            const ordersResponse = await fetch('http://localhost:5000/api/orders');
+            // Fetch all orders from backend
+            const ordersResponse = await fetch('http://localhost:5000/api/orders?limit=200');
             const ordersData = await ordersResponse.json();
             
+            console.log('Dashboard API Response:', ordersData);
+            
             if (ordersData.success) {
-                setOrders(ordersData.data.orders);
-                setDashboardData({
-                    totalRevenue: ordersData.data.summary.totalRevenue,
-                    todayRevenue: ordersData.data.summary.todayRevenue,
-                    totalOrders: ordersData.data.summary.totalOrders,
-                    todayOrders: ordersData.data.summary.todayOrders,
-                    averageOrderValue: ordersData.data.summary.averageOrderValue,
-                    topItems: ordersData.data.topItems || []
+                const allOrders = ordersData.orders || [];
+                setOrders(allOrders);
+                
+                // Calculate dashboard stats from orders
+                const totalRevenue = allOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+                const totalOrders = allOrders.length;
+                
+                // Get today's orders
+                const today = new Date();
+                today.setHours(0, 0, 0, 0);
+                const todayOrders = allOrders.filter(order => {
+                    const orderDate = new Date(order.createdAt);
+                    orderDate.setHours(0, 0, 0, 0);
+                    return orderDate.getTime() === today.getTime();
                 });
+                const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
+                
+                // Calculate top items
+                const itemMap = {};
+                allOrders.forEach(order => {
+                    if (order.items) {
+                        order.items.forEach(item => {
+                            if (!itemMap[item.name]) {
+                                itemMap[item.name] = { name: item.name, count: 0 };
+                            }
+                            itemMap[item.name].count += item.quantity || 1;
+                        });
+                    }
+                });
+                
+                const topItems = Object.values(itemMap)
+                    .sort((a, b) => b.count - a.count)
+                    .slice(0, 10);
+                
+                setDashboardData({
+                    totalRevenue,
+                    todayRevenue,
+                    totalOrders,
+                    todayOrders: todayOrders.length,
+                    averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
+                    topItems: topItems
+                });
+                
+                console.log('✅ Dashboard stats calculated:', {
+                    totalRevenue,
+                    todayRevenue,
+                    totalOrders,
+                    todayOrders: todayOrders.length
+                });
+            } else {
+                console.error('API Response not successful:', ordersData);
             }
             
             setLoading(false);
             setRefreshing(false);
         } catch (error) {
-            console.error('Error fetching dashboard data:', error);
+            console.error('❌ Error fetching dashboard data:', error);
             setLoading(false);
             setRefreshing(false);
         }
     };
 
+    // Update order status
+    const handleUpdateOrderStatus = async (orderId, newStatus) => {
+        setUpdatingOrderId(orderId);
+        try {
+            const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update order: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            
+            if (result.success) {
+                // Update the local state
+                setOrders(orders.map(order => 
+                    order._id === orderId ? { ...order, status: newStatus } : order
+                ));
+                console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+            }
+        } catch (error) {
+            console.error('❌ Error updating order status:', error);
+            alert('Failed to update order status');
+        } finally {
+            setUpdatingOrderId(null);
+        }
+    };
+
     // Calculate recent orders (last 5)
     const recentOrders = orders
-        .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
+        .sort((a, b) => new Date(b.createdAt || b.timestamp) - new Date(a.createdAt || a.timestamp))
         .slice(0, 5);
 
     // Format currency
@@ -68,10 +143,13 @@ function Dashboard() {
 
     // Format date
     const formatDate = (dateString) => {
+        if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleTimeString([], { 
+        return date.toLocaleString([], { 
             hour: '2-digit', 
-            minute: '2-digit'
+            minute: '2-digit',
+            month: '2-digit',
+            day: '2-digit'
         });
     };
 
@@ -204,17 +282,56 @@ function Dashboard() {
                             <tbody>
                                 {recentOrders.length > 0 ? (
                                     recentOrders.map((order) => (
-                                        <tr key={order.id || order.orderNumber}>
+                                        <tr key={order._id || order.id || order.orderNumber}>
                                             <td className="order-number">#{order.orderNumber}</td>
                                             <td className="table-number">Table {order.tableNumber}</td>
-                                            <td>{formatDate(order.timestamp)}</td>
+                                            <td>{formatDate(order.createdAt || order.timestamp)}</td>
                                             <td className="order-total">
                                                 {formatCurrency(order.totalAmount || order.total || 0)}
                                             </td>
                                             <td>
-                                                <span className={`order-status status-${order.status.toLowerCase()}`}>
-                                                    {order.status}
-                                                </span>
+                                                <div className="status-cell">
+                                                    <span className={`order-status status-${order.status.toLowerCase()}`}>
+                                                        {order.status}
+                                                    </span>
+                                                    <div className="status-dropdown">
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order._id, 'pending')}
+                                                            disabled={updatingOrderId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Pending
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order._id, 'preparing')}
+                                                            disabled={updatingOrderId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Preparing
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order._id, 'ready')}
+                                                            disabled={updatingOrderId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Ready
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order._id, 'served')}
+                                                            disabled={updatingOrderId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Served
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleUpdateOrderStatus(order._id, 'completed')}
+                                                            disabled={updatingOrderId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Completed
+                                                        </button>
+                                                    </div>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))

@@ -273,9 +273,9 @@ body {
 /* Menu Items Grid */
 .menu-items-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1rem;
-  padding: 1rem;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1.5rem;
+  padding: 1.5rem;
   overflow-y: auto;
   flex: 1;
 }
@@ -283,25 +283,29 @@ body {
 .menu-item-card {
   background: white;
   border-radius: var(--border-radius);
-  border: 1px solid var(--gray-200);
+  border: 3px solid var(--teal-light);
   overflow: hidden;
   transition: var(--transition);
   cursor: pointer;
   display: flex;
   flex-direction: column;
   position: relative;
+  box-shadow: 0 2px 8px rgba(0, 121, 107, 0.1);
+  height: 480px;
+  width: 100%;
 }
 
 .menu-item-card:hover {
   transform: translateY(-4px);
-  box-shadow: var(--shadow-lg);
-  border-color: var(--teal-light);
+  box-shadow: 0 8px 16px rgba(0, 121, 107, 0.2);
+  border-color: var(--teal-dark);
 }
 
 .item-image-container {
   position: relative;
-  height: 150px;
+  height: 160px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .item-image {
@@ -353,14 +357,17 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
+  background: white;
+  min-height: 0;
 }
 
 .item-name {
   margin: 0 0 0.5rem 0;
   font-size: 1rem;
   font-weight: 600;
-  color: var(--gray-900);
+  color: var(--teal-dark);
   line-height: 1.3;
+  display: block;
 }
 
 .item-description {
@@ -373,13 +380,16 @@ body {
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.8em;
 }
 
 .item-footer {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-end;
   margin-top: auto;
+  gap: 1rem;
+  flex-wrap: wrap;
 }
 
 .item-price-tags {

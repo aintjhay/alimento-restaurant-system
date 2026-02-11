@@ -362,6 +362,43 @@ body {
   display: inline-block;
 }
 
+.payment-status {
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  background: var(--gray-100);
+  color: var(--gray-700);
+  display: inline-block;
+}
+
+.payment-payment_pending_verification {
+  background: var(--warning);
+  color: white;
+}
+
+.payment-payment_verified {
+  background: var(--teal-main);
+  color: white;
+}
+
+.payment-paid {
+  background: var(--success);
+  color: white;
+}
+
+.proof-link {
+  color: var(--teal-main);
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.proof-muted {
+  color: var(--gray-500);
+  font-size: 0.8rem;
+}
+
 .status-pending {
   background: rgba(33, 150, 243, 0.1);
   color: var(--pending);

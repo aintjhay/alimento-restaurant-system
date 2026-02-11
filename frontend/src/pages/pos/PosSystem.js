@@ -1160,17 +1160,7 @@ function PosSystem() {
                         )}
                       </div>
                       
-                      <button 
-                        className="add-to-cart-btn"
-                        onClick={() => {
-                          if (item.modifiers && item.modifiers.length > 0) {
-                            setSelectedItem(item);
-                            setIsModifierModalOpen(true);
-                          } else {
-                            addToCart(item);
-                          }
-                        }}
-                      >
+                      <button className="add-to-cart-btn">
                         <FaPlus /> Add
                       </button>
                     </div>

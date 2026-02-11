@@ -63,6 +63,7 @@ const orderSchema = new mongoose.Schema({
   },
   customerName: String,
   customerContact: String,
+  customerAddress: String,
   items: [orderItemSchema],
   subtotal: {
     type: Number,
@@ -77,6 +78,11 @@ const orderSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  deliveryFee: {
+    type: Number,
+    default: 0,
+    min: 0
+  },
   totalAmount: {
     type: Number,
     required: true,
@@ -89,7 +95,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentStatus: {
     type: String,
-    enum: ['unpaid', 'paid', 'partially_paid', 'refunded'],
+    enum: ['unpaid', 'payment_pending_verification', 'payment_verified', 'paid', 'partially_paid', 'refunded'],
     default: 'unpaid'
   },
   paymentMethod: {
@@ -97,6 +103,8 @@ const orderSchema = new mongoose.Schema({
     enum: ['cash', 'card', 'gcash', 'maya', 'bank_transfer', 'others'],
     default: 'cash'
   },
+  paymentProof: String,
+  paymentVerifiedAt: Date,
   notes: String,
   serverName: String,
   cookingTime: Number, // in minutes
@@ -152,7 +160,8 @@ orderSchema.pre('save', async function(next) {
     this.taxAmount = this.subtotal * 0.12;
     
     // Calculate total
-    this.totalAmount = this.subtotal + this.taxAmount - this.discount;
+    const deliveryFee = this.deliveryFee || 0;
+    this.totalAmount = this.subtotal + this.taxAmount - this.discount + deliveryFee;
   }
   
   this.updatedAt = new Date();

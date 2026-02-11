@@ -6,6 +6,7 @@ function Dashboard() {
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
+    const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
     const [dashboardData, setDashboardData] = useState({
         totalRevenue: 0,
         todayRevenue: 0,
@@ -128,6 +129,35 @@ function Dashboard() {
             alert('Failed to update order status');
         } finally {
             setUpdatingOrderId(null);
+        }
+    };
+
+    const handleUpdatePaymentStatus = async (orderId, newStatus) => {
+        setUpdatingPaymentId(orderId);
+        try {
+            const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
+                method: 'PUT',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ paymentStatus: newStatus })
+            });
+
+            if (!response.ok) {
+                throw new Error(`Failed to update payment status: ${response.statusText}`);
+            }
+
+            const result = await response.json();
+            if (result.success) {
+                setOrders(orders.map(order =>
+                    order._id === orderId ? { ...order, paymentStatus: newStatus } : order
+                ));
+            }
+        } catch (error) {
+            console.error('❌ Error updating payment status:', error);
+            alert('Failed to update payment status');
+        } finally {
+            setUpdatingPaymentId(null);
         }
     };
 
@@ -276,6 +306,8 @@ function Dashboard() {
                                     <th>Table</th>
                                     <th>Time</th>
                                     <th>Total</th>
+                                    <th>Payment</th>
+                                    <th>Proof</th>
                                     <th>Status</th>
                                 </tr>
                             </thead>
@@ -288,6 +320,50 @@ function Dashboard() {
                                             <td>{formatDate(order.createdAt || order.timestamp)}</td>
                                             <td className="order-total">
                                                 {formatCurrency(order.totalAmount || order.total || 0)}
+                                            </td>
+                                            <td>
+                                                <div className="status-cell">
+                                                    <span className={`payment-status payment-${(order.paymentStatus || 'unpaid')}`}>
+                                                        {order.paymentStatus || 'unpaid'}
+                                                    </span>
+                                                    <div className="status-dropdown">
+                                                        <button
+                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'payment_pending_verification')}
+                                                            disabled={updatingPaymentId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Payment Pending
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'payment_verified')}
+                                                            disabled={updatingPaymentId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Payment Verified
+                                                        </button>
+                                                        <button
+                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'paid')}
+                                                            disabled={updatingPaymentId === order._id}
+                                                            className="status-option"
+                                                        >
+                                                            Paid
+                                                        </button>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td>
+                                                {order.paymentProof ? (
+                                                    <a
+                                                        className="proof-link"
+                                                        href={order.paymentProof}
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                    >
+                                                        View
+                                                    </a>
+                                                ) : (
+                                                    <span className="proof-muted">None</span>
+                                                )}
                                             </td>
                                             <td>
                                                 <div className="status-cell">
@@ -337,7 +413,7 @@ function Dashboard() {
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="5">
+                                        <td colSpan="7">
                                             <div className="empty-state">
                                                 <div className="empty-state-icon">📋</div>
                                                 <p className="empty-state-text">No orders yet</p>

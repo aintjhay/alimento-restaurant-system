@@ -1,13 +1,13 @@
 // Image utility functions
 export const getFoodImage = (imageName) => {
-  if (!imageName) return require('../assets/images/food/placeholder.jpg');
+  if (!imageName) return '/images/food/placeholder.jpg';
   
   try {
-    // Try to load the image
-    return require(`../assets/images/food/${imageName}`);
+    // Try to load the image from public folder
+    return `/images/food/${imageName}`;
   } catch (error) {
     console.warn(`Image not found: ${imageName}, using placeholder`);
-    return require('../assets/images/food/placeholder.jpg');
+    return '/images/food/placeholder.jpg';
   }
 };
 

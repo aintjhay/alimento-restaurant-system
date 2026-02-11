@@ -13,12 +13,19 @@ router.post('/', async (req, res) => {
             orderNumber = `ORD-${String(nextNumber).padStart(5, '0')}`;
         }
 
+        const resolvedPaymentStatus = req.body.paymentStatus ||
+            (req.body.paymentMethod === 'gcash' ? 'payment_pending_verification' : 'unpaid');
+
         const orderData = {
             ...req.body,
             orderNumber: orderNumber,
             status: 'pending',
-            paymentStatus: 'unpaid'
+            paymentStatus: resolvedPaymentStatus
         };
+
+        if (resolvedPaymentStatus === 'payment_verified') {
+            orderData.paymentVerifiedAt = new Date();
+        }
 
         const order = new Order(orderData);
         await order.save();
@@ -160,11 +167,20 @@ router.get('/top-items', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, paymentStatus } = req.body;
+
+        const update = { updatedAt: new Date() };
+        if (status) update.status = status;
+        if (paymentStatus) {
+            update.paymentStatus = paymentStatus;
+            if (paymentStatus === 'payment_verified') {
+                update.paymentVerifiedAt = new Date();
+            }
+        }
 
         const order = await Order.findByIdAndUpdate(
             id,
-            { status: status, updatedAt: new Date() },
+            update,
             { new: true }
         );
 
@@ -190,11 +206,20 @@ router.patch('/:id/status', async (req, res) => {
 router.put('/:id', async (req, res) => {
     try {
         const { id } = req.params;
-        const { status } = req.body;
+        const { status, paymentStatus } = req.body;
+
+        const update = { updatedAt: new Date() };
+        if (status) update.status = status;
+        if (paymentStatus) {
+            update.paymentStatus = paymentStatus;
+            if (paymentStatus === 'payment_verified') {
+                update.paymentVerifiedAt = new Date();
+            }
+        }
 
         const order = await Order.findByIdAndUpdate(
             id,
-            { status: status, updatedAt: new Date() },
+            update,
             { new: true }
         );
 

@@ -1,30 +1,15 @@
 import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
 import './PosSystem.css';
-
-// Import icons
+import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import { 
   FaCoffee, FaHamburger, FaPizzaSlice, FaGlassMartiniAlt, 
   FaUtensils, FaIceCream, FaWineBottle, FaSearch,
   FaShoppingCart, FaTrash, FaPlus, FaMinus
 } from 'react-icons/fa';
 
-// Import images
+// Import logo
 import logoImg from '../../assets/images/logo/alimentologo.png';
-import chorizoImg from '../../assets/images/food/Chorizojalapeno.jpg';
-import carbonaraImg from '../../assets/images/food/Classiccarbonara.jpg';
-import spanishImg from '../../assets/images/food/SpanishStyle.jpg';
-import pinostyImg from '../../assets/images/food/Pinoystyle.jpg';
-import thickbaconImg from '../../assets/images/food/ThickCutBacon.JPG';
-import crispychixImg from '../../assets/images/food/CrispyChix.JPG';
-import choricheeseImg from '../../assets/images/food/Choricheeseburger.JPG';
-import nachoImg from '../../assets/images/food/Nachorizo.jpg';
-import wingsImg from '../../assets/images/food/BuffaloWings12s(2).jpg';
-import riceWingsImg from '../../assets/images/food/Buffalowingsricemeal.jpg';
-import chorizo_eggImg from '../../assets/images/food/Homemadechorizo.jpg';
-import tacinoImg from '../../assets/images/food/Chickentocino.jpg';
-import baconsteakImg from '../../assets/images/food/Baconsteak.jpg';
-import spanishLatteImg from '../../assets/images/food/SpanishLatte.jpg';
 
 function PosSystem() {
   // States
@@ -896,6 +881,10 @@ function PosSystem() {
     return calculateSubtotal() + calculateTax();
   };
 
+  const calculateTotalItems = () => {
+    return cart.reduce((sum, item) => sum + item.quantity, 0);
+  };
+
   // Submit order
   const handleSubmitOrder = async () => {
     if (cart.length === 0) {
@@ -969,25 +958,9 @@ function PosSystem() {
   };
 
   // Get image source
-  const imageMap = {
-    'Chorizojalapeno.jpg': chorizoImg,
-    'Classiccarbonara.jpg': carbonaraImg,
-    'SpanishStyle.jpg': spanishImg,
-    'Pinoystyle.jpg': pinostyImg,
-    'ThickCutBacon.JPG': thickbaconImg,
-    'CrispyChix.JPG': crispychixImg,
-    'Choricheeseburger.JPG': choricheeseImg,
-    'Nachorizo.jpg': nachoImg,
-    'BuffaloWings12s(2).jpg': wingsImg,
-    'Buffalowingsricemeal.jpg': riceWingsImg,
-    'Homemadechorizo.jpg': chorizo_eggImg,
-    'Chickentocino.jpg': tacinoImg,
-    'Baconsteak.jpg': baconsteakImg,
-    'SpanishLatte.jpg': spanishLatteImg,
-  };
-
+  // Use the utility function for all image lookups
   const getImageSource = (imageName) => {
-    return imageMap[imageName] || null;
+    return getFoodImage(imageName);
   };
 
   // Get category color
@@ -1015,9 +988,6 @@ function PosSystem() {
             Alimento POS
           </h1>
           <div className="header-stats">
-            <span className="stat-item">
-              <FaShoppingCart /> {cart.length} items
-            </span>
             <span className="stat-item">
               ₱{calculateTotal().toFixed(2)}
             </span>
@@ -1119,11 +1089,11 @@ function PosSystem() {
                     <div 
                       className="item-image"
                       style={{
-                        backgroundImage: getImageSource(item.image) ? `url(${getImageSource(item.image)})` : 'none',
+                        backgroundImage: item.image ? `url(${getImageSource(item.image)})` : 'none',
                         backgroundColor: getCategoryColor(item.category)
                       }}
                     >
-                      {!getImageSource(item.image) && (
+                      {!item.image && (
                         <span className="image-fallback">
                           {item.name.charAt(0)}
                         </span>
@@ -1175,8 +1145,7 @@ function PosSystem() {
         <div className="cart-section">
           <div className="cart-header">
             <h2>
-              <FaShoppingCart /> Order Cart
-              <span className="cart-count">({cart.length})</span>
+              <FaShoppingCart /> Order Cart ({calculateTotalItems()})
             </h2>
             {cart.length > 0 && (
               <button onClick={clearCart} className="clear-cart-btn">

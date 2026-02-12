@@ -2,6 +2,15 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
+import AlertIcon from '../../components/icons/AlertIcon';
+import CheckIcon from '../../components/icons/CheckIcon';
+import EmailIcon from '../../components/icons/EmailIcon';
+import LockIcon from '../../components/icons/LockIcon';
+import EyeIcon from '../../components/icons/EyeIcon';
+import EyeOffIcon from '../../components/icons/EyeOffIcon';
+import UserIcon from '../../components/icons/UserIcon';
+import XIcon from '../../components/icons/XIcon';
+import ArrowLeftIcon from '../../components/icons/ArrowLeftIcon';
 import './Portal.css';
 
 const PortalLoginRegister = () => {
@@ -24,6 +33,14 @@ const PortalLoginRegister = () => {
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
+
+  // Auto-dismiss errors after 5 seconds
+  React.useEffect(() => {
+    if (error) {
+      const timer = setTimeout(() => setError(''), 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [error]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -83,6 +100,11 @@ const PortalLoginRegister = () => {
       }
       
       setSuccess('Login successful! Redirecting...');
+      // Clear form on successful login
+      setLoginEmail('');
+      setLoginPassword('');
+      setRememberMe(false);
+      
       setTimeout(() => {
         navigate('/portal');
       }, 800);
@@ -138,6 +160,12 @@ const PortalLoginRegister = () => {
       localStorage.setItem('portalCheckoutType', 'registered');
       
       setSuccess('Account created! Redirecting...');
+      // Clear form on successful registration
+      setRegName('');
+      setRegEmail('');
+      setRegPassword('');
+      setRegConfirmPassword('');
+      
       setTimeout(() => {
         navigate('/portal');
       }, 800);
@@ -186,6 +214,11 @@ const PortalLoginRegister = () => {
                     setIsLogin(true);
                     setError('');
                     setSuccess('');
+                    // Clear register form when switching to login
+                    setRegName('');
+                    setRegEmail('');
+                    setRegPassword('');
+                    setRegConfirmPassword('');
                   }}
                 >
                   Login
@@ -196,6 +229,10 @@ const PortalLoginRegister = () => {
                     setIsLogin(false);
                     setError('');
                     setSuccess('');
+                    // Clear login form when switching to register
+                    setLoginEmail('');
+                    setLoginPassword('');
+                    setRememberMe(false);
                   }}
                 >
                   Register
@@ -204,13 +241,13 @@ const PortalLoginRegister = () => {
 
               {error && (
                 <div className="auth-alert auth-error">
-                  <span className="alert-icon">⚠️</span>
+                  <span className="alert-icon"><AlertIcon color="#d32f2f" size={20} /></span>
                   <span>{error}</span>
                 </div>
               )}
               {success && (
                 <div className="auth-alert auth-success">
-                  <span className="alert-icon">✓</span>
+                  <span className="alert-icon"><CheckIcon color="#4caf50" size={20} /></span>
                   <span>{success}</span>
                 </div>
               )}
@@ -221,7 +258,7 @@ const PortalLoginRegister = () => {
                   <div className="form-group">
                     <label htmlFor="login-email">Email Address</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">📧</span>
+                      <span className="input-icon"><EmailIcon /></span>
                       <input
                         id="login-email"
                         type="email"
@@ -231,7 +268,7 @@ const PortalLoginRegister = () => {
                         disabled={loading}
                       />
                       {loginEmail && validateEmail(loginEmail) && (
-                        <span className="input-check">✓</span>
+                        <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
                       )}
                     </div>
                   </div>
@@ -242,13 +279,14 @@ const PortalLoginRegister = () => {
                       <button
                         type="button"
                         className="forgot-pwd-btn"
-                        onClick={() => setError('Password reset feature coming soon!')}
+                        disabled
+                        title="Password reset feature coming soon"
                       >
                         Forgot?
                       </button>
                     </div>
                     <div className="input-wrapper">
-                      <span className="input-icon">🔒</span>
+                      <span className="input-icon"><LockIcon /></span>
                       <input
                         id="login-password"
                         type={showLoginPassword ? 'text' : 'password'}
@@ -263,7 +301,7 @@ const PortalLoginRegister = () => {
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
                         disabled={loading}
                       >
-                        {showLoginPassword ? '👁️' : '👁️‍🗨️'}
+                        {showLoginPassword ? <EyeIcon size={20} /> : <EyeOffIcon size={20} />}
                       </button>
                     </div>
                   </div>
@@ -303,7 +341,7 @@ const PortalLoginRegister = () => {
                   <div className="form-group">
                     <label htmlFor="reg-name">Full Name</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">👤</span>
+                      <span className="input-icon"><UserIcon /></span>
                       <input
                         id="reg-name"
                         type="text"
@@ -313,7 +351,7 @@ const PortalLoginRegister = () => {
                         disabled={loading}
                       />
                       {regName.length >= 2 && (
-                        <span className="input-check">✓</span>
+                        <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
                       )}
                     </div>
                   </div>
@@ -321,7 +359,7 @@ const PortalLoginRegister = () => {
                   <div className="form-group">
                     <label htmlFor="reg-email">Email Address</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">📧</span>
+                      <span className="input-icon"><EmailIcon /></span>
                       <input
                         id="reg-email"
                         type="email"
@@ -331,7 +369,7 @@ const PortalLoginRegister = () => {
                         disabled={loading}
                       />
                       {regEmail && validateEmail(regEmail) && (
-                        <span className="input-check">✓</span>
+                        <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
                       )}
                     </div>
                   </div>
@@ -339,7 +377,7 @@ const PortalLoginRegister = () => {
                   <div className="form-group">
                     <label htmlFor="reg-password">Password</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">🔒</span>
+                      <span className="input-icon"><LockIcon /></span>
                       <input
                         id="reg-password"
                         type={showRegPassword ? 'text' : 'password'}
@@ -354,7 +392,7 @@ const PortalLoginRegister = () => {
                         onClick={() => setShowRegPassword(!showRegPassword)}
                         disabled={loading}
                       >
-                        {showRegPassword ? '👁️' : '👁️‍🗨️'}
+                        {showRegPassword ? <EyeIcon size={20} /> : <EyeOffIcon size={20} />}
                       </button>
                     </div>
                     {regPassword && (
@@ -379,7 +417,7 @@ const PortalLoginRegister = () => {
                   <div className="form-group">
                     <label htmlFor="reg-confirm">Confirm Password</label>
                     <div className="input-wrapper">
-                      <span className="input-icon">🔒</span>
+                      <span className="input-icon"><LockIcon /></span>
                       <input
                         id="reg-confirm"
                         type={showRegConfirm ? 'text' : 'password'}
@@ -394,7 +432,7 @@ const PortalLoginRegister = () => {
                         onClick={() => setShowRegConfirm(!showRegConfirm)}
                         disabled={loading}
                       >
-                        {showRegConfirm ? '👁️' : '👁️‍🗨️'}
+                        {showRegConfirm ? <EyeIcon size={20} /> : <EyeOffIcon size={20} />}
                       </button>
                     </div>
                     {regPassword && regConfirmPassword && (
@@ -404,7 +442,10 @@ const PortalLoginRegister = () => {
                           color: regPassword === regConfirmPassword ? '#4caf50' : '#d32f2f'
                         }}
                       >
-                        {regPassword === regConfirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                        <span style={{ marginRight: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                          {regPassword === regConfirmPassword ? <CheckIcon color="#4caf50" size={16} /> : <XIcon color="#d32f2f" size={16} />}
+                        </span>
+                        {regPassword === regConfirmPassword ? 'Passwords match' : 'Passwords do not match'}
                       </span>
                     )}
                   </div>
@@ -447,7 +488,10 @@ const PortalLoginRegister = () => {
               className="back-link"
               onClick={() => navigate('/portal')}
             >
-              ← Back to Menu
+              <span style={{ marginRight: '6px', display: 'inline-flex', alignItems: 'center' }}>
+                <ArrowLeftIcon size={18} />
+              </span>
+              Back to Menu
             </button>
           </div>
         </div>

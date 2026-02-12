@@ -1,86 +1,171 @@
 const mongoose = require('mongoose');
 const MenuItem = require('./src/models/MenuItem');
 
-// Complete menu with all 49 items
+// Complete menu with all 50+ items - EXACT from Alimento menu
 const completeMenu = [
-  // COCKTAILS
-  { name: "TEQUILA SUNRISE", description: "Vibrant tequila cocktail with orange juice and grenadine", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "popular"], displayOrder: 1 },
-  { name: "PIÑA COLADA", description: "Creamy coconut rum cocktail with pineapple juice", price: 130, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "tropical"], displayOrder: 2 },
-  { name: "MOJITO", description: "Refreshing mint rum cocktail with lime and soda", price: 115, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "refreshing"], displayOrder: 3 },
-  { name: "MARGARITA", description: "Classic tequila cocktail with lime and salt rim", price: 125, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "popular"], displayOrder: 4 },
-  { name: "LONG ISLAND ICED TEA", description: "Strong mixed cocktail with multiple spirits", price: 150, category: "Cocktails", image: "", preparationTime: 10, tags: ["alcoholic", "strong"], displayOrder: 5 },
-  { name: "COSMOPOLITAN", description: "Elegant vodka cocktail with cranberry and lime", price: 128, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "elegant"], displayOrder: 6 },
+  // COCKTAILS - 12 items
+  { name: "TEQUILA SUNRISE", description: "Vibrant tequila cocktail", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "popular"], displayOrder: 1 },
+  { name: "MOJITO", description: "Refreshing mint rum cocktail", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "refreshing"], displayOrder: 2 },
+  { name: "AMARETTO SOUR", description: "Sweet and sour cocktail with amaretto", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic"], displayOrder: 3 },
+  { name: "WHISKY-RETTO", description: "Classic whisky cocktail with a twist", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic"], displayOrder: 4 },
+  { name: "FROZEN BLUEBERRY DAIQUIRI", description: "Frozen rum cocktail with fresh blueberries", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "frozen"], displayOrder: 5 },
+  { name: "BLUE LAGOON", description: "Blue vodka cocktail", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic"], displayOrder: 6 },
+  { name: "MARGARITA", description: "Classic tequila cocktail", price: 110, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "classic"], displayOrder: 7 },
+  { name: "PURPLE HEARTS", description: "Violet cocktail", price: 100, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic"], displayOrder: 8 },
+  { name: "WHISKY SOUR", description: "Whisky cocktail with lemon", price: 90, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic"], displayOrder: 9 },
+  { name: "WHISKY COKE", description: "Whisky with Coke", price: 90, category: "Cocktails", image: "", preparationTime: 5, tags: ["alcoholic"], displayOrder: 10 },
+  { name: "GIN TONIC", description: "Gin and tonic", price: 90, category: "Cocktails", image: "", preparationTime: 5, tags: ["alcoholic"], displayOrder: 11 },
+  { name: "TEQUILA SHOT", description: "Tequila shot", price: 50, category: "Cocktails", image: "", preparationTime: 2, tags: ["alcoholic"], displayOrder: 12 },
 
-  // PASTA
-  { name: "CHORIZO JALAPENO", description: "Spicy pasta with chorizo and jalapeño peppers", price: 200, category: "Pasta", image: "Chorizojalapeno.jpg", preparationTime: 15, tags: ["spicy", "popular"], displayOrder: 7 },
-  { name: "CLASSIC CARBONARA", description: "Creamy pasta with bacon, egg, and parmesan", price: 220, category: "Pasta", image: "Classiccarbonara.jpg", preparationTime: 15, tags: ["creamy", "classic"], displayOrder: 8 },
-  { name: "PINOY SPAGHETTI", description: "Sweet Filipino-style spaghetti with beef", price: 180, category: "Pasta", image: "Pinostylespaghetti.jpg", preparationTime: 15, tags: ["sweet", "popular"], displayOrder: 9 },
-  { name: "THICK BACON PASTA", description: "Hearty pasta loaded with crispy bacon", price: 230, category: "Pasta", image: "Thickbaconpasta.jpg", preparationTime: 15, tags: ["meaty", "bacon"], displayOrder: 10 },
+  // PASTA - 5 items
+  { name: "CHORIZO JALAPENO", description: "Spicy pasta with chorizo and jalapeño", price: 200, category: "Pasta", image: "Chorizojalapeno.jpg", preparationTime: 15, tags: ["spicy", "popular"], displayOrder: 13 },
+  { name: "CLASSIC CARBONARA", description: "Creamy pasta with bacon, egg, and parmesan", price: 220, category: "Pasta", image: "Classiccarbonara.jpg", preparationTime: 15, tags: ["creamy", "classic"], displayOrder: 14 },
+  { name: "SPANISH STYLE", description: "Spanish style pasta", price: 190, category: "Pasta", image: "SpanishStyle.jpg", preparationTime: 15, tags: ["spanish"], displayOrder: 15 },
+  { name: "PINOY STYLE", description: "Filipino style pasta", price: 190, category: "Pasta", image: "Pinoystyle.jpg", preparationTime: 15, tags: ["sweet", "popular"], displayOrder: 16 },
+  { name: "SEAFOOD PASTA", description: "Premium pasta with fresh seafood", price: 220, category: "Pasta", image: "", preparationTime: 20, tags: ["seafood", "premium"], displayOrder: 17 },
 
-  // SANDWICHES
-  { name: "CRISPY CHICKEN SANDWICH", description: "Golden fried chicken on soft bun", price: 160, category: "Sandwiches", image: "Crispychickensandwich.jpg", preparationTime: 12, tags: ["chicken", "popular"], displayOrder: 11 },
-  { name: "CHORIZO CHEESE", description: "Grilled chorizo with melted cheese", price: 180, category: "Sandwiches", image: "Choricocheeseburger.jpg", preparationTime: 12, tags: ["cheesy", "chorizo"], displayOrder: 12 },
-
-  // SIDES
-  { name: "CHICKEN WINGS", description: "Crispy chicken wings with your choice of flavor", price: 260, category: "Sides", image: "BuffaloWings12(2).jpg", preparationTime: 20, tags: ["chicken", "popular"], displayOrder: 13,
+  // SANDWICHES - 4 items (with Cajun Fries add-on)
+  { name: "THICK CUT BACON", description: "Bacon sandwich", price: 180, category: "Sandwiches", image: "ThickCutBacon.JPG", preparationTime: 12, tags: ["bacon", "popular"], displayOrder: 18,
+    addons: [
+      { name: "Cajun Fries", price: 50 }
+    ]
+  },
+  { name: "CRISPY CHIX", description: "Crispy chicken sandwich with choice of sauce", price: 170, category: "Sandwiches", image: "CrispyChix.JPG", preparationTime: 15, tags: ["chicken", "popular"], displayOrder: 19,
     modifiers: [
-      { name: "Size", required: true, options: [{ name: "8pcs", price: 260 }, { name: "12pcs", price: 350 }] },
+      { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }] }
+    ],
+    addons: [
+      { name: "Cajun Fries", price: 50 }
+    ]
+  },
+  { name: "CHORI CHEESEBURGER", description: "Chorizo burger with melted cheese", price: 180, category: "Sandwiches", image: "Choricheeseburger.JPG", preparationTime: 15, tags: ["chorizo", "burger"], displayOrder: 20,
+    addons: [
+      { name: "Cajun Fries", price: 50 }
+    ]
+  },
+  { name: "BBQ CHEESEBURGER", description: "BBQ burger with cheese", price: 190, category: "Sandwiches", image: "", preparationTime: 15, tags: ["burger", "bbq"], displayOrder: 21,
+    addons: [
+      { name: "Cajun Fries", price: 50 }
+    ]
+  },
+
+  // SIDES - 3 items
+  { name: "NACHORIZO", description: "Nachos with chorizo", price: 190, category: "Sides", image: "Nachorizo.jpg", preparationTime: 10, tags: ["chorizo", "snack"], displayOrder: 22 },
+  { name: "CAJUN FRIES", description: "Cajun fries", price: 130, category: "Sides", image: "", preparationTime: 8, tags: ["fries", "snack"], displayOrder: 23 },
+  { name: "CHICKEN WINGS", description: "Crispy chicken wings", price: 260, category: "Sides", image: "Buffalowings12s.jpg", preparationTime: 20, tags: ["chicken", "popular"], displayOrder: 24,
+    modifiers: [
+      { name: "Size", required: true, options: [{ name: "8pcs", price: 0 }, { name: "12pcs", price: 90 }] },
       { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }, { name: "Parmesan", price: 0 }] }
     ]
   },
-  { name: "NACHOS WITH CHEESE", description: "Crispy nachos topped with melted cheese and jalapeños", price: 180, category: "Sides", image: "Nachos.jpg", preparationTime: 10, tags: ["snack", "cheesy"], displayOrder: 14 },
-  { name: "GARLIC FRIES", description: "Crispy fries with garlic butter and parmesan", price: 120, category: "Sides", image: "", preparationTime: 8, tags: ["snack", "popular"], displayOrder: 15 },
 
-  // RICE MEALS
-  { name: "RICE WITH WINGS", description: "Fragrant rice with tender chicken wings", price: 280, category: "Rice Meals", image: "Ricewithwings.jpg", preparationTime: 18, tags: ["chicken", "filling"], displayOrder: 16 },
-  { name: "CHORIZO EGG RICE", description: "Flavorful rice with chorizo and sunny-side up egg", price: 200, category: "Rice Meals", image: "Chorizo_egg_rice.jpg", preparationTime: 15, tags: ["chorizo", "egg"], displayOrder: 17 },
-  { name: "TACINO RICE", description: "Savory rice with Filipino cured meat (tacino)", price: 190, category: "Rice Meals", image: "Tacinorice.jpg", preparationTime: 15, tags: ["meat", "traditional"], displayOrder: 18 },
-  { name: "BACON STEAK RICE", description: "Juicy bacon steak served over fragrant rice", price: 320, category: "Rice Meals", image: "Baconsteak.jpg", preparationTime: 18, tags: ["steak", "bacon"], displayOrder: 19 },
-  { name: "SEAFOOD PASTA", description: "Premium pasta with fresh seafood", price: 350, category: "Rice Meals", image: "", preparationTime: 20, tags: ["seafood", "premium"], displayOrder: 20 },
+  // RICE MEALS - 5 items
+  { name: "CHICKEN WINGS RICE MEAL", description: "Chicken wings with rice", price: 160, category: "Rice Meals", image: "Buffalowingsricemeal.jpg", preparationTime: 15, tags: ["chicken", "rice"], displayOrder: 25 },
+  { name: "BURGER STEAK RICE MEAL", description: "Burger steak with rice", price: 170, category: "Rice Meals", image: "", preparationTime: 15, tags: ["beef", "rice"], displayOrder: 26 },
+  { name: "HOMEMADE CHORIZO WITH EGG", description: "Chorizo with egg and rice", price: 160, category: "Rice Meals", image: "Homemadechorizo.jpg", preparationTime: 12, tags: ["chorizo", "egg"], displayOrder: 27 },
+  { name: "CHICKEN TOCINO WITH EGG", description: "Tocino with egg and rice", price: 170, category: "Rice Meals", image: "Chickentocino.jpg", preparationTime: 12, tags: ["chicken", "sweet"], displayOrder: 28 },
+  { name: "BACON STEAK WITH EGG", description: "Bacon steak with egg and rice", price: 180, category: "Rice Meals", image: "Baconsteak.jpg", preparationTime: 12, tags: ["bacon", "egg"], displayOrder: 29 },
 
-  // YOGURT MILKSHAKES
-  { name: "STRAWBERRY YOGURT SHAKE", description: "Creamy strawberry yogurt milkshake", price: 95, category: "Yogurt Milkshakes", image: "", preparationTime: 5, tags: ["sweet", "fruit"], displayOrder: 21 },
-  { name: "MANGO YOGURT SHAKE", description: "Tropical mango yogurt milkshake", price: 95, category: "Yogurt Milkshakes", image: "", preparationTime: 5, tags: ["sweet", "tropical"], displayOrder: 22 },
-  { name: "BLUEBERRY YOGURT SHAKE", description: "Antioxidant-rich blueberry yogurt shake", price: 100, category: "Yogurt Milkshakes", image: "", preparationTime: 5, tags: ["sweet", "healthy"], displayOrder: 23 },
-  { name: "GREEK YOGURT SHAKE", description: "Thick and creamy Greek yogurt shake", price: 110, category: "Yogurt Milkshakes", image: "", preparationTime: 5, tags: ["thick", "creamy"], displayOrder: 24 },
+  // YOGURT MILKSHAKES - 3 items
+  { name: "MANGO YOGURT MILKSHAKE", description: "Mango yogurt milkshake", price: 120, category: "Yogurt Milkshakes", image: "", preparationTime: 8, tags: ["dessert", "tropical"], displayOrder: 30 },
+  { name: "STRAWBERRY YOGURT MILKSHAKE", description: "Strawberry yogurt milkshake", price: 120, category: "Yogurt Milkshakes", image: "", preparationTime: 8, tags: ["dessert", "fruit"], displayOrder: 31 },
+  { name: "BLUEBERRY YOGURT MILKSHAKE", description: "Blueberry yogurt milkshake", price: 120, category: "Yogurt Milkshakes", image: "", preparationTime: 8, tags: ["dessert", "healthy"], displayOrder: 32 },
 
-  // COFFEE
-  { name: "AMERICANO", description: "Strong espresso with hot water", price: 85, category: "Coffee", image: "", preparationTime: 5, tags: ["coffee", "strong"],
+  // COFFEE - 10 items (with double shot and temp modifiers)
+  { name: "AMERICANO", description: "Strong Italian espresso with hot water", price: 60, category: "Coffee", image: "", preparationTime: 5, tags: ["coffee", "strong"],
     modifiers: [
-      { name: "Temperature", required: true, options: [{ name: "Hot", price: 0 }, { name: "Iced", price: 10 }] },
-      { name: "Size", required: false, options: [{ name: "Regular", price: 0 }, { name: "Large", price: 20 }] }
+      { name: "Temperature", required: true, options: [{ name: "Hot (₱60)", price: 0 }, { name: "Cold (₱70)", price: 10 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
-    displayOrder: 25
+    displayOrder: 33
   },
-  { name: "CAFE LATTE", description: "Smooth espresso with steamed milk", price: 95, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "creamy"],
+  { name: "CAFE LATTE", description: "Espresso with steamed milk", price: 90, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "creamy"],
     modifiers: [
-      { name: "Temperature", required: true, options: [{ name: "Hot", price: 0 }, { name: "Iced", price: 10 }] },
-      { name: "Size", required: false, options: [{ name: "Regular", price: 0 }, { name: "Large", price: 20 }] }
+      { name: "Temperature", required: true, options: [{ name: "Hot (₱90)", price: 0 }, { name: "Cold (₱100)", price: 10 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
-    displayOrder: 26
+    displayOrder: 34
   },
-  { name: "MOCHA", description: "Espresso with steamed milk and chocolate", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "chocolate"],
+  { name: "CAFE MOCHA", description: "Espresso with steamed milk and chocolate", price: 100, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "chocolate"],
     modifiers: [
-      { name: "Temperature", required: true, options: [{ name: "Hot", price: 0 }, { name: "Iced", price: 10 }] }
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
-    displayOrder: 27
+    displayOrder: 35
   },
-  { name: "VANILLA LATTE", description: "Silky latte with vanilla flavoring", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vanilla"], displayOrder: 28 },
-  { name: "CARAMEL LATTE", description: "Sweet latte with caramel drizzle", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"], displayOrder: 29 },
-  { name: "HAZELNUT LATTE", description: "Aromatic latte with hazelnut flavor", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "hazelnut"], displayOrder: 30 },
-  { name: "SALTED CARAMEL LATTE", description: "Perfect balance of sweet caramel and salt", price: 115, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"], displayOrder: 31 },
-  { name: "SPANISH LATTE", description: "Rich latte with condensed milk", price: 105, category: "Coffee", image: "SpanishLatte.jpg", preparationTime: 6, tags: ["coffee", "creamy"], displayOrder: 32 },
-  { name: "COCO-FREE LATTE", description: "Coconut milk latte for dairy-free option", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vegan"], displayOrder: 33 },
+  { name: "VANILLA LATTE", description: "Latte with vanilla flavoring", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vanilla"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 36
+  },
+  { name: "SPANISH LATTE", description: "Latte with condensed milk", price: 105, category: "Coffee", image: "SpanishLatte.jpg", preparationTime: 6, tags: ["coffee", "creamy"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 37
+  },
+  { name: "CARAMEL LATTE", description: "Latte with caramel drizzle", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 38
+  },
+  { name: "HAZELNUT LATTE", description: "Latte with hazelnut flavor", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "hazelnut"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 39
+  },
+  { name: "SALTED LATTE", description: "Latte with a pinch of salt", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "salted"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 40
+  },
+  { name: "SALTED CARAMEL LATTE", description: "Perfect balance of sweet and salt", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 41
+  },
+  { name: "COCO-FREE (COCONUT MILK LATTE)", description: "Coconut milk latte for dairy-free", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vegan"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
+      { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
+    ],
+    displayOrder: 42
+  },
 
-  // COOLERS
-  { name: "ICED LEMON TEA", description: "Refreshing iced lemon tea", price: 80, category: "Coolers", image: "", preparationTime: 5, tags: ["tea", "refreshing"], displayOrder: 34 },
-  { name: "MANGO COOLER", description: "Tropical mango juice cooler", price: 90, category: "Coolers", image: "", preparationTime: 5, tags: ["juice", "tropical"], displayOrder: 35 },
-  { name: "PINEAPPLE COOLER", description: "Sweet pineapple juice cooler", price: 85, category: "Coolers", image: "", preparationTime: 5, tags: ["juice", "tropical"], displayOrder: 36 },
-  { name: "CUCUMBER COOLER", description: "Refreshing cucumber and lime cooler", price: 85, category: "Coolers", image: "", preparationTime: 5, tags: ["juice", "healthy"], displayOrder: 37 },
-  { name: "STRAWBERRY COOLER", description: "Sweet strawberry juice cooler", price: 90, category: "Coolers", image: "", preparationTime: 5, tags: ["juice", "fruit"], displayOrder: 38 },
-  { name: "WATERMELON COOLER", description: "Juicy watermelon cooler with ice", price: 85, category: "Coolers", image: "", preparationTime: 5, tags: ["juice", "refreshing"], displayOrder: 39 },
-  { name: "ICED COFFEE", description: "Chilled coffee over ice", price: 90, category: "Coolers", image: "", preparationTime: 5, tags: ["coffee", "cold"], displayOrder: 40 },
-  { name: "ICED TEA", description: "Classic iced tea with lemon", price: 75, category: "Coolers", image: "", preparationTime: 5, tags: ["tea", "refreshing"], displayOrder: 41 }
+  // COOLERS - 5 items
+  { name: "ALIMENTO SUNRISE", description: "Special sunrise cooler", price: 75, category: "Coolers", image: "", preparationTime: 5, tags: ["refreshing"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Hot (₱75)", price: 0 }, { name: "Cold (₱140)", price: 65 }] }
+    ],
+    displayOrder: 43
+  },
+  { name: "ALIMENTO CUCUMBER LEMONADE", description: "Cucumber lemonade", price: 75, category: "Coolers", image: "", preparationTime: 5, tags: ["refreshing"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Hot (₱75)", price: 0 }, { name: "Cold (₱140)", price: 65 }] }
+    ],
+    displayOrder: 44
+  },
+  { name: "ALIMENTO ICED TEA", description: "Alimento iced tea", price: 75, category: "Coolers", image: "", preparationTime: 5, tags: ["tea"],
+    modifiers: [
+      { name: "Temperature", required: true, options: [{ name: "Hot (₱75)", price: 0 }, { name: "Cold (₱140)", price: 65 }] }
+    ],
+    displayOrder: 45
+  },
+  { name: "COKE", description: "Coca-Cola soft drink", price: 65, category: "Coolers", image: "", preparationTime: 2, tags: ["soda"], displayOrder: 46 },
+  { name: "COKE ZERO", description: "Coca-Cola Zero sugar", price: 65, category: "Coolers", image: "", preparationTime: 2, tags: ["soda"], displayOrder: 47 },
+  { name: "SPRITE", description: "Lemon-lime soft drink", price: 65, category: "Coolers", image: "", preparationTime: 2, tags: ["soda"], displayOrder: 48 },
+  { name: "RITE N LITE", description: "Rite n Lite beverage", price: 60, category: "Coolers", image: "", preparationTime: 2, tags: ["soda"], displayOrder: 49 }
 ];
 
 async function quickSeed() {

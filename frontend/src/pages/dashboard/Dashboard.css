@@ -263,7 +263,14 @@ body {
   background: white;
   border-radius: var(--border-radius);
   border: 1px solid var(--gray-200);
-  overflow: hidden;
+  overflow: visible;
+  position: relative;
+}
+
+.table-container {
+  overflow-x: auto;
+  overflow-y: visible;
+  position: relative;
 }
 
 .recent-orders-header {
@@ -272,6 +279,9 @@ body {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  background: white;
+  position: relative;
+  z-index: 10;
 }
 
 .recent-orders-header h2 {
@@ -315,16 +325,21 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.5px;
   border-bottom: 1px solid var(--gray-200);
+  white-space: nowrap;
 }
 
 .orders-table td {
   padding: 1.25rem 1.5rem;
   border-bottom: 1px solid var(--gray-100);
   font-size: 0.875rem;
+  position: relative;
+  overflow: visible;
+  white-space: nowrap;
 }
 
 .orders-table tbody tr {
   transition: var(--transition);
+  position: relative;
 }
 
 .orders-table tbody tr:hover {
@@ -339,10 +354,12 @@ body {
   font-weight: 600;
   color: var(--teal-main);
   font-family: 'Poppins', monospace;
+  white-space: nowrap;
 }
 
 .table-number {
   font-weight: 500;
+  white-space: nowrap;
 }
 
 .order-items {
@@ -359,7 +376,16 @@ body {
   font-weight: 600;
   padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.order-status svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .payment-status {
@@ -370,7 +396,16 @@ body {
   text-transform: capitalize;
   background: var(--gray-100);
   color: var(--gray-700);
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  white-space: nowrap;
+}
+
+.payment-status svg {
+  width: 12px;
+  height: 12px;
+  flex-shrink: 0;
 }
 
 .payment-payment_pending_verification {
@@ -385,6 +420,21 @@ body {
 
 .payment-paid {
   background: var(--success);
+  color: white;
+}
+
+.payment-unpaid {
+  background: var(--error);
+  color: white;
+}
+
+.payment-partially-paid {
+  background: #ff9800;
+  color: white;
+}
+
+.payment-refunded {
+  background: var(--gray-600);
   color: white;
 }
 
@@ -414,34 +464,133 @@ body {
   color: var(--success);
 }
 
+.status-served {
+  background: rgba(0, 150, 136, 0.1);
+  color: var(--teal-main);
+}
+
 .status-completed {
   background: var(--teal-50);
   color: var(--teal-main);
 }
 
+/* Floating Dropdown Portal */
+.floating-dropdown {
+  position: fixed !important;
+  z-index: 9999 !important;
+  animation: slideUp 0.2s ease-out;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.status-dropdown-menu {
+  background: white;
+  border: 2px solid var(--teal-main);
+  border-radius: 8px;
+  box-shadow: 0 15px 50px rgba(0, 0, 0, 0.3);
+  min-width: 200px;
+  overflow: hidden;
+}
+
+.status-dropdown-menu .status-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: var(--gray-700);
+  transition: var(--transition);
+}
+
+.status-dropdown-menu .status-option svg {
+  width: 16px;
+  height: 16px;
+  flex-shrink: 0;
+  color: var(--teal-main);
+  transition: color 0.2s ease;
+}
+
+.status-dropdown-menu .status-option span {
+  flex: 1;
+}
+
+.status-dropdown-menu .status-option:first-child {
+  border-radius: 6px 6px 0 0;
+}
+
+.status-dropdown-menu .status-option:last-child {
+  border-radius: 0 0 6px 6px;
+}
+
+.status-dropdown-menu .status-option:hover {
+  background: var(--teal-main);
+  color: white;
+  font-weight: 600;
+  padding-left: 1.25rem;
+}
+
+.status-dropdown-menu .status-option:hover svg {
+  color: white;
+}
+
+.status-dropdown-menu .status-option:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: var(--gray-100);
+}
+
+/* Hide old inline dropdowns */
+.status-dropdown {
+  display: none !important;
+}
+
 /* Status Dropdown Cell */
 .status-cell {
   position: relative;
-  display: inline-block;
-  width: 100%;
-}
-
-.status-cell:hover .status-dropdown {
-  display: block;
-}
-
-.status-dropdown {
-  display: none;
-  position: absolute;
-  top: 100%;
-  left: 0;
-  background: white;
-  border: 1px solid var(--gray-300);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  width: auto;
+  padding: 0.5rem 0.75rem;
   border-radius: 8px;
-  box-shadow: var(--shadow-lg);
-  z-index: 1000;
-  min-width: 140px;
-  margin-top: 0.5rem;
+  cursor: pointer;
+  transition: var(--transition);
+  z-index: 100;
+  user-select: none;
+}
+
+.status-cell:hover {
+  background-color: var(--teal-light);
+  transform: translateY(-2px);
+}
+
+.status-cell.payment-cell:hover {
+  background-color: rgba(255, 193, 7, 0.1);
+}
+
+.status-cell.order-cell:hover {
+  background-color: rgba(76, 175, 80, 0.1);
+}
+
+.status-indicator {
+  font-size: 0.65rem;
+  opacity: 0.4;
+  transition: var(--transition);
 }
 
 .status-option {
@@ -459,22 +608,24 @@ body {
 }
 
 .status-option:first-child {
-  border-radius: 7px 7px 0 0;
+  border-radius: 6px 6px 0 0;
 }
 
 .status-option:last-child {
-  border-radius: 0 0 7px 7px;
+  border-radius: 0 0 6px 6px;
 }
 
 .status-option:hover {
-  background: var(--teal-light);
-  color: var(--teal-accent);
+  background: var(--teal-main);
+  color: white;
   font-weight: 600;
+  padding-left: 1.25rem;
 }
 
 .status-option:disabled {
   opacity: 0.5;
   cursor: not-allowed;
+  background: var(--gray-100);
 }
 
 /* Top Items - Clean List */

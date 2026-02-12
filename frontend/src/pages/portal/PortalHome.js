@@ -4,6 +4,8 @@ import { menuAPI } from '../../services/api';
 import { getCategoryIcon, getFoodImage, getItemColor } from '../../utils/imageUtils';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
+import CartModal from '../../components/portal/CartModal';
+import { FaSearch, FaTimes } from 'react-icons/fa';
 import './Portal.css';
 
 const CART_KEY = 'portalCart';
@@ -19,6 +21,7 @@ const PortalHome = () => {
   const [selectedModifiers, setSelectedModifiers] = useState({});
   const [selectedAddons, setSelectedAddons] = useState({});
   const [specialInstructions, setSpecialInstructions] = useState('');
+  const [showCartModal, setShowCartModal] = useState(false);
 
   useEffect(() => {
     const savedCart = localStorage.getItem(CART_KEY);
@@ -185,7 +188,7 @@ const PortalHome = () => {
 
   return (
     <div className="portal-page">
-      <PortalHeader />
+      <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
       
       <header className="portal-hero">
         <div className="portal-hero-content">
@@ -193,12 +196,22 @@ const PortalHome = () => {
           <h1>Order online for delivery</h1>
           <p className="portal-subtitle">Choose from our bestsellers and pay via GCash. We will verify and prepare right away.</p>
           <div className="portal-search">
+            <FaSearch className="search-icon" />
             <input
               type="text"
               value={searchTerm}
               onChange={(event) => setSearchTerm(event.target.value)}
-              placeholder="Search menu items"
+              placeholder="Search menu items..."
             />
+            {searchTerm && (
+              <button 
+                className="search-clear" 
+                onClick={() => setSearchTerm('')}
+                aria-label="Clear search"
+              >
+                <FaTimes />
+              </button>
+            )}
           </div>
         </div>
       </header>
@@ -237,6 +250,11 @@ const PortalHome = () => {
                     <span className="image-fallback">
                       {item.name.charAt(0)}
                     </span>
+                  )}
+                  {(item.modifiers && item.modifiers.length > 0) && (
+                    <div className="menu-modifier-badge">
+                      ⚙️ Options
+                    </div>
                   )}
                 </div>
                 <div className="menu-card-body">
@@ -313,6 +331,7 @@ const PortalHome = () => {
               <button className="modal-close" onClick={closeModal}>x</button>
             </div>
 
+            <div className="modal-content-wrapper">
             {(modalItem.modifiers || []).map(mod => (
               <div key={mod.name} className="modal-section">
                 <h4>{mod.name}</h4>
@@ -366,6 +385,7 @@ const PortalHome = () => {
                 placeholder="Less ice, extra sauce, etc."
               />
             </div>
+            </div>
 
             <div className="modal-actions">
               <button className="secondary-btn" onClick={closeModal}>Cancel</button>
@@ -373,6 +393,15 @@ const PortalHome = () => {
             </div>
           </div>
         </div>
+      )}
+
+      {showCartModal && (
+        <CartModal 
+          cart={cart}
+          onClose={() => setShowCartModal(false)}
+          onUpdateQuantity={updateQuantity}
+          onCheckout={handleCheckout}
+        />
       )}
 
       <PortalFooter />

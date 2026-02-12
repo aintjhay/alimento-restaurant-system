@@ -1,5 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
+import { 
+  PendingIcon, PreparingIcon, ReadyIcon, ServedIcon, CompletedIcon,
+  UnpaidIcon, VerificationIcon, VerifiedIcon, PaidIcon, PartiallyPaidIcon, RefundedIcon
+} from '../../components/icons/StatusIcons';
 
 function Dashboard() {
     const [orders, setOrders] = useState([]);
@@ -7,6 +11,8 @@ function Dashboard() {
     const [refreshing, setRefreshing] = useState(false);
     const [updatingOrderId, setUpdatingOrderId] = useState(null);
     const [updatingPaymentId, setUpdatingPaymentId] = useState(null);
+    const [openDropdown, setOpenDropdown] = useState(null);
+    const [dropdownPos, setDropdownPos] = useState({ top: 0, left: 0 });
     const [dashboardData, setDashboardData] = useState({
         totalRevenue: 0,
         todayRevenue: 0,
@@ -22,8 +28,17 @@ function Dashboard() {
         
         // Refresh data every 30 seconds
         const interval = setInterval(fetchDashboardData, 30000);
+
+        // Close dropdown on outside click
+        const handleClickOutside = () => {
+            setOpenDropdown(null);
+        };
+        document.addEventListener('click', handleClickOutside);
         
-        return () => clearInterval(interval);
+        return () => {
+            clearInterval(interval);
+            document.removeEventListener('click', handleClickOutside);
+        };
     }, []);
 
     const fetchDashboardData = async () => {
@@ -96,6 +111,41 @@ function Dashboard() {
             console.error('❌ Error fetching dashboard data:', error);
             setLoading(false);
             setRefreshing(false);
+        }
+    };
+
+    const handleStatusClick = (e, dropdownId) => {
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        console.log('🎯 Status clicked:', dropdownId);
+        setDropdownPos({
+            top: rect.top - 10,
+            left: rect.left
+        });
+        setOpenDropdown(openDropdown === dropdownId ? null : dropdownId);
+    };
+
+    // Get icon for status
+    const getStatusIconComponent = (status) => {
+        switch(status) {
+            case 'pending': return <PendingIcon size={12} />;
+            case 'preparing': return <PreparingIcon size={12} />;
+            case 'ready': return <ReadyIcon size={12} />;
+            case 'served': return <ServedIcon size={12} />;
+            case 'completed': return <CompletedIcon size={12} />;
+            default: return null;
+        }
+    };
+
+    const getPaymentIconComponent = (status) => {
+        switch(status) {
+            case 'unpaid': return <UnpaidIcon size={12} />;
+            case 'payment_pending_verification': return <VerificationIcon size={12} />;
+            case 'payment_verified': return <VerifiedIcon size={12} />;
+            case 'paid': return <PaidIcon size={12} />;
+            case 'partially_paid': return <PartiallyPaidIcon size={12} />;
+            case 'refunded': return <RefundedIcon size={12} />;
+            default: return null;
         }
     };
 
@@ -175,12 +225,19 @@ function Dashboard() {
     const formatDate = (dateString) => {
         if (!dateString) return 'N/A';
         const date = new Date(dateString);
-        return date.toLocaleString([], { 
-            hour: '2-digit', 
-            minute: '2-digit',
-            month: '2-digit',
-            day: '2-digit'
-        });
+        
+        // Convert to GMT+8 (Philippines timezone)
+        const gmtPlus8 = new Date(date.getTime() + (8 * 60 * 60 * 1000) - (date.getTimezoneOffset() * 60 * 1000));
+        
+        // Format as MM/DD, HH:MM AM/PM
+        const month = String(gmtPlus8.getMonth() + 1).padStart(2, '0');
+        const day = String(gmtPlus8.getDate()).padStart(2, '0');
+        const hours = gmtPlus8.getHours();
+        const minutes = String(gmtPlus8.getMinutes()).padStart(2, '0');
+        const ampm = hours >= 12 ? 'PM' : 'AM';
+        const displayHours = hours === 0 ? '12' : (hours > 12 ? hours - 12 : hours);
+        
+        return `${month}/${day}, ${displayHours}:${minutes} ${ampm}`;
     };
 
     // Calculate bar width for top items
@@ -322,33 +379,12 @@ function Dashboard() {
                                                 {formatCurrency(order.totalAmount || order.total || 0)}
                                             </td>
                                             <td>
-                                                <div className="status-cell">
-                                                    <span className={`payment-status payment-${(order.paymentStatus || 'unpaid')}`}>
-                                                        {order.paymentStatus || 'unpaid'}
+                                                <div className="status-cell payment-cell" onClick={(e) => handleStatusClick(e, `payment-${order._id}`)}>
+                                                    <span className={`payment-status payment-${(order.paymentStatus || 'unpaid').toLowerCase().replace(/_/g, '-')}`}>
+                                                        {getPaymentIconComponent(order.paymentStatus || 'unpaid')}
+                                                        {order.paymentStatus ? order.paymentStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unpaid'}
                                                     </span>
-                                                    <div className="status-dropdown">
-                                                        <button
-                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'payment_pending_verification')}
-                                                            disabled={updatingPaymentId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Payment Pending
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'payment_verified')}
-                                                            disabled={updatingPaymentId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Payment Verified
-                                                        </button>
-                                                        <button
-                                                            onClick={() => handleUpdatePaymentStatus(order._id, 'paid')}
-                                                            disabled={updatingPaymentId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Paid
-                                                        </button>
-                                                    </div>
+                                                    <span className="status-indicator">▼</span>
                                                 </div>
                                             </td>
                                             <td>
@@ -366,47 +402,12 @@ function Dashboard() {
                                                 )}
                                             </td>
                                             <td>
-                                                <div className="status-cell">
+                                                <div className="status-cell order-cell" onClick={(e) => handleStatusClick(e, `order-${order._id}`)}>
                                                     <span className={`order-status status-${order.status.toLowerCase()}`}>
-                                                        {order.status}
+                                                        {getStatusIconComponent(order.status)}
+                                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
                                                     </span>
-                                                    <div className="status-dropdown">
-                                                        <button 
-                                                            onClick={() => handleUpdateOrderStatus(order._id, 'pending')}
-                                                            disabled={updatingOrderId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Pending
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleUpdateOrderStatus(order._id, 'preparing')}
-                                                            disabled={updatingOrderId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Preparing
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleUpdateOrderStatus(order._id, 'ready')}
-                                                            disabled={updatingOrderId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Ready
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleUpdateOrderStatus(order._id, 'served')}
-                                                            disabled={updatingOrderId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Served
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleUpdateOrderStatus(order._id, 'completed')}
-                                                            disabled={updatingOrderId === order._id}
-                                                            className="status-option"
-                                                        >
-                                                            Completed
-                                                        </button>
-                                                    </div>
+                                                    <span className="status-indicator">▼</span>
                                                 </div>
                                             </td>
                                         </tr>
@@ -515,6 +516,139 @@ function Dashboard() {
                     <span>📊</span> Analytics
                 </button>
             </div>
+
+            {/* Floating Status Dropdown */}
+            {openDropdown && (
+                <div 
+                    className="floating-dropdown"
+                    onClick={(e) => e.stopPropagation()}
+                    style={{
+                        position: 'fixed',
+                        top: `${dropdownPos.top}px`,
+                        left: `${dropdownPos.left}px`,
+                        zIndex: 9999
+                    }}
+                >
+                    {openDropdown.startsWith('payment-') && (
+                        <div className="status-dropdown-menu">
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'unpaid');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <UnpaidIcon size={16} />
+                                <span>Unpaid</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'payment_pending_verification');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <VerificationIcon size={16} />
+                                <span>Pending Verification</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'payment_verified');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <VerifiedIcon size={16} />
+                                <span>Verified</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'paid');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <PaidIcon size={16} />
+                                <span>Paid</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'partially_paid');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <PartiallyPaidIcon size={16} />
+                                <span>Partially Paid</span>
+                            </button>
+                            <button
+                                onClick={() => {
+                                    handleUpdatePaymentStatus(openDropdown.split('-')[1], 'refunded');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <RefundedIcon size={16} />
+                                <span>Refunded</span>
+                            </button>
+                        </div>
+                    )}
+                    {openDropdown.startsWith('order-') && (
+                        <div className="status-dropdown-menu">
+                            <button 
+                                onClick={() => {
+                                    handleUpdateOrderStatus(openDropdown.split('-')[1], 'pending');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <PendingIcon size={16} />
+                                <span>Pending</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleUpdateOrderStatus(openDropdown.split('-')[1], 'preparing');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <PreparingIcon size={16} />
+                                <span>Preparing</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleUpdateOrderStatus(openDropdown.split('-')[1], 'ready');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <ReadyIcon size={16} />
+                                <span>Ready</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleUpdateOrderStatus(openDropdown.split('-')[1], 'served');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <ServedIcon size={16} />
+                                <span>Served</span>
+                            </button>
+                            <button 
+                                onClick={() => {
+                                    handleUpdateOrderStatus(openDropdown.split('-')[1], 'completed');
+                                    setOpenDropdown(null);
+                                }}
+                                className="status-option"
+                            >
+                                <CompletedIcon size={16} />
+                                <span>Completed</span>
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
         </div>
     );
 }

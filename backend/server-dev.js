@@ -105,67 +105,91 @@ async function seedInitialData() {
             
             const sampleMenu = [
                 {
-                    name: "Alimento Signature Burger",
-                    description: "100% beef patty with cheese, lettuce, tomato, and special sauce",
-                    price: 185,
-                    category: "Meals",
-                    preparationTime: 15,
-                    isAvailable: true
-                },
-                {
-                    name: "Crispy Chicken Wings",
-                    description: "6 pieces of crispy chicken wings with buffalo sauce",
-                    price: 220,
-                    category: "Meals",
-                    preparationTime: 20,
-                    isAvailable: true
-                },
-                {
-                    name: "Seafood Pasta Alfredo",
-                    description: "Creamy Alfredo pasta with shrimp and mussels",
-                    price: 265,
-                    category: "Meals",
-                    preparationTime: 25,
-                    isAvailable: true
-                },
-                {
-                    name: "Caesar Salad",
-                    description: "Fresh romaine lettuce with Caesar dressing and croutons",
-                    price: 125,
-                    category: "Appetizers",
-                    preparationTime: 10,
-                    isAvailable: true
-                },
-                {
-                    name: "Iced Tea (Bottomless)",
-                    description: "Refreshing brewed iced tea with free refills",
-                    price: 45,
-                    category: "Drinks",
+                    name: "Espresso",
+                    description: "Strong Italian coffee shot",
+                    price: 85,
+                    category: "Coffee",
                     preparationTime: 5,
                     isAvailable: true
                 },
                 {
-                    name: "Coke / Pepsi",
-                    description: "Carbonated soft drink",
-                    price: 35,
-                    category: "Drinks",
-                    preparationTime: 2,
-                    isAvailable: true
-                },
-                {
-                    name: "Chocolate Lava Cake",
-                    description: "Warm chocolate cake with molten center, served with vanilla ice cream",
-                    price: 95,
-                    category: "Desserts",
+                    name: "Cappuccino",
+                    description: "Creamy cappuccino with foam",
+                    price: 120,
+                    category: "Coffee",
                     preparationTime: 8,
                     isAvailable: true
                 },
                 {
-                    name: "Garlic Rice with Egg",
-                    description: "Fried garlic rice with sunny-side-up egg",
-                    price: 75,
-                    category: "Breakfast",
+                    name: "Fettuccine Alfredo",
+                    description: "Creamy Alfredo pasta with parmesan",
+                    price: 265,
+                    category: "Pasta",
+                    preparationTime: 15,
+                    isAvailable: true
+                },
+                {
+                    name: "Spaghetti Carbonara",
+                    description: "Classic carbonara with bacon and cream",
+                    price: 245,
+                    category: "Pasta",
+                    preparationTime: 12,
+                    isAvailable: true
+                },
+                {
+                    name: "Club Sandwich",
+                    description: "Triple-decker with bacon, turkey, and cheese",
+                    price: 185,
+                    category: "Sandwiches",
                     preparationTime: 10,
+                    isAvailable: true
+                },
+                {
+                    name: "Fried Chicken Sandwich",
+                    description: "Crispy chicken with pickles and mayo",
+                    price: 155,
+                    category: "Sandwiches",
+                    preparationTime: 12,
+                    isAvailable: true
+                },
+                {
+                    name: "French Fries",
+                    description: "Golden crispy fries with salt",
+                    price: 65,
+                    category: "Sides",
+                    preparationTime: 8,
+                    isAvailable: true
+                },
+                {
+                    name: "Garlic Rice",
+                    description: "Fragrant garlic fried rice",
+                    price: 75,
+                    category: "Rice Meals",
+                    preparationTime: 10,
+                    isAvailable: true
+                },
+                {
+                    name: "Mango Yogurt Shake",
+                    description: "Smooth mango and yogurt blend",
+                    price: 95,
+                    category: "Yogurt Milkshakes",
+                    preparationTime: 5,
+                    isAvailable: true
+                },
+                {
+                    name: "Strawberry Cooler",
+                    description: "Refreshing strawberry drink with ice",
+                    price: 75,
+                    category: "Coolers",
+                    preparationTime: 3,
+                    isAvailable: true
+                },
+                {
+                    name: "Margarita",
+                    description: "Classic margarita with tequila and lime",
+                    price: 185,
+                    category: "Cocktails",
+                    preparationTime: 8,
                     isAvailable: true
                 }
             ];

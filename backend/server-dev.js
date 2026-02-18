@@ -13,6 +13,7 @@ app.use(express.json());
 // Import Routes
 const menuRoutes = require('./src/routes/menuRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
+const forecastRoutes = require('./src/routes/forecastRoutes');
 
 async function startServer() {
     console.log('🚀 Starting Alimento Restaurant API with IN-MEMORY MongoDB...');
@@ -40,6 +41,7 @@ async function startServer() {
     // Use Routes
     app.use('/api/menu', menuRoutes);
     app.use('/api/orders', orderRoutes);
+    app.use('/api/forecast', forecastRoutes);
     
     // Basic Route
     app.get('/', (req, res) => {

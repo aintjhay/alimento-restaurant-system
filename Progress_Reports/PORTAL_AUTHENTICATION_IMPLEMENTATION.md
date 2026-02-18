@@ -45,7 +45,7 @@ ORDER CONFIRMATION
    - Toggles between Login and Register tabs
    - Stores user in localStorage
 
-### **UPDATED FILES (3)**
+### **UPDATED FILES (3)**I d  
 
 3. **`frontend/src/components/portal/PortalHeader.js`**
    - Shows "Welcome, [Name]!" when logged in

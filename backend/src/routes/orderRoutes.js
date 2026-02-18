@@ -247,4 +247,119 @@ router.put('/:id', async (req, res) => {
     }
 });
 
+// ==================== EXPORT ROUTES ====================
+
+// GET - Export orders to CSV
+router.get('/export/csv', async (req, res) => {
+    try {
+        const { startDate, endDate, status } = req.query;
+        
+        let query = {};
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+        if (status) query.status = status;
+        
+        const orders = await Order.find(query).sort({ createdAt: -1 });
+        
+        if (orders.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No orders found for export'
+            });
+        }
+
+        const { exportOrdersToCSV } = require('../utils/exportUtils');
+        const csv = exportOrdersToCSV(orders);
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="orders-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(csv);
+    } catch (error) {
+        console.error('❌ CSV export error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to export orders to CSV',
+            error: error.message
+        });
+    }
+});
+
+// GET - Export orders to PDF
+router.get('/export/pdf', async (req, res) => {
+    try {
+        const { startDate, endDate, status } = req.query;
+        
+        let query = {};
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+        if (status) query.status = status;
+        
+        const orders = await Order.find(query).sort({ createdAt: -1 });
+        
+        if (orders.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No orders found for export'
+            });
+        }
+
+        const { exportOrdersToPDF } = require('../utils/exportUtils');
+        const pdfBuffer = exportOrdersToPDF(orders);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename="orders-${new Date().toISOString().split('T')[0]}.pdf"`);
+        res.send(Buffer.from(pdfBuffer));
+    } catch (error) {
+        console.error('❌ PDF export error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to export orders to PDF',
+            error: error.message
+        });
+    }
+});
+
+// GET - Export sales summary to CSV
+router.get('/export/summary/csv', async (req, res) => {
+    try {
+        const { period = 'day', startDate, endDate } = req.query;
+        
+        let query = {};
+        if (startDate || endDate) {
+            query.createdAt = {};
+            if (startDate) query.createdAt.$gte = new Date(startDate);
+            if (endDate) query.createdAt.$lte = new Date(endDate);
+        }
+        
+        const orders = await Order.find(query).sort({ createdAt: -1 });
+        
+        if (orders.length === 0) {
+            return res.status(404).json({
+                success: false,
+                message: 'No orders found for summary export'
+            });
+        }
+
+        const { exportSummaryToCSV } = require('../utils/exportUtils');
+        const csv = exportSummaryToCSV(orders, period);
+
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', `attachment; filename="sales-summary-${new Date().toISOString().split('T')[0]}.csv"`);
+        res.send(csv);
+    } catch (error) {
+        console.error('❌ Summary export error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to export sales summary',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;

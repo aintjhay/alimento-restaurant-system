@@ -6,17 +6,26 @@
   "scripts": {
     "start": "node server.js",
     "dev": "node server-dev.js",
+    "seed": "node seedDatabase.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
   "dependencies": {
+    "compression": "^1.7.4",
     "cors": "^2.8.6",
     "dotenv": "^16.6.1",
     "express": "^4.22.1",
+    "express-rate-limit": "^7.1.5",
+    "helmet": "^7.1.0",
+    "json2csv": "^6.0.0",
+    "jspdf": "^2.5.1",
+    "jspdf-autotable": "^3.5.31",
     "mongodb": "^7.1.0",
-    "mongoose": "^7.8.8"
+    "mongoose": "^7.8.8",
+    "papaparse": "^5.4.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "mongodb-memory-server": "^9.1.4",

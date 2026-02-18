@@ -1,33 +1,56 @@
 const express = require('express');
 const cors = require('cors');
-const mongoose = require('mongoose');
+const helmet = require('helmet');
+const compression = require('compression');
+const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+
+const { connectDB } = require('./src/config/mongodb');
 
 const app = express();
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Security & Performance Middleware
+app.use(helmet());
+app.use(compression());
 
-// Connect to MongoDB
-mongoose.connect(process.env.MONGODB_URI || 'mongodb://localhost:27017/alimento', {
-  useNewUrlParser: true,
-  useUnifiedTopology: true
+// CORS Configuration
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true,
+  methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization']
+}));
+
+// Body Parser Middleware
+app.use(express.json({ limit: '10kb' }));
+app.use(express.urlencoded({ limit: '10kb', extended: true }));
+
+// Rate Limiting
+const limiter = rateLimit({
+  windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
+  max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
+  message: 'Too many requests from this IP, please try again later.',
+  standardHeaders: true,
+  legacyHeaders: false,
 });
 
-const db = mongoose.connection;
-db.on('error', console.error.bind(console, 'MongoDB connection error:'));
-db.once('open', () => {
-  console.log('✅ Connected to MongoDB');
+app.use('/api/', limiter);
+
+// Connect to MongoDB
+connectDB().catch(err => {
+  console.error('Failed to initialize database:', err);
+  process.exit(1);
 });
 
 // Import Routes
 const menuRoutes = require('./src/routes/menuRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
+const forecastRoutes = require('./src/routes/forecastRoutes');
 
 // Use Routes
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
+app.use('/api/forecast', forecastRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -35,6 +58,7 @@ app.get('/', (req, res) => {
     message: 'Alimento Restaurant API',
     version: '1.0.0',
     database: 'MongoDB',
+    environment: process.env.NODE_ENV || 'development',
     endpoints: {
       menu: {
         allItems: 'GET /api/menu',
@@ -48,21 +72,28 @@ app.get('/', (req, res) => {
         all: 'GET /api/orders',
         today: 'GET /api/orders/today',
         topItems: 'GET /api/orders/top-items',
-        updateStatus: 'PATCH /api/orders/:id/status'
+        updateStatus: 'PATCH /api/orders/:id/status',
+        export: 'GET /api/orders/export/csv'
+      },
+      forecast: {
+        generate: 'POST /api/forecast/generate',
+        latest: 'GET /api/forecast/latest',
+        accuracy: 'GET /api/forecast/accuracy'
       }
-    },
-    note: 'All menu data includes modifiers, addons, and images'
+    }
   });
 });
 
-// Health check
+// Health check endpoint
 app.get('/health', (req, res) => {
+  const mongoose = require('mongoose');
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
   res.json({ 
     status: 'healthy',
     database: dbStatus,
     timestamp: new Date().toISOString(),
-    uptime: process.uptime()
+    uptime: process.uptime(),
+    environment: process.env.NODE_ENV || 'development'
   });
 });
 
@@ -70,6 +101,8 @@ app.get('/health', (req, res) => {
 app.use((req, res) => {
   res.status(404).json({ 
     error: 'Endpoint not found',
+    path: req.path,
+    method: req.method,
     availableEndpoints: {
       home: 'GET /',
       health: 'GET /health',
@@ -79,29 +112,30 @@ app.use((req, res) => {
   });
 });
 
-// Error Handler
+// Global Error Handler
 app.use((err, req, res, next) => {
-  console.error('Server error:', err);
-  res.status(500).json({ 
+  console.error('❌ Server error:', err);
+  res.status(err.status || 500).json({ 
     error: 'Internal server error',
-    message: err.message 
+    message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
+    ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
-  console.log(`\n=======================================`);
+  console.log(`\n${'='.repeat(50)}`);
   console.log(`🚀 Alimento Restaurant API Started`);
-  console.log(`=======================================`);
+  console.log(`${'='.repeat(50)}`);
   console.log(`📡 Port: ${PORT}`);
   console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
   console.log(`💾 Database: MongoDB`);
-  console.log(`\n🔗 Available Endpoints:`);
-  console.log(`   • Home: http://localhost:${PORT}/`);
+  console.log(`🔒 Security: Helmet + Rate Limiting Enabled`);
+  console.log(`\n📍 Available Endpoints:`);
+  console.log(`   • Root: http://localhost:${PORT}/`);
   console.log(`   • Health: http://localhost:${PORT}/health`);
   console.log(`   • Menu: http://localhost:${PORT}/api/menu`);
-  console.log(`   • Menu Categories: http://localhost:${PORT}/api/menu/categories/list`);
   console.log(`   • Orders: http://localhost:${PORT}/api/orders`);
-  console.log(`\n💡 Tip: Frontend should use GET /api/menu for complete menu data`);
-  console.log(`=======================================\n`);
+  console.log(`   • Forecast: http://localhost:${PORT}/api/forecast`);
+  console.log(`${'='.repeat(50)}\n`);
 });

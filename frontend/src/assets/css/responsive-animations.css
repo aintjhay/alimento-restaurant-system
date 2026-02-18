@@ -1,0 +1,514 @@
+/* Responsive UI Enhancements and Animations */
+
+/* Root Animation Definitions */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes slideInRight {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scaleIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+@keyframes bounce {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+/* Utility Animation Classes */
+.animate-fade-in {
+  animation: fadeIn 0.5s ease-out;
+}
+
+.animate-slide-up {
+  animation: slideInUp 0.5s ease-out;
+}
+
+.animate-slide-left {
+  animation: slideInLeft 0.5s ease-out;
+}
+
+.animate-slide-right {
+  animation: slideInRight 0.5s ease-out;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.5s ease-out;
+}
+
+.animate-pulse {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+.animate-bounce {
+  animation: bounce 0.6s ease-in-out;
+}
+
+.animate-shake {
+  animation: shake 0.4s ease-in-out;
+}
+
+/* Delay Variants */
+.animate-delay-1 {
+  animation-delay: 0.1s;
+}
+
+.animate-delay-2 {
+  animation-delay: 0.2s;
+}
+
+.animate-delay-3 {
+  animation-delay: 0.3s;
+}
+
+/* Responsive Container */
+.responsive-container {
+  max-width: 1400px;
+  margin: 0 auto;
+  padding: 20px;
+}
+
+@media (max-width: 1200px) {
+  .responsive-container {
+    max-width: 1000px;
+    padding: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-container {
+    max-width: 100%;
+    padding: 15px;
+  }
+}
+
+@media (max-width: 480px) {
+  .responsive-container {
+    padding: 12px;
+  }
+}
+
+/* Responsive Grid */
+.responsive-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 20px;
+}
+
+@media (max-width: 1024px) {
+  .responsive-grid {
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 18px;
+  }
+}
+
+@media (max-width: 768px) {
+  .responsive-grid {
+    grid-template-columns: 1fr;
+    gap: 15px;
+  }
+}
+
+/* Card Component */
+.card {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+}
+
+.card.elevated {
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.15);
+}
+
+@media (max-width: 768px) {
+  .card {
+    padding: 15px;
+    border-radius: 8px;
+  }
+}
+
+/* Button Responsive Styles */
+.btn {
+  padding: 12px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 15px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 44px;
+}
+
+.btn:active {
+  transform: scale(0.98);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background: #2980b9;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: #2471a3;
+  box-shadow: 0 4px 12px rgba(41, 128, 185, 0.3);
+}
+
+.btn-success {
+  background: #27ae60;
+  color: white;
+}
+
+.btn-success:hover:not(:disabled) {
+  background: #229954;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-outline {
+  border: 2px solid #bdc3c7;
+  background: transparent;
+  color: #2c3e50;
+}
+
+.btn-outline:hover:not(:disabled) {
+  border-color: #2980b9;
+  color: #2980b9;
+  background: rgba(41, 128, 185, 0.05);
+}
+
+.btn-sm {
+  padding: 8px 16px;
+  font-size: 13px;
+  min-height: 36px;
+}
+
+.btn-lg {
+  padding: 14px 32px;
+  font-size: 16px;
+  min-height: 50px;
+}
+
+@media (max-width: 768px) {
+  .btn {
+    padding: 10px 20px;
+    font-size: 14px;
+    min-height: 40px;
+  }
+
+  .btn-lg {
+    padding: 12px 24px;
+    font-size: 14px;
+    min-height: 44px;
+  }
+}
+
+/* Modal Overlay */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease-out;
+  padding: 20px;
+}
+
+.modal-content {
+  background: white;
+  border-radius: 12px;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: scaleIn 0.3s ease-out;
+  max-width: 600px;
+  width: 100%;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+@media (max-width: 768px) {
+  .modal-content {
+    max-width: 95vw;
+    border-radius: 8px;
+  }
+}
+
+/* Input Responsive Styles */
+input[type="text"],
+input[type="email"],
+input[type="number"],
+input[type="password"],
+select,
+textarea {
+  width: 100%;
+  padding: 12px 15px;
+  border: 1px solid #bdc3c7;
+  border-radius: 8px;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+}
+
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="password"]:focus,
+select:focus,
+textarea:focus {
+  border-color: #2980b9;
+  box-shadow: 0 0 0 3px rgba(41, 128, 185, 0.1);
+  outline: none;
+}
+
+input[type="text"]:disabled,
+select:disabled,
+textarea:disabled {
+  background: #ecf0f1;
+  color: #95a5a6;
+  cursor: not-allowed;
+}
+
+/* Loading Spinner */
+.spinner-small {
+  width: 20px;
+  height: 20px;
+  border: 2px solid #ecf0f1;
+  border-top-color: #2980b9;
+  border-radius: 50%;
+  animation: spin 0.6s linear infinite;
+}
+
+.spinner-medium {
+  width: 40px;
+  height: 40px;
+  border: 3px solid #ecf0f1;
+  border-top-color: #2980b9;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Toast Notifications */
+.toast {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  background: white;
+  padding: 16px 20px;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  animation: slideInRight 0.3s ease-out;
+  z-index: 2000;
+  max-width: 400px;
+}
+
+.toast.success {
+  border-left: 4px solid #27ae60;
+}
+
+.toast.error {
+  border-left: 4px solid #e74c3c;
+}
+
+.toast.info {
+  border-left: 4px solid #2980b9;
+}
+
+@media (max-width: 768px) {
+  .toast {
+    bottom: 15px;
+    right: 15px;
+    left: 15px;
+    max-width: none;
+  }
+}
+
+/* Flex Responsive */
+.flex-responsive {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 15px;
+}
+
+@media (max-width: 768px) {
+  .flex-responsive {
+    flex-direction: column;
+  }
+
+  .flex-responsive > * {
+    width: 100%;
+  }
+}
+
+/* Tabs Component */
+.tabs {
+  display: flex;
+  border-bottom: 2px solid #ecf0f1;
+  margin-bottom: 20px;
+  gap: 5px;
+}
+
+.tab-btn {
+  padding: 12px 20px;
+  background: transparent;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: #7f8c8d;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn:hover {
+  color: #2980b9;
+}
+
+.tab-btn.active {
+  color: #2980b9;
+  border-bottom-color: #2980b9;
+}
+
+@media (max-width: 768px) {
+  .tabs {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tab-btn {
+    padding: 10px 15px;
+    font-size: 13px;
+    white-space: nowrap;
+  }
+}
+
+/* Accessibility */
+:focus-visible {
+  outline: 2px solid #2980b9;
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  * {
+    background: transparent !important;
+    color: black !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+  }
+
+  a,
+  a:visited {
+    text-decoration: underline;
+  }
+
+  a[href]:after {
+    content: " (" attr(href) ")";
+  }
+
+  button,
+  input,
+  select,
+  textarea {
+    display: none;
+  }
+}

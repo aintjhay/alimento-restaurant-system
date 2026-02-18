@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
+import ForecastChart from '../../components/admin/ForecastChart';
 import { 
   PendingIcon, PreparingIcon, ReadyIcon, ServedIcon, CompletedIcon,
   UnpaidIcon, VerificationIcon, VerifiedIcon, PaidIcon, PartiallyPaidIcon, RefundedIcon
@@ -349,6 +350,9 @@ function Dashboard() {
 
             {/* Main Content */}
             <div className="dashboard-main">
+                {/* Demand Forecast */}
+                <ForecastChart days={7} />
+
                 {/* Recent Orders */}
                 <div className="recent-orders">
                     <div className="recent-orders-header">

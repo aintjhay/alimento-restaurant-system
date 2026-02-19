@@ -28,7 +28,7 @@ const connectDB = async () => {
     isConnected = mongoose.connection.readyState === 1;
     
     console.log('✅ MongoDB Connected Successfully');
-    console.log(`📍 Database: ${mongoose.connection.db.getName()}`);
+    console.log(`📍 Database: ${mongoose.connection.name}`);
     console.log(`🖥️  Host: ${mongoose.connection.host}`);
     
     return mongoose.connection;

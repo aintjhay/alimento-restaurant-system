@@ -67,8 +67,8 @@ async function generateForecast(forecastDays = 7, historicalDays = 90) {
 function runProphetForecast(historicalData, forecastDays) {
   return new Promise((resolve, reject) => {
     try {
-      // Get Python executable from environment or use full path
-      const pythonExecutable = process.env.PYTHON_EXE || 'C:\\Users\\harro\\Desktop\\ALIMENTO_CAPSTONE_PROJECT\\.venv\\Scripts\\python.exe' || 'python';
+      // Get Python executable from environment or use default
+      const pythonExecutable = process.env.PYTHON_EXE || 'python';
 
       // Spawn Python process
       const pythonProcess = spawn(pythonExecutable, [PYTHON_SCRIPT_PATH]);

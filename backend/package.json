@@ -19,7 +19,7 @@
     "express": "^4.22.1",
     "express-rate-limit": "^7.1.5",
     "helmet": "^7.1.0",
-    "json2csv": "^6.0.0",
+    "json2csv": "^5.0.0",
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.5.31",
     "mongodb": "^7.1.0",

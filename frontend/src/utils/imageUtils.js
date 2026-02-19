@@ -2,13 +2,18 @@
 export const getFoodImage = (imageName) => {
   if (!imageName) return '/images/food/placeholder.jpg';
   
-  try {
-    // Try to load the image from public folder
-    return `/images/food/${imageName}`;
-  } catch (error) {
-    console.warn(`Image not found: ${imageName}, using placeholder`);
-    return '/images/food/placeholder.jpg';
+  // If path already includes /images/, return as-is
+  if (imageName.startsWith('/images/')) {
+    return imageName;
   }
+  
+  // If path includes food/, just prepend /images/
+  if (imageName.includes('food/')) {
+    return `/images/${imageName}`;
+  }
+  
+  // Otherwise construct full path
+  return `/images/food/${imageName}`;
 };
 
 export const getCategoryIcon = (category) => {

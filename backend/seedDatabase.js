@@ -142,12 +142,10 @@ async function seed() {
       generatedAt: new Date(),
       forecastDays: 30,
       historicalDays: 30,
-      modelType: 'PROPHET',
+      dataPoints: 30,
+      algorithm: 'Prophet (Facebook)',
+      modelVersion: '1.0',
       predictions,
-      accuracy: 0.87,
-      meanAbsolutePercentageError: 0.13,
-      meanAbsoluteError: 4.2,
-      rootMeanSquaredError: 5.8,
       insights: [
         {
           type: 'high-demand',
@@ -165,23 +163,7 @@ async function seed() {
           recommendation: 'Maintain standard staffing levels'
         }
       ],
-      confidence: 0.92,
-      dayOfWeekTrends: {
-        Monday: 52,
-        Tuesday: 55,
-        Wednesday: 58,
-        Thursday: 62,
-        Friday: 75,
-        Saturday: 82,
-        Sunday: 68
-      },
-      categoryForecasts: [
-        { category: 'Cocktails', predictedOrders: 35 },
-        { category: 'Pasta', predictedOrders: 45 },
-        { category: 'Sandwiches', predictedOrders: 28 },
-        { category: 'Sides', predictedOrders: 22 },
-        { category: 'Coffee', predictedOrders: 15 }
-      ]
+      status: 'completed'
     };
 
     const seedForecast = await Forecast.create(forecastData);
@@ -211,33 +193,3 @@ if (require.main === module) {
 }
 
 module.exports = seed;
-        });
-        
-        console.log('\n✅ Database seeded successfully!');
-        
-        // Keep the connection open
-        console.log('\n💡 Press Ctrl+C to exit and start the server.');
-        console.log('   Then run: npm run dev');
-        
-        // Don't exit - keep it running so data stays in memory
-        process.on('SIGINT', async () => {
-            await mongoose.disconnect();
-            await mongod.stop();
-            console.log('\n🛑 Database connection closed.');
-            process.exit(0);
-        });
-        
-    } catch (error) {
-        console.error('❌ Seeding error:', error);
-        process.exit(1);
-    }
-}
-
-// Check if menu array is defined
-if (!completeMenu || completeMenu.length === 0) {
-    console.error('❌ Error: completeMenu array is empty!');
-    console.log('Please copy the 70+ item menu array into this file.');
-    process.exit(1);
-}
-
-seed();

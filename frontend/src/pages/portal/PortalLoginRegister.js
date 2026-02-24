@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import AlertIcon from '../../components/icons/AlertIcon';
@@ -15,6 +16,7 @@ import './Portal.css';
 
 const PortalLoginRegister = () => {
   const navigate = useNavigate();
+  const { login, register } = useAuth();
   const [isLogin, setIsLogin] = useState(true);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +31,8 @@ const PortalLoginRegister = () => {
   const [rememberMe, setRememberMe] = useState(false);
   
   // Register fields
-  const [regName, setRegName] = useState('');
+  const [regFirstName, setRegFirstName] = useState('');
+  const [regLastName, setRegLastName] = useState('');
   const [regEmail, setRegEmail] = useState('');
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
@@ -85,15 +88,14 @@ const PortalLoginRegister = () => {
     setLoading(true);
 
     try {
-      // Simulate login - in production, call your backend
-      const user = {
-        id: Date.now(),
-        email: loginEmail,
-        name: loginEmail.split('@')[0],
-        type: 'registered'
-      };
+      const result = await login(loginEmail, loginPassword);
+      
+      if (!result.success) {
+        setError(result.message);
+        setLoading(false);
+        return;
+      }
 
-      localStorage.setItem('portalUser', JSON.stringify(user));
       localStorage.setItem('portalCheckoutType', 'registered');
       if (rememberMe) {
         localStorage.setItem('portalRememberMe', 'true');
@@ -109,7 +111,7 @@ const PortalLoginRegister = () => {
         navigate('/portal');
       }, 800);
     } catch (err) {
-      setError('Login failed. Please try again.');
+      setError(err.message || 'Login failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -120,13 +122,13 @@ const PortalLoginRegister = () => {
     setError('');
     setSuccess('');
 
-    if (!regName || !regEmail || !regPassword || !regConfirmPassword) {
+    if (!regFirstName || !regLastName || !regEmail || !regPassword || !regConfirmPassword) {
       setError('Please fill in all fields');
       return;
     }
 
-    if (regName.trim().length < 2) {
-      setError('Name must be at least 2 characters');
+    if (regFirstName.trim().length < 2 || regLastName.trim().length < 2) {
+      setError('First and last names must be at least 2 characters');
       return;
     }
 
@@ -148,20 +150,20 @@ const PortalLoginRegister = () => {
     setLoading(true);
 
     try {
-      // Simulate registration - in production, call your backend
-      const user = {
-        id: Date.now(),
-        name: regName,
-        email: regEmail,
-        type: 'registered'
-      };
+      const result = await register(regFirstName, regLastName, regEmail, regPassword);
+      
+      if (!result.success) {
+        setError(result.message);
+        setLoading(false);
+        return;
+      }
 
-      localStorage.setItem('portalUser', JSON.stringify(user));
       localStorage.setItem('portalCheckoutType', 'registered');
       
       setSuccess('Account created! Redirecting...');
       // Clear form on successful registration
-      setRegName('');
+      setRegFirstName('');
+      setRegLastName('');
       setRegEmail('');
       setRegPassword('');
       setRegConfirmPassword('');
@@ -170,7 +172,7 @@ const PortalLoginRegister = () => {
         navigate('/portal');
       }, 800);
     } catch (err) {
-      setError('Registration failed. Please try again.');
+      setError(err.message || 'Registration failed. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -215,7 +217,8 @@ const PortalLoginRegister = () => {
                     setError('');
                     setSuccess('');
                     // Clear register form when switching to login
-                    setRegName('');
+                    setRegFirstName('');
+                    setRegLastName('');
                     setRegEmail('');
                     setRegPassword('');
                     setRegConfirmPassword('');
@@ -338,21 +341,41 @@ const PortalLoginRegister = () => {
               ) : (
                 // REGISTER FORM
                 <form onSubmit={handleRegister} className="auth-form">
-                  <div className="form-group">
-                    <label htmlFor="reg-name">Full Name</label>
-                    <div className="input-wrapper">
-                      <span className="input-icon"><UserIcon /></span>
-                      <input
-                        id="reg-name"
-                        type="text"
-                        placeholder="Your full name"
-                        value={regName}
-                        onChange={(e) => setRegName(e.target.value)}
-                        disabled={loading}
-                      />
-                      {regName.length >= 2 && (
-                        <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
-                      )}
+                  <div className="form-row">
+                    <div className="form-group">
+                      <label htmlFor="reg-firstname">First Name</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon"><UserIcon /></span>
+                        <input
+                          id="reg-firstname"
+                          type="text"
+                          placeholder="First name"
+                          value={regFirstName}
+                          onChange={(e) => setRegFirstName(e.target.value)}
+                          disabled={loading}
+                        />
+                        {regFirstName.length >= 2 && (
+                          <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
+                        )}
+                      </div>
+                    </div>
+
+                    <div className="form-group">
+                      <label htmlFor="reg-lastname">Last Name</label>
+                      <div className="input-wrapper">
+                        <span className="input-icon"><UserIcon /></span>
+                        <input
+                          id="reg-lastname"
+                          type="text"
+                          placeholder="Last name"
+                          value={regLastName}
+                          onChange={(e) => setRegLastName(e.target.value)}
+                          disabled={loading}
+                        />
+                        {regLastName.length >= 2 && (
+                          <span className="input-check"><CheckIcon color="#4caf50" size={18} /></span>
+                        )}
+                      </div>
                     </div>
                   </div>
 
@@ -400,15 +423,15 @@ const PortalLoginRegister = () => {
                         <div
                           className="strength-bar"
                           style={{
-                            width: `${(regPasswordStrength / 4) * 100}%`,
-                            backgroundColor: getPasswordStrengthColor(regPasswordStrength)
+                            width: `${(getPasswordStrength(regPassword) / 4) * 100}%`,
+                            backgroundColor: getPasswordStrengthColor(getPasswordStrength(regPassword))
                           }}
                         ></div>
                         <span
                           className="strength-text"
-                          style={{ color: getPasswordStrengthColor(regPasswordStrength) }}
+                          style={{ color: getPasswordStrengthColor(getPasswordStrength(regPassword)) }}
                         >
-                          {getPasswordStrengthText(regPasswordStrength)}
+                          {getPasswordStrengthText(getPasswordStrength(regPassword))}
                         </span>
                       </div>
                     )}

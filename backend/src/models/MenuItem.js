@@ -70,6 +70,17 @@ const menuItemSchema = new mongoose.Schema({
     type: Number,
     default: 0
   },
+  // Rating & Reviews
+  averageRating: {
+    type: Number,
+    default: 0,
+    min: 0,
+    max: 5
+  },
+  reviewCount: {
+    type: Number,
+    default: 0
+  },
   createdAt: { 
     type: Date, 
     default: Date.now 

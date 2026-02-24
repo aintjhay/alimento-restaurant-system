@@ -46,11 +46,17 @@ connectDB().catch(err => {
 const menuRoutes = require('./src/routes/menuRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const forecastRoutes = require('./src/routes/forecastRoutes');
+const userRoutes = require('./src/routes/userRoutes');
+const reviewRoutes = require('./src/routes/reviewRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 
 // Use Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/menu', menuRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/forecast', forecastRoutes);
+app.use('/api/users', userRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

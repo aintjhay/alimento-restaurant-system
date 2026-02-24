@@ -5,6 +5,7 @@ import { getCategoryIcon, getFoodImage, getItemColor } from '../../utils/imageUt
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import CartModal from '../../components/portal/CartModal';
+import RatingDisplay from '../../components/portal/RatingDisplay';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import './Portal.css';
 
@@ -16,6 +17,7 @@ const PortalHome = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
+  const [minRating, setMinRating] = useState(0); // 0 = no filter, 3+ = 3+ stars, etc.
   const [cart, setCart] = useState([]);
   const [modalItem, setModalItem] = useState(null);
   const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -65,9 +67,10 @@ const PortalHome = () => {
       const matchesSearch = !searchTerm.trim() ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSearch;
+      const matchesRating = minRating === 0 || (item.averageRating || 0) >= minRating;
+      return matchesCategory && matchesSearch && matchesRating;
     });
-  }, [menuItems, activeCategory, searchTerm]);
+  }, [menuItems, activeCategory, searchTerm, minRating]);
 
   const openModal = (item) => {
     const initialModifiers = {};
@@ -151,6 +154,13 @@ const PortalHome = () => {
   const deliveryFee = 50;
   const cartTotal = cartSubtotal + taxAmount + deliveryFee;
 
+  // Get recommended items (featured or most popular)
+  const recommendedItems = useMemo(() => {
+    return menuItems
+      .filter(item => item.featured || item.isPopular)
+      .slice(0, 4);
+  }, [menuItems]);
+
   const handleCheckout = () => {
     if (cart.length === 0) return;
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
@@ -216,6 +226,43 @@ const PortalHome = () => {
         </div>
       </header>
 
+      {recommendedItems.length > 0 && activeCategory === 'All' && !searchTerm && (
+        <section className="recommended-section">
+          <div className="recommended-container">
+            <h2>⭐ Recommended for you</h2>
+            <div className="recommended-grid">
+              {recommendedItems.map(item => (
+                <div key={item._id || item.name} className="recommended-card">
+                  <div
+                    className="recommended-image"
+                    style={{ 
+                      backgroundColor: getItemColor(item.category),
+                      backgroundImage: item.image ? `url(${getFoodImage(item.image)})` : 'none',
+                      backgroundSize: 'cover',
+                      backgroundPosition: 'center'
+                    }}
+                  >
+                    {!item.image && (
+                      <span className="image-fallback">
+                        {item.name.charAt(0)}
+                      </span>
+                    )}
+                    {item.featured && <div className="featured-badge">⭐ Featured</div>}
+                  </div>
+                  <div className="recommended-body">
+                    <h3>{item.name}</h3>
+                    <p className="recommended-price">₱{item.price}</p>
+                    <button className="recommended-btn" onClick={() => handleAddClick(item)}>
+                      Quick add →
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </section>
+      )}
+
       <div className="portal-content">
         <aside className="portal-categories">
           <h2>Categories</h2>
@@ -230,6 +277,40 @@ const PortalHome = () => {
                 {category}
               </button>
             ))}
+          </div>
+
+          <h2 style={{ marginTop: '2rem' }}>Filter by Rating</h2>
+          <div className="rating-filter">
+            <button
+              className={`rating-filter-btn ${minRating === 0 ? 'active' : ''}`}
+              onClick={() => setMinRating(0)}
+            >
+              All Ratings
+            </button>
+            <button
+              className={`rating-filter-btn ${minRating === 1 ? 'active' : ''}`}
+              onClick={() => setMinRating(1)}
+            >
+              ⭐ 1+
+            </button>
+            <button
+              className={`rating-filter-btn ${minRating === 2 ? 'active' : ''}`}
+              onClick={() => setMinRating(2)}
+            >
+              ⭐⭐ 2+
+            </button>
+            <button
+              className={`rating-filter-btn ${minRating === 3 ? 'active' : ''}`}
+              onClick={() => setMinRating(3)}
+            >
+              ⭐⭐⭐ 3+
+            </button>
+            <button
+              className={`rating-filter-btn ${minRating === 4 ? 'active' : ''}`}
+              onClick={() => setMinRating(4)}
+            >
+              ⭐⭐⭐⭐ 4+
+            </button>
           </div>
         </aside>
 
@@ -264,6 +345,11 @@ const PortalHome = () => {
                   </div>
                   <h3>{item.name}</h3>
                   <p>{item.description}</p>
+                  {item.averageRating > 0 && (
+                    <div className="rating-badge">
+                      ⭐ {item.averageRating.toFixed(1)} ({item.reviewCount || 0})
+                    </div>
+                  )}
                   <button className="menu-add" onClick={() => handleAddClick(item)}>
                     Add to cart
                   </button>

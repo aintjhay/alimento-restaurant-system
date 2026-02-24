@@ -14,6 +14,7 @@ app.use(express.json());
 const menuRoutes = require('./src/routes/menuRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
 const forecastRoutes = require('./src/routes/forecastRoutes');
+const authRoutes = require('./src/routes/authRoutes');
 
 async function startServer() {
     console.log('🚀 Starting Alimento Restaurant API with IN-MEMORY MongoDB...');
@@ -39,6 +40,7 @@ async function startServer() {
     }
     
     // Use Routes
+    app.use('/api/auth', authRoutes);
     app.use('/api/menu', menuRoutes);
     app.use('/api/orders', orderRoutes);
     app.use('/api/forecast', forecastRoutes);
@@ -92,6 +94,7 @@ async function seedInitialData() {
     try {
         // Dynamically require MenuItem model
         const MenuItem = require('./src/models/MenuItem');
+        const completeMenu = require('./src/data/completeMenu');
         
         // Check if we already have data - use count() if countDocuments doesn't work
         let count;
@@ -105,99 +108,17 @@ async function seedInitialData() {
         if (count === 0) {
             console.log('🌱 Seeding initial menu data...');
             
-            const sampleMenu = [
-                {
-                    name: "Espresso",
-                    description: "Strong Italian coffee shot",
-                    price: 85,
-                    category: "Coffee",
-                    preparationTime: 5,
-                    isAvailable: true
-                },
-                {
-                    name: "Cappuccino",
-                    description: "Creamy cappuccino with foam",
-                    price: 120,
-                    category: "Coffee",
-                    preparationTime: 8,
-                    isAvailable: true
-                },
-                {
-                    name: "Fettuccine Alfredo",
-                    description: "Creamy Alfredo pasta with parmesan",
-                    price: 265,
-                    category: "Pasta",
-                    preparationTime: 15,
-                    isAvailable: true
-                },
-                {
-                    name: "Spaghetti Carbonara",
-                    description: "Classic carbonara with bacon and cream",
-                    price: 245,
-                    category: "Pasta",
-                    preparationTime: 12,
-                    isAvailable: true
-                },
-                {
-                    name: "Club Sandwich",
-                    description: "Triple-decker with bacon, turkey, and cheese",
-                    price: 185,
-                    category: "Sandwiches",
-                    preparationTime: 10,
-                    isAvailable: true
-                },
-                {
-                    name: "Fried Chicken Sandwich",
-                    description: "Crispy chicken with pickles and mayo",
-                    price: 155,
-                    category: "Sandwiches",
-                    preparationTime: 12,
-                    isAvailable: true
-                },
-                {
-                    name: "French Fries",
-                    description: "Golden crispy fries with salt",
-                    price: 65,
-                    category: "Sides",
-                    preparationTime: 8,
-                    isAvailable: true
-                },
-                {
-                    name: "Garlic Rice",
-                    description: "Fragrant garlic fried rice",
-                    price: 75,
-                    category: "Rice Meals",
-                    preparationTime: 10,
-                    isAvailable: true
-                },
-                {
-                    name: "Mango Yogurt Shake",
-                    description: "Smooth mango and yogurt blend",
-                    price: 95,
-                    category: "Yogurt Milkshakes",
-                    preparationTime: 5,
-                    isAvailable: true
-                },
-                {
-                    name: "Strawberry Cooler",
-                    description: "Refreshing strawberry drink with ice",
-                    price: 75,
-                    category: "Coolers",
-                    preparationTime: 3,
-                    isAvailable: true
-                },
-                {
-                    name: "Margarita",
-                    description: "Classic margarita with tequila and lime",
-                    price: 185,
-                    category: "Cocktails",
-                    preparationTime: 8,
-                    isAvailable: true
-                }
-            ];
+            // Add default values to complete menu items
+            const menuItemsWithDefaults = completeMenu.map(item => ({
+                ...item,
+                modifiers: item.modifiers || [],
+                addons: item.addons || [],
+                isAvailable: true,
+                preparationTime: item.preparationTime || 15
+            }));
             
-            await MenuItem.insertMany(sampleMenu);
-            console.log(`✅ Seeded ${sampleMenu.length} menu items`);
+            await MenuItem.insertMany(menuItemsWithDefaults);
+            console.log(`✅ Seeded ${menuItemsWithDefaults.length} menu items`);
         } else {
             console.log(`✅ Database already has ${count} menu items`);
         }
@@ -216,4 +137,18 @@ process.on('SIGINT', async () => {
 });
 
 // Start the server
-startServer().catch(console.error);
+startServer().catch(err => {
+    console.error('❌ Failed to start server:', err);
+    process.exit(1);
+});
+
+// Prevent crash from unhandled rejections
+process.on('unhandledRejection', (reason, promise) => {
+    console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
+});
+
+process.on('uncaughtException', (err) => {
+    console.error('⚠️ Uncaught Exception:', err);
+    // Don't exit immediately for unhandled exceptions during startup
+    setTimeout(() => process.exit(1), 1000);
+});

@@ -858,6 +858,13 @@ body {
   box-shadow: var(--shadow-md);
 }
 
+/* Forecast Widget Container */
+.forecast-widget-container {
+  margin-bottom: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid var(--gray-200);
+}
+
 /* Responsive Design */
 @media (max-width: 1400px) {
   .menu-items-grid {

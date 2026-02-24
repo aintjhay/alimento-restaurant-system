@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import ForecastChart from '../../components/admin/ForecastChart';
+import RecentOrders from '../../components/dashboard/RecentOrders';
 import { 
   PendingIcon, PreparingIcon, ReadyIcon, ServedIcon, CompletedIcon,
   UnpaidIcon, VerificationIcon, VerifiedIcon, PaidIcon, PartiallyPaidIcon, RefundedIcon
@@ -20,7 +21,17 @@ function Dashboard() {
         totalOrders: 0,
         todayOrders: 0,
         averageOrderValue: 0,
-        topItems: []
+        topItems: [],
+        pendingOrders: 0,
+        preparingOrders: 0,
+        completedOrders: 0,
+        statusBreakdown: {}
+    });
+    
+    const [previousData, setPreviousData] = useState({
+        totalRevenue: 0,
+        todayRevenue: 0,
+        averageOrderValue: 0
     });
 
     // Fetch orders data from backend
@@ -70,6 +81,37 @@ function Dashboard() {
                 });
                 const todayRevenue = todayOrders.reduce((sum, order) => sum + (order.totalAmount || 0), 0);
                 
+                // Calculate status breakdown
+                const statusBreakdown = {
+                    pending: 0,
+                    preparing: 0,
+                    ready: 0,
+                    served: 0,
+                    completed: 0
+                };
+                
+                let pendingOrders = 0;
+                let preparingOrders = 0;
+                let completedOrders = 0;
+                
+                allOrders.forEach(order => {
+                    const status = order.status || 'pending';
+                    if (statusBreakdown.hasOwnProperty(status)) {
+                        statusBreakdown[status]++;
+                    }
+                    
+                    // Count pending/preparing
+                    if (status === 'pending' || status === 'preparing' || status === 'ready') {
+                        pendingOrders++;
+                    }
+                    if (status === 'preparing') {
+                        preparingOrders++;
+                    }
+                    if (status === 'completed') {
+                        completedOrders++;
+                    }
+                });
+                
                 // Calculate top items
                 const itemMap = {};
                 allOrders.forEach(order => {
@@ -87,20 +129,35 @@ function Dashboard() {
                     .sort((a, b) => b.count - a.count)
                     .slice(0, 10);
                 
+                const avgOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0;
+                
                 setDashboardData({
                     totalRevenue,
                     todayRevenue,
                     totalOrders,
                     todayOrders: todayOrders.length,
-                    averageOrderValue: totalOrders > 0 ? totalRevenue / totalOrders : 0,
-                    topItems: topItems
+                    averageOrderValue: avgOrderValue,
+                    topItems: topItems,
+                    pendingOrders,
+                    preparingOrders,
+                    completedOrders,
+                    statusBreakdown
+                });
+                
+                // Store current data as previous for next comparison
+                setPreviousData({
+                    totalRevenue,
+                    todayRevenue,
+                    averageOrderValue: avgOrderValue
                 });
                 
                 console.log('✅ Dashboard stats calculated:', {
                     totalRevenue,
                     todayRevenue,
                     totalOrders,
-                    todayOrders: todayOrders.length
+                    todayOrders: todayOrders.length,
+                    pendingOrders,
+                    statusBreakdown
                 });
             } else {
                 console.error('API Response not successful:', ordersData);
@@ -113,6 +170,19 @@ function Dashboard() {
             setLoading(false);
             setRefreshing(false);
         }
+    };
+
+    // Calculate trend percentage
+    const calculateTrend = (current, previous) => {
+        if (previous === 0) return 0;
+        return Math.round(((current - previous) / previous) * 100);
+    };
+
+    // Get trend color and arrow
+    const getTrendIndicator = (trend) => {
+        if (trend > 0) return { icon: '↑', color: '#4caf50', label: `+${trend}%` };
+        if (trend < 0) return { icon: '↓', color: '#f44336', label: `${trend}%` };
+        return { icon: '→', color: '#9e9e9e', label: '0%' };
     };
 
     const handleStatusClick = (e, dropdownId) => {
@@ -298,6 +368,11 @@ function Dashboard() {
                         </div>
                         <div className="stat-trend">
                             <span>All time revenue</span>
+                            {previousData.totalRevenue > 0 && (
+                                <div className="trend-badge" style={{ color: getTrendIndicator(calculateTrend(dashboardData.totalRevenue, previousData.totalRevenue)).color }}>
+                                    {getTrendIndicator(calculateTrend(dashboardData.totalRevenue, previousData.totalRevenue)).icon} {getTrendIndicator(calculateTrend(dashboardData.totalRevenue, previousData.totalRevenue)).label}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -313,6 +388,11 @@ function Dashboard() {
                         </div>
                         <div className="stat-trend">
                             <span>{dashboardData.todayOrders} orders today</span>
+                            {previousData.todayRevenue > 0 && (
+                                <div className="trend-badge" style={{ color: getTrendIndicator(calculateTrend(dashboardData.todayRevenue, previousData.todayRevenue)).color }}>
+                                    {getTrendIndicator(calculateTrend(dashboardData.todayRevenue, previousData.todayRevenue)).icon} {getTrendIndicator(calculateTrend(dashboardData.todayRevenue, previousData.todayRevenue)).label}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -335,6 +415,24 @@ function Dashboard() {
                 <div className="stat-card">
                     <div className="stat-card-content">
                         <div className="stat-card-header">
+                            <h3>Pending Orders</h3>
+                            <div className="stat-icon">⏳</div>
+                        </div>
+                        <div className="stat-value pending-badge">
+                            {dashboardData.pendingOrders}
+                        </div>
+                        <div className="stat-trend">
+                            <span>In progress</span>
+                            <div style={{ fontSize: '0.75rem', color: '#666', marginTop: '4px' }}>
+                                Preparing: {dashboardData.preparingOrders}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="stat-card">
+                    <div className="stat-card-content">
+                        <div className="stat-card-header">
                             <h3>Average Order</h3>
                             <div className="stat-icon">⚡</div>
                         </div>
@@ -343,6 +441,11 @@ function Dashboard() {
                         </div>
                         <div className="stat-trend">
                             <span>Per order average</span>
+                            {previousData.averageOrderValue > 0 && (
+                                <div className="trend-badge" style={{ color: getTrendIndicator(calculateTrend(dashboardData.averageOrderValue, previousData.averageOrderValue)).color }}>
+                                    {getTrendIndicator(calculateTrend(dashboardData.averageOrderValue, previousData.averageOrderValue)).icon} {getTrendIndicator(calculateTrend(dashboardData.averageOrderValue, previousData.averageOrderValue)).label}
+                                </div>
+                            )}
                         </div>
                     </div>
                 </div>
@@ -350,120 +453,109 @@ function Dashboard() {
 
             {/* Main Content */}
             <div className="dashboard-main">
-                {/* Demand Forecast */}
-                <ForecastChart days={7} />
+                {/* Recent Orders - Professional Card Layout */}
+                <RecentOrders 
+                  orders={recentOrders}
+                  onRefresh={fetchDashboardData}
+                  onPrint={(order) => {
+                    console.log('Print order:', order);
+                    // Implement print functionality
+                  }}
+                  onDetails={(order) => {
+                    console.log('Show order details:', order);
+                    // Implement order details modal
+                  }}
+                  onStatusChange={(orderId, newStatus) => {
+                    if (newStatus === 'paid') {
+                      handleUpdatePaymentStatus(orderId, newStatus);
+                    } else {
+                      handleUpdateOrderStatus(orderId, newStatus);
+                    }
+                  }}
+                  limit={10}
+                />
 
-                {/* Recent Orders */}
-                <div className="recent-orders">
-                    <div className="recent-orders-header">
-                        <h2>Recent Orders</h2>
-                        <button className="view-all-btn">View All →</button>
-                    </div>
-                    <div className="table-container">
-                        <table className="orders-table">
-                            <thead>
-                                <tr>
-                                    <th>Order #</th>
-                                    <th>Table</th>
-                                    <th>Time</th>
-                                    <th>Total</th>
-                                    <th>Payment</th>
-                                    <th>Proof</th>
-                                    <th>Status</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {recentOrders.length > 0 ? (
-                                    recentOrders.map((order) => (
-                                        <tr key={order._id || order.id || order.orderNumber}>
-                                            <td className="order-number">#{order.orderNumber}</td>
-                                            <td className="table-number">Table {order.tableNumber}</td>
-                                            <td>{formatDate(order.createdAt || order.timestamp)}</td>
-                                            <td className="order-total">
-                                                {formatCurrency(order.totalAmount || order.total || 0)}
-                                            </td>
-                                            <td>
-                                                <div className="status-cell payment-cell" onClick={(e) => handleStatusClick(e, `payment-${order._id}`)}>
-                                                    <span className={`payment-status payment-${(order.paymentStatus || 'unpaid').toLowerCase().replace(/_/g, '-')}`}>
-                                                        {getPaymentIconComponent(order.paymentStatus || 'unpaid')}
-                                                        {order.paymentStatus ? order.paymentStatus.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) : 'Unpaid'}
-                                                    </span>
-                                                    <span className="status-indicator">▼</span>
-                                                </div>
-                                            </td>
-                                            <td>
-                                                {order.paymentProof ? (
-                                                    <a
-                                                        className="proof-link"
-                                                        href={order.paymentProof}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                    >
-                                                        View
-                                                    </a>
-                                                ) : (
-                                                    <span className="proof-muted">None</span>
-                                                )}
-                                            </td>
-                                            <td>
-                                                <div className="status-cell order-cell" onClick={(e) => handleStatusClick(e, `order-${order._id}`)}>
-                                                    <span className={`order-status status-${order.status.toLowerCase()}`}>
-                                                        {getStatusIconComponent(order.status)}
-                                                        {order.status.charAt(0).toUpperCase() + order.status.slice(1)}
-                                                    </span>
-                                                    <span className="status-indicator">▼</span>
-                                                </div>
-                                            </td>
-                                        </tr>
-                                    ))
-                                ) : (
-                                    <tr>
-                                        <td colSpan="7">
-                                            <div className="empty-state">
-                                                <div className="empty-state-icon">📋</div>
-                                                <p className="empty-state-text">No orders yet</p>
-                                                <p className="empty-state-subtext">Start taking orders in the POS</p>
+                {/* Side by Side: Order Status & Top Items */}
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', marginBottom: '20px' }}>
+                    {/* Order Status Breakdown Chart */}
+                    <div className="status-breakdown">
+                        <div className="status-breakdown-header">
+                            <h2>Order Status Distribution</h2>
+                        </div>
+                        <div className="status-breakdown-content">
+                            <div className="status-bars">
+                                {Object.entries(dashboardData.statusBreakdown).map(([status, count]) => {
+                                    const total = dashboardData.totalOrders || 1;
+                                    const percentage = (count / total) * 100;
+                                    const statusColors = {
+                                        pending: '#2196f3',
+                                        preparing: '#ff9800',
+                                        ready: '#8bc34a',
+                                        served: '#9c27b0',
+                                        completed: '#4caf50'
+                                    };
+                                    
+                                    return (
+                                        <div key={status} className="status-bar-item">
+                                            <div className="status-bar-label">
+                                                <span className="status-name">
+                                                    {status.charAt(0).toUpperCase() + status.slice(1)}
+                                                </span>
+                                                <span className="status-count">{count}</span>
                                             </div>
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
-
-                {/* Top Items */}
-                <div className="top-items">
-                    <div className="top-items-header">
-                        <h2>Top Items</h2>
-                    </div>
-                    <div className="items-list">
-                        {dashboardData.topItems.length > 0 ? (
-                            dashboardData.topItems.slice(0, 5).map((item, index) => (
-                                <div key={index} className="top-item">
-                                    <div className="item-rank">{index + 1}</div>
-                                    <div className="item-info">
-                                        <div className="item-name">{item.name}</div>
-                                        <div className="item-stats">
-                                            <span className="item-count">{item.count} sold</span>
-                                            <div className="item-bar">
+                                            <div className="status-bar-container">
                                                 <div 
-                                                    className="bar-fill" 
-                                                    style={{ width: calculateBarWidth(item.count, maxItemCount) }}
+                                                    className="status-bar-fill" 
+                                                    style={{
+                                                        width: `${percentage}%`,
+                                                        backgroundColor: statusColors[status]
+                                                    }}
                                                 ></div>
+                                            </div>
+                                            <div className="status-bar-percent">{percentage.toFixed(1)}%</div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Top Items */}
+                    <div className="top-items">
+                        <div className="top-items-header">
+                            <h2>Top Items</h2>
+                        </div>
+                        <div className="items-list">
+                            {dashboardData.topItems.length > 0 ? (
+                                dashboardData.topItems.slice(0, 5).map((item, index) => (
+                                    <div key={index} className="top-item">
+                                        <div className="item-rank">{index + 1}</div>
+                                        <div className="item-info">
+                                            <div className="item-name">{item.name}</div>
+                                            <div className="item-stats">
+                                                <span className="item-count">{item.count} sold</span>
+                                                <div className="item-bar">
+                                                    <div 
+                                                        className="bar-fill" 
+                                                        style={{ width: calculateBarWidth(item.count, maxItemCount) }}
+                                                    ></div>
+                                                </div>
                                             </div>
                                         </div>
                                     </div>
+                                ))
+                            ) : (
+                                <div className="empty-state">
+                                    <div className="empty-state-icon">🏆</div>
+                                    <p className="empty-state-text">No items sold yet</p>
                                 </div>
-                            ))
-                        ) : (
-                            <div className="empty-state">
-                                <div className="empty-state-icon">🏆</div>
-                                <p className="empty-state-text">No items sold yet</p>
-                            </div>
-                        )}
+                            )}
+                        </div>
                     </div>
                 </div>
+
+                {/* Demand Forecast */}
+                <ForecastChart days={7} />
             </div>
 
             {/* Performance Metrics */}

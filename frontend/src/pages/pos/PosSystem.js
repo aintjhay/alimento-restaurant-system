@@ -1,5 +1,6 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
+import MiniForecast from '../../components/pos/MiniForecast';
 import './PosSystem.css';
 import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import { 
@@ -73,7 +74,7 @@ function PosSystem() {
     // ================ SIDES ================
     { name: "NACHORIZO", description: "Nachos with chorizo, cheese, and toppings", price: 190, category: "Sides", image: "Nachorizo.jpg", preparationTime: 10, tags: ["chorizo", "snack"], modifiers: [], addons: [] },
     { name: "CAJUN FRIES", description: "Crispy fries with cajun seasoning", price: 130, category: "Sides", image: "", preparationTime: 8, tags: ["fries", "snack"], modifiers: [], addons: [] },
-    { name: "CHICKEN WINGS", description: "Crispy chicken wings with your choice of flavor", price: 260, category: "Sides", image: "BuffaloWings12s.jpg", preparationTime: 20, tags: ["chicken", "popular"], modifiers: [{ name: "Size", required: true, options: [{ name: "8pcs", price: 260 }, { name: "12pcs", price: 350 }] }, { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }, { name: "Parmesan", price: 0 }] }], addons: [] },
+    { name: "CHICKEN WINGS", description: "Crispy chicken wings with your choice of flavor", price: 260, category: "Sides", image: "BuffaloWings12s_2.jpg", preparationTime: 20, tags: ["chicken", "popular"], modifiers: [{ name: "Size", required: true, options: [{ name: "8pcs", price: 260 }, { name: "12pcs", price: 350 }] }, { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }, { name: "Parmesan", price: 0 }] }], addons: [] },
     
     // ================ RICE MEALS ================
     { name: "CHICKEN WINGS RICE MEAL", description: "Chicken wings served with rice", price: 160, category: "Rice Meals", image: "Buffalowingsricemeal.jpg", preparationTime: 15, tags: ["chicken", "rice"], modifiers: [], addons: [] },
@@ -626,6 +627,11 @@ function PosSystem() {
                 <FaTrash /> Clear All
               </button>
             )}
+          </div>
+
+          {/* Demand Forecast Widget */}
+          <div className="forecast-widget-container">
+            <MiniForecast />
           </div>
           
           <div className="cart-items-container">

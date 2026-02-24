@@ -276,7 +276,7 @@ const completeMenu = [
     description: "Crispy chicken wings with your choice of flavor",
     price: 260,
     category: "Sides",
-    image: "food/BuffaloWings12(2).jpg",
+    image: "food/BuffaloWings12s_2.jpg",
     preparationTime: 20,
     tags: ["chicken", "popular"],
     displayOrder: 3,

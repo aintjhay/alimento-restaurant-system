@@ -94,6 +94,15 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
     setShowUserMenu(false);
     if (action === 'logout') {
       handleLogout();
+    } else if (action === 'orders') {
+      navigate('/portal/orders');
+    } else if (action === 'favorites') {
+      navigate('/portal/favorites');
+    } else if (action === 'profile') {
+      navigate('/portal/profile');
+    } else if (action === 'help') {
+      // TODO: Navigate to help center when created
+      console.log('Help center not yet implemented');
     }
   };
 

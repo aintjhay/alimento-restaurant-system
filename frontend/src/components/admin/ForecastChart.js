@@ -5,6 +5,18 @@
 
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import {
+  TrendUpIcon,
+  TrendDownIcon,
+  TrendNeutralIcon,
+  ChartIcon,
+  RefreshIcon,
+  AlertIcon,
+  CheckIcon,
+  CalendarIcon,
+  InfoIcon,
+  LoadingSpinner
+} from '../icons/ForecastIcons';
 import './ForecastChart.css';
 
 const ForecastChart = ({ days = 7 }) => {
@@ -12,6 +24,18 @@ const ForecastChart = ({ days = 7 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
+  const [expandedSections, setExpandedSections] = useState({
+    insights: false,
+    fullPredictions: false,
+    metadata: false
+  });
+
+  const toggleSection = (section) => {
+    setExpandedSections(prev => ({
+      ...prev,
+      [section]: !prev[section]
+    }));
+  };
 
   useEffect(() => {
     fetchForecast();
@@ -49,7 +73,7 @@ const ForecastChart = ({ days = 7 }) => {
     return (
       <div className="forecast-container">
         <div className="forecast-loading">
-          <div className="spinner"></div>
+          <LoadingSpinner size={40} color="#00796b" />
           <p>Loading forecast data...</p>
         </div>
       </div>
@@ -60,7 +84,8 @@ const ForecastChart = ({ days = 7 }) => {
     return (
       <div className="forecast-container">
         <div className="forecast-error">
-          <h3>⚠️ Unable to Load Forecast</h3>
+          <AlertIcon size={28} color="#ff9800" />
+          <h3>Unable to Load Forecast</h3>
           <p>{error}</p>
           <button onClick={handleRefresh} className="btn-retry">
             Retry
@@ -74,6 +99,7 @@ const ForecastChart = ({ days = 7 }) => {
     return (
       <div className="forecast-container">
         <div className="forecast-error">
+          <AlertIcon size={28} color="#ff9800" />
           <h3>Error Generating Forecast</h3>
           <p>{forecast?.error || 'Unknown error'}</p>
         </div>
@@ -86,8 +112,12 @@ const ForecastChart = ({ days = 7 }) => {
       {/* Header */}
       <div className="forecast-header">
         <div>
-          <h2>📊 Demand Forecast</h2>
+          <h2>
+            <ChartIcon size={24} color="#00796b" style={{ marginRight: '8px', verticalAlign: 'middle' }} />
+            Demand Forecast
+          </h2>
           <p className="forecast-subtitle">
+            <CalendarIcon size={12} color="#757575" style={{ marginRight: '4px', verticalAlign: 'middle' }} />
             Next {days} days | Updated: {new Date(forecast.generatedAt).toLocaleString()}
           </p>
         </div>
@@ -96,128 +126,212 @@ const ForecastChart = ({ days = 7 }) => {
           disabled={refreshing}
           className="btn-refresh"
         >
-          {refreshing ? '⟳ Refreshing...' : '🔄 Refresh'}
+          <RefreshIcon size={16} color="#00796b" style={{
+            transform: refreshing ? 'rotate(180deg)' : 'rotate(0deg)',
+            transition: 'transform 1s linear'
+          }} />
+          {refreshing ? 'Refreshing...' : 'Refresh'}
         </button>
       </div>
 
-      {/* Insights */}
+      {/* Top Insight Card */}
       {forecast.insights && forecast.insights.length > 0 && (
-        <div className="forecast-insights">
-          <h3>💡 Key Insights</h3>
-          <div className="insights-list">
-            {forecast.insights.map((insight, idx) => (
-              <div key={idx} className={`insight-card insight-${insight.type}`}>
-                <div className="insight-message">{insight.message}</div>
-                <div className="insight-recommendation">
-                  👉 {insight.recommendation}
-                </div>
+        <div className="forecast-section">
+          <div className="section-content">
+            <div className={`insight-card-featured insight-${forecast.insights[0].type}`}>
+              <div className="insight-icon">
+                <InfoIcon size={20} color="currentColor" />
               </div>
-            ))}
+              <div className="insight-details">
+                <div className="insight-message">{forecast.insights[0].message}</div>
+                <div className="insight-recommendation">{forecast.insights[0].recommendation}</div>
+              </div>
+            </div>
           </div>
         </div>
       )}
 
-      {/* Forecast Table */}
-      <div className="forecast-table-wrapper">
-        <h3>Predictions</h3>
-        <table className="forecast-table">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>Predicted Orders</th>
-              <th>Confidence Range</th>
-              <th>Trend</th>
-              <th>Weekly Pattern</th>
-            </tr>
-          </thead>
-          <tbody>
-            {forecast.forecast.map((prediction, idx) => {
-              const date = new Date(prediction.ds);
-              const dayName = date.toLocaleString('en-US', { weekday: 'short' });
-              const lower = Math.round(prediction.yhat_lower);
-              const upper = Math.round(prediction.yhat_upper);
-              const predicted = Math.round(prediction.yhat);
+      {/* Next 3 Days Summary Cards */}
+      <div className="forecast-section">
+        <div className="section-title">
+          <h3>Next 3 Days</h3>
+        </div>
+        <div className="prediction-cards-grid">
+          {forecast.forecast.slice(0, 3).map((prediction, idx) => {
+            const date = new Date(prediction.ds);
+            const dayName = date.toLocaleString('en-US', { weekday: 'long' });
+            const dayDate = date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
+            const predicted = Math.round(prediction.yhat);
+            const lower = Math.round(prediction.yhat_lower);
+            const upper = Math.round(prediction.yhat_upper);
 
-              return (
-                <tr key={idx} className="forecast-row">
-                  <td className="date-cell">
-                    <div className="date-info">
-                      <div className="date-day">{dayName}</div>
-                      <div className="date-value">{prediction.ds}</div>
-                    </div>
-                  </td>
-                  <td className="prediction-cell">
-                    <div className="prediction-badge">{predicted}</div>
-                  </td>
-                  <td className="range-cell">
-                    <div className="range-info">
-                      {lower} - {upper} orders
-                    </div>
-                    <div className="range-bar">
-                      <div className="range-fill" style={{
-                        width: `${((predicted - lower) / (upper - lower)) * 100}%`
-                      }}></div>
-                    </div>
-                  </td>
-                  <td className="trend-cell">
-                    <div className={`trend-indicator ${prediction.trend > 0 ? 'up' : prediction.trend < 0 ? 'down' : 'neutral'}`}>
-                      {prediction.trend > 0 ? '📈' : prediction.trend < 0 ? '📉' : '➡️'}
-                      {Math.abs(prediction.trend).toFixed(1)}
-                    </div>
-                  </td>
-                  <td className="weekly-cell">
-                    <div className={`weekly-factor ${prediction.weekly > 0 ? 'positive' : 'negative'}`}>
-                      {prediction.weekly > 0 ? '+' : ''}{prediction.weekly.toFixed(1)}%
-                    </div>
-                  </td>
-                </tr>
-              );
-            })}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Model Metadata */}
-      <div className="forecast-metadata">
-        <h3>Model Information</h3>
-        <div className="metadata-grid">
-          <div className="metadata-item">
-            <span className="label">Algorithm:</span>
-            <span className="value">{forecast.modelMetadata.algorithmUsed}</span>
-          </div>
-          <div className="metadata-item">
-            <span className="label">Historical Data:</span>
-            <span className="value">{forecast.modelMetadata.historicalDataPoints} days</span>
-          </div>
-          <div className="metadata-item">
-            <span className="label">Avg Orders/Day:</span>
-            <span className="value">{forecast.modelMetadata.dataStatistics.avgOrdersPerDay}</span>
-          </div>
-          <div className="metadata-item">
-            <span className="label">Data Range:</span>
-            <span className="value" title={forecast.modelMetadata.dataStatistics.dateRange}>
-              {forecast.modelMetadata.dataStatistics.dateRange.substring(0, 20)}...
-            </span>
-          </div>
-          <div className="metadata-item">
-            <span className="label">Seasonality:</span>
-            <span className="value">
-              Weekly: {forecast.modelMetadata.seasonalityEnabled.weekly ? '✓' : '✗'}
-            </span>
-          </div>
-          <div className="metadata-item">
-            <span className="label">Confidence:</span>
-            <span className="value">95%</span>
-          </div>
+            return (
+              <div key={idx} className="prediction-card">
+                <div className="card-date">
+                  <div className="card-day">{dayName}</div>
+                  <div className="card-datevalue">{dayDate}</div>
+                </div>
+                <div className="card-content">
+                  <div className="card-predicted">
+                    <span className="predicted-value">{predicted}</span>
+                    <span className="predicted-label">orders</span>
+                  </div>
+                  <div className="card-confidence">
+                    <span className="confidence-label">Range:</span>
+                    <span className="confidence-value">{lower}–{upper}</span>
+                  </div>
+                  <div className="card-trend">
+                    {prediction.trend > 0 && <TrendUpIcon size={14} color="#4caf50" />}
+                    {prediction.trend < 0 && <TrendDownIcon size={14} color="#f44336" />}
+                    {prediction.trend === 0 && <TrendNeutralIcon size={14} color="#9e9e9e" />}
+                    <span>{Math.abs(prediction.trend).toFixed(1)}%</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
-      {/* Data Info */}
+      {/* Additional Insights - Collapsible */}
+      {forecast.insights && forecast.insights.length > 1 && (
+        <div className="forecast-section">
+          <button 
+            className="section-toggle"
+            onClick={() => toggleSection('insights')}
+          >
+            <span>More Insights ({forecast.insights.length - 1})</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d={expandedSections.insights ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          {expandedSections.insights && (
+            <div className="section-content">
+              <div className="insights-list">
+                {forecast.insights.slice(1).map((insight, idx) => (
+                  <div key={idx} className={`insight-card insight-${insight.type}`}>
+                    <div className="insight-message">{insight.message}</div>
+                    <div className="insight-recommendation">{insight.recommendation}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Full Predictions Table - Collapsible */}
+      <div className="forecast-section">
+        <button 
+          className="section-toggle"
+          onClick={() => toggleSection('fullPredictions')}
+        >
+          <span>Full {days}-Day Forecast</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d={expandedSections.fullPredictions ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        {expandedSections.fullPredictions && (
+          <div className="section-content">
+            <div className="forecast-table-wrapper">
+              <table className="forecast-table">
+                <thead>
+                  <tr>
+                    <th>Date</th>
+                    <th>Predicted</th>
+                    <th>Range</th>
+                    <th>Trend</th>
+                    <th>Weekly</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {forecast.forecast.map((prediction, idx) => {
+                    const date = new Date(prediction.ds);
+                    const dayName = date.toLocaleString('en-US', { weekday: 'short' });
+                    const lower = Math.round(prediction.yhat_lower);
+                    const upper = Math.round(prediction.yhat_upper);
+                    const predicted = Math.round(prediction.yhat);
+
+                    return (
+                      <tr key={idx} className="forecast-row">
+                        <td className="date-cell">
+                          <div className="date-info">
+                            <div className="date-day">{dayName}</div>
+                            <div className="date-value">{prediction.ds}</div>
+                          </div>
+                        </td>
+                        <td className="prediction-cell">
+                          <div className="prediction-badge">{predicted}</div>
+                        </td>
+                        <td className="range-cell">
+                          <div className="range-info">{lower}–{upper}</div>
+                        </td>
+                        <td className="trend-cell">
+                          <div className={`trend-indicator ${prediction.trend > 0 ? 'up' : prediction.trend < 0 ? 'down' : 'neutral'}`}>
+                            {prediction.trend > 0 && <TrendUpIcon size={14} color="#4caf50" />}
+                            {prediction.trend < 0 && <TrendDownIcon size={14} color="#f44336" />}
+                            {prediction.trend === 0 && <TrendNeutralIcon size={14} color="#9e9e9e" />}
+                            <span>{Math.abs(prediction.trend).toFixed(1)}%</span>
+                          </div>
+                        </td>
+                        <td className="weekly-cell">
+                          <div className={`weekly-factor ${prediction.weekly > 0 ? 'positive' : 'negative'}`}>
+                            {prediction.weekly > 0 ? '+' : ''}{prediction.weekly.toFixed(1)}%
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Model Metadata - Collapsible */}
+      <div className="forecast-section">
+        <button 
+          className="section-toggle"
+          onClick={() => toggleSection('metadata')}
+        >
+          <span>Model Details</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d={expandedSections.metadata ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+          </svg>
+        </button>
+        {expandedSections.metadata && (
+          <div className="section-content">
+            <div className="metadata-grid">
+              <div className="metadata-item">
+                <span className="label">Algorithm:</span>
+                <span className="value">{forecast.modelMetadata.algorithmUsed}</span>
+              </div>
+              <div className="metadata-item">
+                <span className="label">Historical Data:</span>
+                <span className="value">{forecast.modelMetadata.historicalDataPoints} days</span>
+              </div>
+              <div className="metadata-item">
+                <span className="label">Avg Orders/Day:</span>
+                <span className="value">{forecast.modelMetadata.dataStatistics.avgOrdersPerDay}</span>
+              </div>
+              <div className="metadata-item">
+                <span className="label">Seasonality:</span>
+                <span className="value">
+                  {forecast.modelMetadata.seasonalityEnabled.weekly ? '✓ Weekly' : '✗ None'}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Footer Info */}
       <div className="forecast-info">
-        <p>
-          <strong>ℹ️ How to use:</strong> These predictions are based on historical order patterns.
-          Predictions improve as more data accumulates. Use confidence ranges to plan inventory and staffing.
-        </p>
+        <CheckIcon size={14} color="#4caf50" style={{ marginRight: '6px', verticalAlign: 'middle' }} />
+        <span>
+          <strong>Based on {forecast.modelMetadata.historicalDataPoints} days</strong> of historical patterns. Predictions become more accurate as data accumulates.
+        </span>
       </div>
     </div>
   );

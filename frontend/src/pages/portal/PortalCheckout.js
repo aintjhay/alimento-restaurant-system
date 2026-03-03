@@ -3,6 +3,14 @@ import { useNavigate } from 'react-router-dom';
 import { ordersAPI } from '../../services/api';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
+import CartIcon from '../../components/icons/CartIcon';
+import PhoneIcon from '../../components/icons/PhoneIcon';
+import MapPinIcon from '../../components/icons/MapPinIcon';
+import EmailIcon from '../../components/icons/EmailIcon';
+import ClockIcon from '../../components/icons/ClockIcon';
+import UserIcon from '../../components/icons/UserIcon';
+import SaveIcon from '../../components/icons/SaveIcon';
+import XIcon from '../../components/icons/XIcon';
 import './Portal.css';
 
 const CART_KEY = 'portalCart';
@@ -25,37 +33,96 @@ const PortalCheckout = () => {
   const [paymentProof, setPaymentProof] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+  const [editableCart, setEditableCart] = useState(cart);
+  const [savedAddresses, setSavedAddresses] = useState([]);
+  const [selectedAddressId, setSelectedAddressId] = useState(null);
+  const [saveAddress, setSaveAddress] = useState(false);
 
   // Load checkout type and user info on mount
   useEffect(() => {
-    const type = localStorage.getItem('portalCheckoutType') || 'guest';
-    setCheckoutType(type);
-
+    let userData = null;
     const portalUser = localStorage.getItem('portalUser');
+    
+    // Check if user is logged in
     if (portalUser) {
       try {
-        const userData = JSON.parse(portalUser);
+        userData = JSON.parse(portalUser);
         setUser(userData);
-        setCustomerName(userData.name || '');
+        setCustomerName(userData.firstName && userData.lastName 
+          ? `${userData.firstName} ${userData.lastName}` 
+          : userData.name || '');
         setCustomerEmail(userData.email || '');
+        // Set checkout type to 'registered' if user is logged in
+        setCheckoutType('registered');
       } catch (err) {
         console.error('Error loading user:', err);
+        setCheckoutType('guest');
       }
+    } else {
+      // No user logged in, use stored checkout type or default to guest
+      const storedType = localStorage.getItem('portalCheckoutType') || 'guest';
+      setCheckoutType(storedType);
     }
 
     // If cart is empty, redirect to menu
     if (cart.length === 0) {
       navigate('/portal');
     }
+    setEditableCart(cart);
+
+    // Load saved addresses if registered user
+    if (userData && userData.addresses) {
+      setSavedAddresses(userData.addresses || []);
+      // Pre-select primary address if available
+      const primaryAddress = userData.addresses.find(addr => addr.isDefault);
+      if (primaryAddress) {
+        setSelectedAddressId(primaryAddress._id);
+        setCustomerAddress(`${primaryAddress.street}, ${primaryAddress.city} ${primaryAddress.postal}`);
+        if (primaryAddress.phone) setCustomerContact(primaryAddress.phone);
+      }
+    }
   }, [cart, navigate]);
 
+  // Handle cart item quantity change
+  const handleQuantityChange = (index, newQuantity) => {
+    if (newQuantity <= 0) return;
+    const updatedCart = [...editableCart];
+    updatedCart[index].quantity = newQuantity;
+    setEditableCart(updatedCart);
+    localStorage.setItem(CART_KEY, JSON.stringify(updatedCart));
+  };
+
+  // Handle cart item deletion
+  const handleDeleteItem = (index) => {
+    const updatedCart = editableCart.filter((_, i) => i !== index);
+    setEditableCart(updatedCart);
+    localStorage.setItem(CART_KEY, JSON.stringify(updatedCart));
+  };
+
+  // Handle address selection
+  const handleSelectAddress = (addressId) => {
+    setSelectedAddressId(addressId);
+    const selected = savedAddresses.find(addr => addr._id === addressId);
+    if (selected) {
+      setCustomerAddress(`${selected.street}, ${selected.city} ${selected.postal}`);
+      if (selected.phone) setCustomerContact(selected.phone);
+    }
+  };
+
   const subtotal = useMemo(() => {
-    return cart.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
-  }, [cart]);
+    return editableCart.reduce((sum, item) => sum + (item.basePrice * item.quantity), 0);
+  }, [editableCart]);
 
   const taxAmount = subtotal * 0.12;
   const deliveryFee = 50;
   const totalAmount = subtotal + taxAmount + deliveryFee;
+
+  // Calculate estimated delivery time (30-45 minutes)
+  const getEstimatedDelivery = () => {
+    const now = new Date();
+    const estimatedTime = new Date(now.getTime() + 35 * 60000); // 35 minutes from now
+    return estimatedTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' });
+  };
 
   const handleProofUpload = (file) => {
     if (!file) {
@@ -69,7 +136,7 @@ const PortalCheckout = () => {
   };
 
   const buildOrderItems = () => {
-    return cart.map(item => ({
+    return editableCart.map(item => ({
       menuItemId: item.menuItemId,
       name: item.name,
       price: item.basePrice,
@@ -119,9 +186,51 @@ const PortalCheckout = () => {
         status: 'pending'
       };
 
+      // Add userId for registered customers
+      console.log('\n=== CHECKOUT SUBMISSION DEBUG ===');
+      console.log('checkoutType:', checkoutType);
+      console.log('user object:', user);
+      console.log('user._id:', user?._id);
+      console.log('user.id:', user?.id);
+      
+      if (checkoutType === 'registered' && user && (user._id || user.id)) {
+        orderPayload.userId = user._id || user.id;
+        console.log('✅ REGISTERED CHECKOUT - userId being sent:', orderPayload.userId);
+      } else {
+        console.log('❌ GUEST CHECKOUT - No userId will be attached');
+        console.log('   checkoutType matches registered?', checkoutType === 'registered');
+        console.log('   user exists?', !!user);
+        console.log('   user has _id or id?', !!(user?._id || user?.id));
+      }
+
+      console.log('Final Order Payload userId:', orderPayload.userId || 'UNDEFINED');
+      console.log('================================\n');
+
       const result = await ordersAPI.create(orderPayload);
       if (!result.success) {
         throw new Error(result.message || 'Order failed');
+      }
+
+      // Save address if user is registered and checkbox is checked
+      if (checkoutType === 'registered' && saveAddress && user) {
+        try {
+          const addressParts = customerAddress.split(',').map(part => part.trim());
+          const newAddressData = {
+            label: 'Recent Order',
+            street: addressParts[0] || customerAddress,
+            city: addressParts[1] || '',
+            postal: addressParts[2] || '',
+            phone: customerContact,
+            isDefault: false
+          };
+          
+          // Save address to user profile (requires backend endpoint)
+          // This is optional - you can comment out if endpoint doesn't exist yet
+          // await axios.post(`http://localhost:5000/api/users/${user.id}/addresses`, newAddressData);
+        } catch (addrError) {
+          console.warn('Could not save address:', addrError);
+          // Don't fail the order if address save fails
+        }
       }
 
       localStorage.removeItem(CART_KEY);
@@ -155,14 +264,42 @@ const PortalCheckout = () => {
       
       <div className="portal-checkout">
         <div className="checkout-summary">
-          <h2>Order summary</h2>
-          {cart.map((item, index) => (
-            <div key={`${item.id}-${index}`} className="summary-row">
-              <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
+            <CartIcon size={24} color="#2f6f6a" />
+            <h2 style={{ margin: 0 }}>Order summary</h2>
+          </div>
+          {editableCart.map((item, index) => (
+            <div key={`${item.id}-${index}`} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1rem', paddingBottom: '1rem', borderBottom: '1px solid #eee' }}>
+              <div style={{ flex: 1 }}>
                 <strong>{item.name}</strong>
-                <p>{item.quantity} x ₱{item.itemPrice}</p>
+                <p style={{ margin: '0.25rem 0', fontSize: '0.9rem', color: '#666' }}>₱{item.basePrice}/unit</p>
               </div>
-              <span>₱{(item.itemPrice * item.quantity).toFixed(0)}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                <button 
+                  type="button"
+                  onClick={() => handleQuantityChange(index, item.quantity - 1)}
+                  style={{ padding: '0.25rem 0.5rem', background: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  −
+                </button>
+                <span style={{ minWidth: '2rem', textAlign: 'center', fontWeight: '500' }}>{item.quantity}</span>
+                <button 
+                  type="button"
+                  onClick={() => handleQuantityChange(index, item.quantity + 1)}
+                  style={{ padding: '0.25rem 0.5rem', background: '#f0f0f0', border: '1px solid #ddd', borderRadius: '4px', cursor: 'pointer' }}
+                >
+                  +
+                </button>
+                <span style={{ minWidth: '3.5rem', textAlign: 'right', fontWeight: '500' }}>₱{(item.basePrice * item.quantity).toFixed(0)}</span>
+                <button 
+                  type="button"
+                  onClick={() => handleDeleteItem(index)}
+                  style={{ padding: '0.25rem', background: '#ffebee', border: 'none', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center' }}
+                  title="Remove item"
+                >
+                  <XIcon size={16} color="#d32f2f" />
+                </button>
+              </div>
             </div>
           ))}
           <div className="summary-total">
@@ -186,29 +323,115 @@ const PortalCheckout = () => {
         </div>
 
         <form className="checkout-form" onSubmit={handleSubmit}>
-          <h2>Delivery details</h2>
+          <h2 style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+            <MapPinIcon size={24} color="#2f6f6a" />
+            Delivery details
+          </h2>
 
-          <label>
-            Full name
-            <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required />
-          </label>
+          {checkoutType === 'registered' && savedAddresses.length > 0 && (
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f9f9f9', borderRadius: '8px', border: '1px solid #e0e0e0' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <MapPinIcon size={20} color="#2f6f6a" />
+                <label style={{ fontWeight: '600', color: '#333', fontSize: '0.95rem', margin: 0 }}>
+                  Use saved address
+                </label>
+              </div>
+              <select
+                value={selectedAddressId || ''}
+                onChange={(e) => handleSelectAddress(e.target.value)}
+                style={{
+                  width: '100%',
+                  padding: '0.75rem',
+                  border: '1px solid #ddd',
+                  borderRadius: '6px',
+                  boxSizing: 'border-box',
+                  fontSize: '0.95rem',
+                  cursor: 'pointer'
+                }}
+              >
+                <option value="">-- Select from saved addresses --</option>
+                {savedAddresses.map(addr => (
+                  <option key={addr._id} value={addr._id}>
+                    {addr.label}: {addr.street}, {addr.city} {addr.isDefault ? '(Primary)' : ''}
+                  </option>
+                ))}
+              </select>
+              <small style={{ display: 'block', color: '#999', marginTop: '0.5rem' }}>
+                or enter a different address below
+              </small>
+            </div>
+          )}
 
-          <label>
-            Contact number
-            <input value={customerContact} onChange={(event) => setCustomerContact(event.target.value)} required />
-          </label>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <UserIcon size={20} color="#2f6f6a" />
+              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Full name</label>
+            </div>
+            <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+          </div>
 
-          <label>
-            Delivery address
-            <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} required />
-          </label>
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <PhoneIcon size={20} color="#2f6f6a" />
+              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Contact number</label>
+            </div>
+            <input value={customerContact} onChange={(event) => setCustomerContact(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+          </div>
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <MapPinIcon size={20} color="#2f6f6a" />
+              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Delivery address</label>
+            </div>
+            <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', minHeight: '100px' }} />
+          </div>
 
           {checkoutType === 'registered' && (
-            <label>
-              Email
-              <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} disabled />
-            </label>
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f5f5f5', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
+              <input
+                type="checkbox"
+                id="saveAddress"
+                checked={saveAddress}
+                onChange={(e) => setSaveAddress(e.target.checked)}
+                style={{ width: '18px', height: '18px', cursor: 'pointer' }}
+              />
+              <SaveIcon size={20} color="#2f6f6a" />
+              <label htmlFor="saveAddress" style={{ margin: 0, cursor: 'pointer', fontSize: '0.95rem', color: '#333', fontWeight: '500' }}>
+                Save this address for future orders
+              </label>
+            </div>
           )}
+
+          {checkoutType === 'registered' && (
+            <div style={{ marginBottom: '1.5rem' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                <EmailIcon size={20} color="#2f6f6a" />
+                <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Email</label>
+              </div>
+              <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+            </div>
+          )}
+
+          {/* Estimated Delivery Time */}
+          <div style={{
+            padding: '1rem',
+            background: '#f5f5f5',
+            borderRadius: '6px',
+            borderLeft: '4px solid #2f6f6a',
+            marginBottom: '1.5rem',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '1rem'
+          }}>
+            <ClockIcon size={32} color="#2f6f6a" />
+            <div>
+              <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: '#666' }}>Estimated Delivery</p>
+              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#2f6f6a' }}>
+                {getEstimatedDelivery()}
+              </p>
+              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#999' }}>Ready in approximately 30-45 minutes</p>
+            </div>
+          </div>
 
           <div className="payment-section">
             <h3>Payment method</h3>

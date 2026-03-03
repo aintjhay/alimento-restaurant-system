@@ -5,7 +5,6 @@ import { getCategoryIcon, getFoodImage, getItemColor } from '../../utils/imageUt
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import CartModal from '../../components/portal/CartModal';
-import RatingDisplay from '../../components/portal/RatingDisplay';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import './Portal.css';
 
@@ -17,7 +16,6 @@ const PortalHome = () => {
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [activeCategory, setActiveCategory] = useState('All');
-  const [minRating, setMinRating] = useState(0); // 0 = no filter, 3+ = 3+ stars, etc.
   const [cart, setCart] = useState([]);
   const [modalItem, setModalItem] = useState(null);
   const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -67,10 +65,9 @@ const PortalHome = () => {
       const matchesSearch = !searchTerm.trim() ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesRating = minRating === 0 || (item.averageRating || 0) >= minRating;
-      return matchesCategory && matchesSearch && matchesRating;
+      return matchesCategory && matchesSearch;
     });
-  }, [menuItems, activeCategory, searchTerm, minRating]);
+  }, [menuItems, activeCategory, searchTerm]);
 
   const openModal = (item) => {
     const initialModifiers = {};
@@ -164,7 +161,18 @@ const PortalHome = () => {
   const handleCheckout = () => {
     if (cart.length === 0) return;
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
-    navigate('/portal/checkout-choice');
+    
+    // Check if user is already logged in
+    const checkoutType = localStorage.getItem('portalCheckoutType');
+    const portalUser = localStorage.getItem('portalUser');
+    
+    if (checkoutType === 'registered' && portalUser) {
+      // User is logged in, go directly to checkout
+      navigate('/portal/checkout');
+    } else {
+      // User not logged in, show choice page
+      navigate('/portal/checkout-choice');
+    }
   };
 
   const handleConfirmModal = () => {
@@ -191,7 +199,27 @@ const PortalHome = () => {
   if (loading) {
     return (
       <div className="portal-page">
-        <div className="portal-loading">Loading menu...</div>
+        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
+        <div className="portal-loading" style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>
+            <p>Loading menu...</p>
+            <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '10px' }}>If this takes too long, please ensure the backend server is running.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  if (!menuItems.length && !loading) {
+    return (
+      <div className="portal-page">
+        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
+        <div className="portal-loading" style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <div>
+            <p>Menu is currently unavailable</p>
+            <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '10px' }}>Please refresh the page or try again later.</p>
+          </div>
+        </div>
       </div>
     );
   }
@@ -278,40 +306,6 @@ const PortalHome = () => {
               </button>
             ))}
           </div>
-
-          <h2 style={{ marginTop: '2rem' }}>Filter by Rating</h2>
-          <div className="rating-filter">
-            <button
-              className={`rating-filter-btn ${minRating === 0 ? 'active' : ''}`}
-              onClick={() => setMinRating(0)}
-            >
-              All Ratings
-            </button>
-            <button
-              className={`rating-filter-btn ${minRating === 1 ? 'active' : ''}`}
-              onClick={() => setMinRating(1)}
-            >
-              ⭐ 1+
-            </button>
-            <button
-              className={`rating-filter-btn ${minRating === 2 ? 'active' : ''}`}
-              onClick={() => setMinRating(2)}
-            >
-              ⭐⭐ 2+
-            </button>
-            <button
-              className={`rating-filter-btn ${minRating === 3 ? 'active' : ''}`}
-              onClick={() => setMinRating(3)}
-            >
-              ⭐⭐⭐ 3+
-            </button>
-            <button
-              className={`rating-filter-btn ${minRating === 4 ? 'active' : ''}`}
-              onClick={() => setMinRating(4)}
-            >
-              ⭐⭐⭐⭐ 4+
-            </button>
-          </div>
         </aside>
 
         <main className="portal-menu">
@@ -345,11 +339,6 @@ const PortalHome = () => {
                   </div>
                   <h3>{item.name}</h3>
                   <p>{item.description}</p>
-                  {item.averageRating > 0 && (
-                    <div className="rating-badge">
-                      ⭐ {item.averageRating.toFixed(1)} ({item.reviewCount || 0})
-                    </div>
-                  )}
                   <button className="menu-add" onClick={() => handleAddClick(item)}>
                     Add to cart
                   </button>

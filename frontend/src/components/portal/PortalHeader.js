@@ -4,8 +4,6 @@ import logo from '../../assets/images/logo/alimentologo.png';
 import UserIcon from '../icons/UserIcon';
 import CartIcon from '../icons/CartIcon';
 import ClipboardIcon from '../icons/ClipboardIcon';
-import HeartIcon from '../icons/HeartIcon';
-import HelpIcon from '../icons/HelpIcon';
 import LogOutIcon from '../icons/LogOutIcon';
 import ChevronDownIcon from '../icons/ChevronDownIcon';
 
@@ -96,13 +94,8 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
       handleLogout();
     } else if (action === 'orders') {
       navigate('/portal/orders');
-    } else if (action === 'favorites') {
-      navigate('/portal/favorites');
     } else if (action === 'profile') {
       navigate('/portal/profile');
-    } else if (action === 'help') {
-      // TODO: Navigate to help center when created
-      console.log('Help center not yet implemented');
     }
   };
 
@@ -150,7 +143,11 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
                 onClick={() => setShowUserMenu(!showUserMenu)}
               >
                 <span className="user-icon"><UserIcon size={20} color="#2f6f6a" /></span>
-                <span className="user-greeting">{user.name}</span>
+                <span className="user-greeting">
+                  {user.firstName && user.lastName 
+                    ? `${user.firstName} ${user.lastName}` 
+                    : user.name || 'User'}
+                </span>
                 <span className={`menu-chevron ${showUserMenu ? 'open' : ''}`}>
                   <ChevronDownIcon size={16} color="#2f6f6a" />
                 </span>
@@ -159,7 +156,11 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
               {showUserMenu && (
                 <div className="user-menu-dropdown">
                   <div className="user-menu-header">
-                    <span className="user-menu-title">{user.name}</span>
+                    <span className="user-menu-title">
+                      {user.firstName && user.lastName 
+                        ? `${user.firstName} ${user.lastName}` 
+                        : user.name || 'User'}
+                    </span>
                     <span className="user-menu-email">{user.email}</span>
                   </div>
 
@@ -179,22 +180,6 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
                   >
                     <span className="menu-item-icon"><ClipboardIcon size={18} color="#2f6f6a" /></span>
                     <span>Orders & Reordering</span>
-                  </button>
-
-                  <button
-                    className="user-menu-item"
-                    onClick={() => handleMenuItemClick('favorites')}
-                  >
-                    <span className="menu-item-icon"><HeartIcon size={18} color="#2f6f6a" /></span>
-                    <span>Favorites</span>
-                  </button>
-
-                  <button
-                    className="user-menu-item"
-                    onClick={() => handleMenuItemClick('help')}
-                  >
-                    <span className="menu-item-icon"><HelpIcon size={18} color="#2f6f6a" /></span>
-                    <span>Help Center</span>
                   </button>
 
                   <div className="user-menu-divider"></div>

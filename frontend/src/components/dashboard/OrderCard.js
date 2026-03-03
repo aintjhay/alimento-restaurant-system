@@ -70,9 +70,18 @@ const OrderCard = ({ order, onPrint, onDetails, onStatusChange }) => {
         <div className="order-card-left">
           <div className="order-number-badge">{order.orderNumber || `#${order._id?.slice(-6) || 'N/A'}`}</div>
           <div className="order-quick-info">
-            <span className="order-table">
-              {order.tableNumber ? `Table ${order.tableNumber}` : order.customerName || 'Dine-in'}
-            </span>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              {order.tableNumber === 'Delivery' || order.orderType === 'Delivery' ? (
+                <>
+                  <span style={{ fontSize: '1.2rem' }}>🍴</span>
+                  <span className="order-table">Delivery</span>
+                </>
+              ) : (
+                <span className="order-table">
+                  {order.tableNumber ? `Table ${order.tableNumber}` : order.customerName || 'Dine-in'}
+                </span>
+              )}
+            </div>
             <span className="order-time">{timeString}</span>
           </div>
         </div>
@@ -212,6 +221,40 @@ const OrderCard = ({ order, onPrint, onDetails, onStatusChange }) => {
             <div className="card-section info-section">
               <label>Order Type</label>
               <span className="order-type-badge">{order.orderType}</span>
+            </div>
+          )}
+
+          {/* Delivery Info Section - For Delivery Orders */}
+          {(order.tableNumber === 'Delivery' || order.orderType === 'Delivery') && (
+            <div className="card-section delivery-info-section">
+              <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.75rem' }}>
+                <span style={{ fontSize: '1rem' }}>🍴</span>
+                <label>Delivery Information</label>
+              </div>
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem', fontSize: '0.9rem' }}>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Recipient</span>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#212121', fontWeight: '600' }}>{order.customerName || 'N/A'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Contact</span>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#212121', fontWeight: '600' }}>{order.customerContact || 'N/A'}</p>
+                </div>
+                <div style={{ gridColumn: '1 / -1' }}>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Address</span>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#212121', fontWeight: '600', lineHeight: '1.4' }}>{order.customerAddress || 'N/A'}</p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Payment</span>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#212121', fontWeight: '600', textTransform: 'capitalize' }}>
+                    {order.paymentMethod ? (order.paymentMethod === 'cash' ? 'Cash on Delivery' : order.paymentMethod.toUpperCase()) : 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  <span style={{ fontSize: '0.75rem', fontWeight: '700', textTransform: 'uppercase', color: '#666' }}>Delivery Status</span>
+                  <p style={{ margin: '0.25rem 0 0 0', color: '#212121', fontWeight: '600', textTransform: 'capitalize' }}>{order.status || 'Pending'}</p>
+                </div>
+              </div>
             </div>
           )}
 

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import PortalHeader from '../../components/portal/PortalHeader';
+import PortalFooter from '../../components/portal/PortalFooter';
 import './Portal.css';
 
 const PortalUserProfile = () => {
@@ -143,7 +145,11 @@ const PortalUserProfile = () => {
   }
 
   return (
-    <div className="portal-container profile-container" style={{ animation: 'fadeIn 0.5s ease-in' }}>
+    <div className="portal-page">
+      <PortalHeader />
+      
+      <main className="portal-main">
+        <div className="portal-container profile-container" style={{ animation: 'fadeIn 0.5s ease-in' }}>
       <div className="profile-header">
         <h1>👤 My Profile</h1>
         <p className="profile-email">{user?.email}</p>
@@ -365,44 +371,10 @@ const PortalUserProfile = () => {
           )}
         </div>
       </div>
+    </div>
+      </main>
 
-      {/* Preferences Section */}
-      <div className="profile-section">
-        <h2>🌿 Dietary Preferences</h2>
-        <div className="preferences-grid">
-          <div className="preference-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={user?.preferences?.dietary?.vegetarian || false}
-                disabled
-              />
-              Vegetarian
-            </label>
-          </div>
-          <div className="preference-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={user?.preferences?.dietary?.vegan || false}
-                disabled
-              />
-              Vegan
-            </label>
-          </div>
-          <div className="preference-item">
-            <label>
-              <input
-                type="checkbox"
-                checked={user?.preferences?.dietary?.glutenFree || false}
-                disabled
-              />
-              Gluten Free
-            </label>
-          </div>
-        </div>
-        <p className="muted-text">Edit these preferences during checkout</p>
-      </div>
+      <PortalFooter />
     </div>
   );
 };

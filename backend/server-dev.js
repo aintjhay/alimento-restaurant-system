@@ -19,8 +19,15 @@ const authRoutes = require('./src/routes/authRoutes');
 async function startServer() {
     console.log('🚀 Starting Alimento Restaurant API with IN-MEMORY MongoDB...');
     
-    // Create in-memory MongoDB instance
-    const mongoServer = await MongoMemoryServer.create();
+    // Create in-memory MongoDB instance with increased timeout for Windows
+    const mongoServer = await MongoMemoryServer.create({
+        instance: {
+            port: undefined // Use random available port
+        },
+        binary: {
+            downloadDir: process.env.MMS_DOWNLOAD_DIR || './mongodb-binaries'
+        }
+    });
     const mongoUri = mongoServer.getUri();
     
     console.log('📦 MongoDB Memory Server created');
@@ -136,8 +143,17 @@ process.on('SIGINT', async () => {
     process.exit(0);
 });
 
-// Start the server
-startServer().catch(err => {
+// Start the server with increased timeout
+const timeoutMs = parseInt(process.env.STARTUP_TIMEOUT || '60000', 10);
+const startTimeout = setTimeout(() => {
+    console.error('❌ Server startup timeout. Ensure MongoDB Memory Server can be initialized.');
+    process.exit(1);
+}, timeoutMs);
+
+startServer().then(() => {
+    clearTimeout(startTimeout);
+}).catch(err => {
+    clearTimeout(startTimeout);
     console.error('❌ Failed to start server:', err);
     process.exit(1);
 });

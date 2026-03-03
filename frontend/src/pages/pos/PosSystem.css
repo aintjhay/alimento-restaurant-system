@@ -414,6 +414,62 @@ body {
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
 }
 
+/* New interactive Options button */
+.item-modifier-indicator-btn {
+  position: absolute;
+  bottom: 0.5rem;
+  right: 0.5rem;
+  padding: 0.35rem 0.7rem;
+  background: linear-gradient(135deg, var(--teal-main), var(--teal-light));
+  color: white;
+  font-size: 0.7rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  cursor: pointer;
+  font-family: 'Poppins', sans-serif;
+  transition: all 0.2s ease;
+  backdrop-filter: blur(4px);
+  box-shadow: 0 2px 8px rgba(0, 121, 107, 0.3);
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.item-modifier-indicator-btn:hover {
+  background: linear-gradient(135deg, var(--teal-dark), var(--teal-main));
+  box-shadow: 0 4px 12px rgba(0, 121, 107, 0.5);
+  transform: translateY(-2px);
+}
+
+.item-modifier-indicator-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 4px rgba(0, 121, 107, 0.3);
+}
+
+/* Customization preview pills */
+.item-customization-preview {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin: 0.3rem 0 0;
+  padding: 0.3rem 0;
+}
+
+.customization-pill {
+  display: inline-block;
+  padding: 0.2rem 0.45rem;
+  background: linear-gradient(135deg, #ffecb3, #fff9c4);
+  color: #f57f17;
+  font-size: 0.6rem;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid #ffd54f;
+  white-space: nowrap;
+}
+
 .item-details {
   padding: 0.75rem;
   flex: 1;

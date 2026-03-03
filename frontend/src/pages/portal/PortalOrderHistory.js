@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
-import ReviewModal from '../../components/portal/ReviewModal';
 import CheckCircleIcon from '../../components/icons/CheckIcon';
+import { ordersAPI } from '../../services/api';
 import './Portal.css';
 
 const PortalOrderHistory = () => {
@@ -12,7 +12,6 @@ const PortalOrderHistory = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all'); // all, pending, completed, cancelled
-  const [reviewModal, setReviewModal] = useState(null); // { itemId, itemName, orderId }
 
   useEffect(() => {
     const portalUser = localStorage.getItem('portalUser');
@@ -22,18 +21,25 @@ const PortalOrderHistory = () => {
     }
 
     try {
-      setUser(JSON.parse(portalUser));
-      loadOrderHistory();
+      const userData = JSON.parse(portalUser);
+      setUser(userData);
+      // Check for both _id and id (backend may return either)
+      const userId = userData._id || userData.id;
+      if (userId) {
+        loadOrderHistory(userId);
+      } else {
+        // Fallback to localStorage if no user ID
+        loadOrderHistoryFromStorage();
+      }
     } catch (err) {
       console.error('Error loading user:', err);
       navigate('/portal/login');
     }
   }, [navigate]);
 
-  const loadOrderHistory = async () => {
+  const loadOrderHistoryFromStorage = async () => {
     setLoading(true);
     try {
-      // Get orders from localStorage (simulated) or from backend API
       const savedOrders = localStorage.getItem('portalOrders');
       if (savedOrders) {
         try {
@@ -44,8 +50,34 @@ const PortalOrderHistory = () => {
         }
       }
     } catch (error) {
-      console.error('Error loading orders:', error);
+      console.error('Error loading orders from storage:', error);
       setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const loadOrderHistory = async (userId) => {
+    setLoading(true);
+    try {
+      console.log('🔄 Fetching orders for user:', userId);
+      // Fetch orders from backend API for the logged-in user
+      const response = await fetch(`http://localhost:5000/api/orders/user/${userId}`);
+      const data = await response.json();
+      
+      console.log('📦 Backend response:', data);
+      
+      if (data.success && Array.isArray(data.orders)) {
+        console.log(`✅ Found ${data.orders.length} orders for user ${userId}`);
+        setOrders(data.orders);
+      } else {
+        console.log('⚠️ No orders found or error in response');
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading orders from backend:', error);
+      // Fallback to localStorage if API fails
+      loadOrderHistoryFromStorage();
     } finally {
       setLoading(false);
     }
@@ -154,20 +186,6 @@ const PortalOrderHistory = () => {
                         </div>
                         <div className="item-actions">
                           <p className="item-price">₱{(item.itemTotal || 0).toFixed(2)}</p>
-                          {order.status === 'completed' && (
-                            <button
-                              className="btn-review-small"
-                              onClick={() => {
-                                setReviewModal({
-                                  itemId: item.menuItemId || item.id,
-                                  itemName: item.name,
-                                  orderId: order.id
-                                });
-                              }}
-                            >
-                              ⭐ Review
-                            </button>
-                          )}
                         </div>
                       </div>
                     ))}
@@ -200,19 +218,6 @@ const PortalOrderHistory = () => {
                   >
                     Order Again
                   </button>
-
-                  {reviewModal && (
-                    <ReviewModal
-                      itemId={reviewModal.itemId}
-                      itemName={reviewModal.itemName}
-                      orderId={reviewModal.orderId}
-                      onClose={() => setReviewModal(null)}
-                      onSuccess={() => {
-                        setReviewModal(null);
-                        loadOrderHistory();
-                      }}
-                    />
-                  )}
                 </div>
               ))
             )}

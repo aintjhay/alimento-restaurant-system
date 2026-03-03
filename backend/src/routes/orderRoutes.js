@@ -28,9 +28,21 @@ router.post('/', async (req, res) => {
         }
 
         const order = new Order(orderData);
+        
+        // Debug logging
+        console.log(`\n📝 ORDER CREATION DEBUG:`);
+        console.log(`  Order Number: ${orderNumber}`);
+        console.log(`  Customer Name: ${order.customerName}`);
+        console.log(`  Customer Email: ${order.customerEmail}`);
+        console.log(`  Delivery Type: ${order.deliveryType}`);
+        console.log(`  Payload UserId Type: ${typeof req.body.userId}`);
+        console.log(`  Payload UserId Value: ${req.body.userId || 'UNDEFINED/NULL'}`);
+        console.log(`  Order.userId (before save): ${order.userId || 'UNDEFINED/NULL'}`);
+        
         await order.save();
-
-        console.log(`✅ Order created: ${order.orderNumber} for Table ${order.tableNumber}`);
+        
+        console.log(`  Order.userId (after save): ${order.userId || 'UNDEFINED/NULL'}`);
+        console.log(`✅ Order created: ${order.orderNumber} for Table ${order.tableNumber}${order.userId ? ` [UserId: ${order.userId}]` : ' [GUEST - NO USERID]'}\n`);
         
         res.status(201).json({
             success: true,
@@ -89,6 +101,50 @@ router.get('/', async (req, res) => {
         res.status(500).json({
             success: false,
             message: 'Failed to fetch orders',
+            error: error.message
+        });
+    }
+});
+
+// GET - Orders for a specific user
+router.get('/user/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        
+        if (!userId) {
+            return res.status(400).json({ 
+                success: false,
+                error: 'User ID is required' 
+            });
+        }
+        
+        console.log(`\n🔍 FETCHING ORDERS FOR USER:`);
+        console.log(`  Requested UserId: ${userId}`);
+        console.log(`  UserId Type: ${typeof userId}`);
+        
+        const orders = await Order.find({ userId })
+            .sort({ createdAt: -1 })
+            .populate('items.menuItemId', 'name price');
+        
+        console.log(`  Found: ${orders.length} orders`);
+        if (orders.length > 0) {
+            console.log(`  Sample order userId: ${orders[0].userId} (type: ${typeof orders[0].userId})`);
+        }
+        
+        // Additional debug: check what's actually in DB
+        const allOrdersCount = await Order.countDocuments();
+        const ordersWithUserIdCount = await Order.countDocuments({ userId: { $exists: true, $ne: null } });
+        console.log(`  Total orders in DB: ${allOrdersCount}, With userId: ${ordersWithUserIdCount}\n`);
+        
+        res.json({
+            success: true,
+            orders: orders
+        });
+    } catch (error) {
+        console.error('❌ Fetch user orders error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Failed to fetch user orders',
             error: error.message
         });
     }
@@ -362,4 +418,150 @@ router.get('/export/summary/csv', async (req, res) => {
     }
 });
 
-module.exports = router;
+// GET - Debug: Check last orders and userId status
+router.get('/debug/last-orders', async (req, res) => {
+    try {
+        const lastOrders = await Order.find().sort({ createdAt: -1 }).limit(10).lean();
+        
+        const report = lastOrders.map(order => ({
+            orderNumber: order.orderNumber,
+            customerEmail: order.customerEmail,
+            customerName: order.customerName,
+            userId: order.userId || 'NULL',
+            deliveryType: order.deliveryType,
+            status: order.status,
+            createdAt: order.createdAt
+        }));
+
+        res.json({
+            success: true,
+            totalOrdersInDB: await Order.countDocuments(),
+            ordersWithUserId: await Order.countDocuments({ userId: { $exists: true, $ne: null } }),
+            ordersWithoutUserId: await Order.countDocuments({ userId: { $exists: false } }),
+            lastOrders: report
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// GET - Debug: Check a specific user's orders
+router.get('/debug/user/:email', async (req, res) => {
+    try {
+        const { email } = req.params;
+        const User = require('../models/User');
+        
+        // Find user by email
+        const user = await User.findOne({ email: email.toLowerCase() });
+        
+        if (!user) {
+            return res.json({
+                success: false,
+                message: 'User not found',
+                searchEmail: email.toLowerCase()
+            });
+        }
+
+        // Find orders by userId
+        const ordersByUserId = await Order.find({ userId: user._id }).lean();
+        
+        // Find orders by email
+        const ordersByEmail = await Order.find({ customerEmail: email.toLowerCase() }).lean();
+
+        res.json({
+            success: true,
+            user: {
+                _id: user._id,
+                email: user.email,
+                firstName: user.firstName,
+                lastName: user.lastName
+            },
+            ordersByUserId: ordersByUserId.length,
+            ordersByEmail: ordersByEmail.length,
+            ordersByUserIdDetails: ordersByUserId.map(o => ({
+                orderNumber: o.orderNumber,
+                userId: o.userId,
+                customerEmail: o.customerEmail,
+                createdAt: o.createdAt
+            })),
+            ordersByEmailDetails: ordersByEmail.map(o => ({
+                orderNumber: o.orderNumber,
+                userId: o.userId || 'NULL',
+                customerEmail: o.customerEmail,
+                createdAt: o.createdAt
+            }))
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            error: error.message
+        });
+    }
+});
+
+// POST - Migrate old orders to link with registered users (Admin only)
+router.post('/migrate/link-users', async (req, res) => {
+    try {
+        const User = require('../models/User');
+        
+        // Find all orders without userId
+        const ordersWithoutUserId = await Order.find({ userId: { $exists: false } });
+        
+        if (ordersWithoutUserId.length === 0) {
+            return res.json({
+                success: true,
+                message: 'No orders to migrate',
+                stats: {
+                    ordersProcessed: 0,
+                    ordersLinked: 0,
+                    ordersSkipped: 0
+                }
+            });
+        }
+
+        let linkedCount = 0;
+        let skippedCount = 0;
+
+        // Process each order
+        for (const order of ordersWithoutUserId) {
+            // Skip if no customerEmail
+            if (!order.customerEmail) {
+                skippedCount++;
+                continue;
+            }
+
+            // Find user with matching email
+            const user = await User.findOne({ email: order.customerEmail.toLowerCase() });
+            
+            if (user) {
+                // Link the order to the user
+                order.userId = user._id;
+                await order.save();
+                linkedCount++;
+            } else {
+                skippedCount++;
+            }
+        }
+
+        res.json({
+            success: true,
+            message: `Migration complete! Linked ${linkedCount} orders to registered users.`,
+            stats: {
+                ordersProcessed: ordersWithoutUserId.length,
+                ordersLinked: linkedCount,
+                ordersSkipped: skippedCount
+            }
+        });
+    } catch (error) {
+        console.error('❌ Migration error:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Migration failed',
+            error: error.message
+        });
+    }
+});
+

@@ -27,6 +27,7 @@
   flex-direction: column;
   animation: slideUp 0.3s ease;
   box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  overflow: hidden;
 }
 
 @keyframes slideUp {
@@ -82,8 +83,27 @@
 
 .modal-content {
   padding: 20px;
-  overflow-y: auto;
+  padding-right: 10px;
+  overflow-y: scroll;
+  overflow-x: hidden;
   flex: 1;
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #c0c0c0;
+  border-radius: 5px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #999;
 }
 
 .modal-item-image-container {

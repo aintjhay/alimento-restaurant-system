@@ -176,6 +176,29 @@ function PosSystem() {
     }
   };
 
+  // Handle options button click - separate from card click
+  const handleOptionsClick = (e, item) => {
+    e.stopPropagation(); // Prevent card click from triggering
+    setSelectedItem(item);
+    setIsModifierModalOpen(true);
+  };
+
+  // Get modifier and addon names for preview
+  const getCustomizationPreview = (item) => {
+    const preview = [];
+    if (item.modifiers && item.modifiers.length > 0) {
+      item.modifiers.forEach(mod => {
+        preview.push(`+${mod.name}`);
+      });
+    }
+    if (item.addons && item.addons.length > 0) {
+      item.addons.forEach(addon => {
+        preview.push(`+${addon.name}`);
+      });
+    }
+    return preview;
+  };
+
   // Add item directly to cart (no modifiers)
   const addToCartDirect = (item) => {
     const cartItem = {
@@ -515,15 +538,29 @@ function PosSystem() {
                               {item.category}
                             </div>
                             {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
-                              <div className="item-modifier-indicator">
+                              <button 
+                                className="item-modifier-indicator-btn"
+                                onClick={(e) => handleOptionsClick(e, item)}
+                                title="Click to customize this item"
+                              >
                                 ⚙️ Options
-                              </div>
+                              </button>
                             )}
                           </div>
                           
                           <div className="item-details">
                             <h3 className="item-name">{item.name}</h3>
                             <p className="item-description">{item.description}</p>
+                            
+                            {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
+                              <div className="item-customization-preview">
+                                {getCustomizationPreview(item).map((option, index) => (
+                                  <span key={index} className="customization-pill">
+                                    {option}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
                             
                             <div className="item-footer">
                               <div className="item-price-tags">
@@ -581,15 +618,29 @@ function PosSystem() {
                       {item.category}
                     </div>
                     {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
-                      <div className="item-modifier-indicator">
+                      <button 
+                        className="item-modifier-indicator-btn"
+                        onClick={(e) => handleOptionsClick(e, item)}
+                        title="Click to customize this item"
+                      >
                         ⚙️ Options
-                      </div>
+                      </button>
                     )}
                   </div>
                   
                   <div className="item-details">
                     <h3 className="item-name">{item.name}</h3>
                     <p className="item-description">{item.description}</p>
+                    
+                    {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
+                      <div className="item-customization-preview">
+                        {getCustomizationPreview(item).map((option, index) => (
+                          <span key={index} className="customization-pill">
+                            {option}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                     
                     <div className="item-footer">
                       <div className="item-price-tags">

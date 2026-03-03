@@ -449,6 +449,19 @@
   text-align: center;
 }
 
+/* Delivery Info Section */
+.delivery-info-section {
+  background: linear-gradient(135deg, #e0f7ff 0%, #e0f2f1 100%);
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #b2dfdb;
+}
+
+.delivery-info-section label {
+  color: #00796b;
+  font-weight: 700;
+}
+
 /* Info Section */
 .info-section {
   background: white;

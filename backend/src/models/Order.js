@@ -47,6 +47,11 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  userId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User',
+    sparse: true
+  },
   orderNumber: {
     type: String,
     unique: true,
@@ -169,6 +174,7 @@ orderSchema.pre('save', async function(next) {
 });
 
 // Indexes for faster queries
+orderSchema.index({ userId: 1, createdAt: -1 });
 orderSchema.index({ status: 1, createdAt: -1 });
 orderSchema.index({ tableNumber: 1, status: 1 });
 orderSchema.index({ createdAt: -1 });

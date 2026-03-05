@@ -21,6 +21,29 @@ const StatusTimeline = ({ statusTimeline, currentStatus }) => {
     return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
+  const getStageDuration = (status) => {
+    const sorted = statusTimeline?.sort((a, b) => new Date(a.timestamp) - new Date(b.timestamp)) || [];
+    const currentIndex = sorted.findIndex(e => e.status === status);
+    
+    if (currentIndex === -1 || currentIndex === sorted.length - 1) return null;
+    
+    const current = sorted[currentIndex];
+    const next = sorted[currentIndex + 1];
+    
+    if (!current.timestamp || !next.timestamp) return null;
+    
+    const diff = new Date(next.timestamp) - new Date(current.timestamp);
+    const minutes = Math.floor(diff / 60000);
+    
+    if (minutes < 1) return '< 1m';
+    if (minutes === 1) return '1 min';
+    if (minutes < 60) return `${minutes} min`;
+    
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return `${hours}h ${mins}m`;
+  };
+
   const getStatusIcon = (status) => {
     const icons = {
       'pending': '⏳',
@@ -71,6 +94,11 @@ const StatusTimeline = ({ statusTimeline, currentStatus }) => {
                   <div className="step-timestamp">
                     <div className="timestamp-date">{formatDate(entry.timestamp)}</div>
                     <div className="timestamp-time">{formatTime(entry.timestamp)}</div>
+                    {getStageDuration(status) && (
+                      <div className="stage-duration">
+                        ⏱ {getStageDuration(status)}
+                      </div>
+                    )}
                     {entry.notes && (
                       <div className="step-notes">{entry.notes}</div>
                     )}

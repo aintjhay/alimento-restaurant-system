@@ -13,7 +13,7 @@ const PortalOrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, pending, confirmed, preparing, completed
+  const [filter, setFilter] = useState('all'); // all, active (pending/confirmed/preparing), completed
   const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
@@ -164,6 +164,7 @@ const PortalOrderHistory = () => {
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
+    if (filter === 'active') return ['pending', 'confirmed', 'preparing'].includes(order.status);
     return order.status === filter;
   });
 
@@ -187,13 +188,17 @@ const PortalOrderHistory = () => {
 
           {/* Filter Buttons */}
           <div className="order-filters">
-            {['all', 'pending', 'confirmed', 'preparing', 'completed'].map(status => (
+            {[
+              { value: 'all', label: 'All' },
+              { value: 'active', label: 'Active' },
+              { value: 'completed', label: 'Completed' }
+            ].map(item => (
               <button
-                key={status}
-                className={`filter-btn ${filter === status ? 'active' : ''}`}
-                onClick={() => setFilter(status)}
+                key={item.value}
+                className={`filter-btn ${filter === item.value ? 'active' : ''}`}
+                onClick={() => setFilter(item.value)}
               >
-                {status.charAt(0).toUpperCase() + status.slice(1)}
+                {item.label}
               </button>
             ))}
           </div>

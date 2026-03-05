@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import { ordersAPI } from '../../services/api';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
@@ -17,6 +18,7 @@ const CART_KEY = 'portalCart';
 
 const PortalCheckout = () => {
   const navigate = useNavigate();
+  const { user: authUser, isAuthenticated, fetchCurrentUser } = useAuth();
   const [cart] = useState(() => {
     const saved = localStorage.getItem(CART_KEY);
     return saved ? JSON.parse(saved) : [];
@@ -37,51 +39,69 @@ const PortalCheckout = () => {
   const [savedAddresses, setSavedAddresses] = useState([]);
   const [selectedAddressId, setSelectedAddressId] = useState(null);
   const [saveAddress, setSaveAddress] = useState(false);
+  const [useDifferentAddress, setUseDifferentAddress] = useState(false);
 
   // Load checkout type and user info on mount
   useEffect(() => {
-    let userData = null;
-    const portalUser = localStorage.getItem('portalUser');
-    
-    // Check if user is logged in
-    if (portalUser) {
-      try {
-        userData = JSON.parse(portalUser);
-        setUser(userData);
-        setCustomerName(userData.firstName && userData.lastName 
-          ? `${userData.firstName} ${userData.lastName}` 
-          : userData.name || '');
-        setCustomerEmail(userData.email || '');
-        // Set checkout type to 'registered' if user is logged in
-        setCheckoutType('registered');
-      } catch (err) {
-        console.error('Error loading user:', err);
-        setCheckoutType('guest');
-      }
-    } else {
-      // No user logged in, use stored checkout type or default to guest
-      const storedType = localStorage.getItem('portalCheckoutType') || 'guest';
-      setCheckoutType(storedType);
-    }
-
     // If cart is empty, redirect to menu
     if (cart.length === 0) {
       navigate('/portal');
     }
     setEditableCart(cart);
 
-    // Load saved addresses if registered user
-    if (userData && userData.addresses) {
-      setSavedAddresses(userData.addresses || []);
-      // Pre-select primary address if available
-      const primaryAddress = userData.addresses.find(addr => addr.isDefault);
-      if (primaryAddress) {
-        setSelectedAddressId(primaryAddress._id);
-        setCustomerAddress(`${primaryAddress.street}, ${primaryAddress.city} ${primaryAddress.postal}`);
-        if (primaryAddress.phone) setCustomerContact(primaryAddress.phone);
+    // If user is authenticated, use auth context data
+    if (isAuthenticated && authUser) {
+      setUser(authUser);
+      setCustomerName(authUser.firstName && authUser.lastName 
+        ? `${authUser.firstName} ${authUser.lastName}` 
+        : authUser.name || '');
+      setCustomerEmail(authUser.email || '');
+      setCheckoutType('registered');
+      
+      // Load saved addresses from authenticated user
+      if (authUser.addresses && authUser.addresses.length > 0) {
+        setSavedAddresses(authUser.addresses);
+        // Pre-select primary address if available
+        const primaryAddress = authUser.addresses.find(addr => addr.isDefault);
+        if (primaryAddress) {
+          setSelectedAddressId(primaryAddress._id);
+          setCustomerAddress(`${primaryAddress.street}, ${primaryAddress.city} ${primaryAddress.postal}`);
+          if (primaryAddress.phone) setCustomerContact(primaryAddress.phone);
+        }
+      }
+    } else {
+      // No authenticated user, check localStorage for guest checkout
+      const portalUser = localStorage.getItem('portalUser');
+      if (portalUser) {
+        try {
+          const userData = JSON.parse(portalUser);
+          setUser(userData);
+          setCustomerName(userData.firstName && userData.lastName 
+            ? `${userData.firstName} ${userData.lastName}` 
+            : userData.name || '');
+          setCustomerEmail(userData.email || '');
+          setCheckoutType('registered');
+          // Load addresses from localStorage
+          if (userData.addresses) {
+            setSavedAddresses(userData.addresses);
+            const primaryAddress = userData.addresses.find(addr => addr.isDefault);
+            if (primaryAddress) {
+              setSelectedAddressId(primaryAddress._id);
+              setCustomerAddress(`${primaryAddress.street}, ${primaryAddress.city} ${primaryAddress.postal}`);
+              if (primaryAddress.phone) setCustomerContact(primaryAddress.phone);
+            }
+          }
+        } catch (err) {
+          console.error('Error loading user:', err);
+          setCheckoutType('guest');
+        }
+      } else {
+        // No user logged in, use stored checkout type or default to guest
+        const storedType = localStorage.getItem('portalCheckoutType') || 'guest';
+        setCheckoutType(storedType);
       }
     }
-  }, [cart, navigate]);
+  }, [cart, navigate, isAuthenticated, authUser]);
 
   // Handle cart item quantity change
   const handleQuantityChange = (index, newQuantity) => {
@@ -127,9 +147,26 @@ const PortalCheckout = () => {
   const handleProofUpload = (file) => {
     if (!file) {
       setPaymentProof('');
+      setErrorMessage('');
       return;
     }
 
+    // Check file size (max 10MB)
+    const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB in bytes
+    if (file.size > MAX_FILE_SIZE) {
+      setErrorMessage(`File size (${(file.size / 1024 / 1024).toFixed(2)}MB) exceeds maximum limit of 10MB. Please upload a smaller image.`);
+      setPaymentProof('');
+      return;
+    }
+
+    // Validate file type
+    if (!file.type.startsWith('image/')) {
+      setErrorMessage('Please upload a valid image file (JPG, PNG, GIF, etc.)');
+      setPaymentProof('');
+      return;
+    }
+
+    setErrorMessage('');
     const reader = new FileReader();
     reader.onload = () => setPaymentProof(reader.result || '');
     reader.readAsDataURL(file);
@@ -338,7 +375,10 @@ const PortalCheckout = () => {
               </div>
               <select
                 value={selectedAddressId || ''}
-                onChange={(e) => handleSelectAddress(e.target.value)}
+                onChange={(e) => {
+                  handleSelectAddress(e.target.value);
+                  setUseDifferentAddress(false); // Auto-hide manual fields
+                }}
                 style={{
                   width: '100%',
                   padding: '0.75rem',
@@ -356,37 +396,92 @@ const PortalCheckout = () => {
                   </option>
                 ))}
               </select>
-              <small style={{ display: 'block', color: '#999', marginTop: '0.5rem' }}>
-                or enter a different address below
-              </small>
+              
+              {selectedAddressId && !useDifferentAddress && (
+                <button
+                  type="button"
+                  onClick={() => setUseDifferentAddress(true)}
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem 1rem',
+                    background: 'transparent',
+                    color: '#2f6f6a',
+                    border: '1px solid #2f6f6a',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    width: '100%'
+                  }}
+                >
+                  Use a different address
+                </button>
+              )}
             </div>
           )}
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <UserIcon size={20} color="#2f6f6a" />
-              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Full name</label>
-            </div>
-            <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-          </div>
+          {!selectedAddressId || useDifferentAddress ? (
+            <>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <UserIcon size={20} color="#2f6f6a" />
+                  <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Full name</label>
+                </div>
+                <input value={customerName} onChange={(event) => setCustomerName(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+              </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <PhoneIcon size={20} color="#2f6f6a" />
-              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Contact number</label>
-            </div>
-            <input value={customerContact} onChange={(event) => setCustomerContact(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
-          </div>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <PhoneIcon size={20} color="#2f6f6a" />
+                  <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Contact number</label>
+                </div>
+                <input value={customerContact} onChange={(event) => setCustomerContact(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
+              </div>
 
-          <div style={{ marginBottom: '1.5rem' }}>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
-              <MapPinIcon size={20} color="#2f6f6a" />
-              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Delivery address</label>
+              <div style={{ marginBottom: '1.5rem' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+                  <MapPinIcon size={20} color="#2f6f6a" />
+                  <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Delivery address</label>
+                </div>
+                <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', minHeight: '100px' }} />
+              </div>
+            </>
+          ) : (
+            <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f0f9f7', borderRadius: '8px', border: '2px solid #2f6f6a' }}>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <p style={{ margin: '0 0 0.5rem 0', fontSize: '0.85rem', color: '#666', fontWeight: '600', textTransform: 'uppercase' }}>Delivery Address</p>
+                <p style={{ margin: 0, fontSize: '1rem', fontWeight: '500', color: '#1f2937', lineHeight: '1.5' }}>
+                  {customerAddress}
+                </p>
+              </div>
+              <div style={{ marginBottom: '0.5rem' }}>
+                <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.85rem', color: '#666', fontWeight: '600', textTransform: 'uppercase' }}>Contact</p>
+                <p style={{ margin: 0, fontSize: '0.95rem', color: '#1f2937' }}>{customerContact}</p>
+              </div>
+              {useDifferentAddress && (
+                <button
+                  type="button"
+                  onClick={() => setUseDifferentAddress(false)}
+                  style={{
+                    marginTop: '0.75rem',
+                    padding: '0.5rem 1rem',
+                    background: '#2f6f6a',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.9rem',
+                    fontWeight: '500',
+                    width: '100%'
+                  }}
+                >
+                  Use saved address
+                </button>
+              )}
             </div>
-            <textarea value={customerAddress} onChange={(event) => setCustomerAddress(event.target.value)} required style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', minHeight: '100px' }} />
-          </div>
+          )}
 
-          {checkoutType === 'registered' && (
+          {checkoutType === 'registered' && (!selectedAddressId || useDifferentAddress) && (
             <div style={{ marginBottom: '1.5rem', padding: '1rem', background: '#f5f5f5', borderRadius: '6px', display: 'flex', alignItems: 'center', gap: '0.75rem' }}>
               <input
                 type="checkbox"
@@ -411,27 +506,6 @@ const PortalCheckout = () => {
               <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
             </div>
           )}
-
-          {/* Estimated Delivery Time */}
-          <div style={{
-            padding: '1rem',
-            background: '#f5f5f5',
-            borderRadius: '6px',
-            borderLeft: '4px solid #2f6f6a',
-            marginBottom: '1.5rem',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '1rem'
-          }}>
-            <ClockIcon size={32} color="#2f6f6a" />
-            <div>
-              <p style={{ margin: '0 0 0.25rem 0', fontSize: '0.9rem', color: '#666' }}>Estimated Delivery</p>
-              <p style={{ margin: 0, fontSize: '1.3rem', fontWeight: 'bold', color: '#2f6f6a' }}>
-                {getEstimatedDelivery()}
-              </p>
-              <p style={{ margin: '0.25rem 0 0 0', fontSize: '0.85rem', color: '#999' }}>Ready in approximately 30-45 minutes</p>
-            </div>
-          </div>
 
           <div className="payment-section">
             <h3>Payment method</h3>

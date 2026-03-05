@@ -441,12 +441,10 @@ body {
 .item-modifier-indicator-btn:hover {
   background: linear-gradient(135deg, var(--teal-dark), var(--teal-main));
   box-shadow: 0 4px 12px rgba(0, 121, 107, 0.5);
-  transform: translateY(-2px);
 }
 
 .item-modifier-indicator-btn:active {
-  transform: translateY(0);
-  box-shadow: 0 2px 4px rgba(0, 121, 107, 0.3);
+  opacity: 0.9;
 }
 
 /* Customization preview pills */

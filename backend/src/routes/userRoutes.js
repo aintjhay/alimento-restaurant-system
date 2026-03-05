@@ -130,9 +130,16 @@ router.post('/:userId/addresses', async (req, res) => {
     };
     
     user.addresses.push(newAddress);
-    user.defaultAddressId = user.addresses[user.addresses.length - 1]._id;
     
+    // MongoDB auto-generates _id, but we need to save first to ensure it's created
     await user.save();
+    
+    // Set the default address ID to the newly created address
+    const addedAddress = user.addresses[user.addresses.length - 1];
+    if (addedAddress._id) {
+      user.defaultAddressId = addedAddress._id.toString();
+      await user.save();
+    }
     
     res.status(201).json({
       success: true,
@@ -140,6 +147,7 @@ router.post('/:userId/addresses', async (req, res) => {
       addresses: user.addresses
     });
   } catch (error) {
+    console.error('Error adding address:', error);
     res.status(500).json({
       success: false,
       message: 'Error adding address',

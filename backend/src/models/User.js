@@ -1,10 +1,7 @@
 const mongoose = require('mongoose');
+const { ObjectId } = mongoose.Types;
 
 const addressSchema = new mongoose.Schema({
-  id: {
-    type: String,
-    default: () => new ObjectId().toString()
-  },
   label: {
     type: String,
     enum: ['Home', 'Work', 'Other'],

@@ -224,30 +224,32 @@ function Dashboard() {
     const handleUpdateOrderStatus = async (orderId, newStatus) => {
         setUpdatingOrderId(orderId);
         try {
-            const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
-                method: 'PUT',
+            const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ status: newStatus })
             });
 
+            const result = await response.json();
+
             if (!response.ok) {
-                throw new Error(`Failed to update order: ${response.statusText}`);
+                throw new Error(result.message || result.error || `Failed to update order: ${response.statusText}`);
             }
 
-            const result = await response.json();
-            
             if (result.success) {
                 // Update the local state
                 setOrders(orders.map(order => 
                     order._id === orderId ? { ...order, status: newStatus } : order
                 ));
                 console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+            } else {
+                throw new Error(result.message || 'Status update unsuccessful');
             }
         } catch (error) {
             console.error('❌ Error updating order status:', error);
-            alert('Failed to update order status');
+            alert(`Failed to update order status: ${error.message}`);
         } finally {
             setUpdatingOrderId(null);
         }
@@ -256,27 +258,31 @@ function Dashboard() {
     const handleUpdatePaymentStatus = async (orderId, newStatus) => {
         setUpdatingPaymentId(orderId);
         try {
-            const response = await fetch(`http://localhost:5000/api/orders/${orderId}`, {
-                method: 'PUT',
+            const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+                method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
                 },
                 body: JSON.stringify({ paymentStatus: newStatus })
             });
 
+            const result = await response.json();
+
             if (!response.ok) {
-                throw new Error(`Failed to update payment status: ${response.statusText}`);
+                throw new Error(result.message || result.error || `Failed to update payment status: ${response.statusText}`);
             }
 
-            const result = await response.json();
             if (result.success) {
                 setOrders(orders.map(order =>
                     order._id === orderId ? { ...order, paymentStatus: newStatus } : order
                 ));
+                console.log(`✅ Order ${orderId} payment status updated to ${newStatus}`);
+            } else {
+                throw new Error(result.message || 'Payment status update unsuccessful');
             }
         } catch (error) {
             console.error('❌ Error updating payment status:', error);
-            alert('Failed to update payment status');
+            alert(`Failed to update payment status: ${error.message}`);
         } finally {
             setUpdatingPaymentId(null);
         }

@@ -61,6 +61,7 @@
   color: white;
   box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
   animation: pulse-current 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  transform: scale(1.1);
 }
 
 @keyframes pulse-dot {
@@ -75,9 +76,11 @@
 @keyframes pulse-current {
   0%, 100% {
     box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
+    transform: scale(1.1);
   }
   50% {
-    box-shadow: 0 8px 20px rgba(255, 152, 0, 0.7);
+    box-shadow: 0 8px 20px rgba(255, 152, 0, 0.8);
+    transform: scale(1.15);
   }
 }
 
@@ -133,6 +136,17 @@
   max-width: 120px;
   word-wrap: break-word;
   border-left: 2px solid #f59e0b;
+}
+
+.stage-duration {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: #e0f2f1;
+  color: #00796b;
+  border-radius: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  border-left: 2px solid #00796b;
 }
 
 .step-pending {
@@ -227,45 +241,152 @@
 }
 
 /* ===== RESPONSIVE DESIGN ===== */
-@media (max-width: 768px) {
+@media (max-width: 992px) {
+  .status-timeline-container {
+    padding: 16px;
+    gap: 20px;
+  }
+
   .timeline-track {
     gap: 12px;
   }
 
   .timeline-dot {
-    width: 36px;
-    height: 36px;
+    width: 38px;
+    height: 38px;
     border-width: 2px;
+    font-size: 16px;
   }
 
   .step-label {
     font-size: 12px;
   }
-
-  .timestamp-date,
-  .timestamp-time {
-    font-size: 10px;
-  }
 }
 
-@media (max-width: 480px) {
+@media (max-width: 768px) {
+  .status-timeline-container {
+    padding: 14px;
+    gap: 18px;
+  }
+
   .timeline-track {
-    gap: 8px;
+    flex-direction: column;
+    gap: 20px;
+    position: relative;
+  }
+
+  .timeline-step {
+    display: flex;
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 12px;
+    position: relative;
   }
 
   .timeline-dot {
     width: 32px;
     height: 32px;
     border-width: 2px;
+    font-size: 14px;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 2;
+    margin-top: 4px;
+  }
+
+  .step-content {
+    flex: 1;
+    min-height: auto;
+    text-align: left;
+    align-items: flex-start;
+  }
+
+  .step-label {
+    font-size: 12px;
+    justify-content: flex-start;
+    white-space: wrap;
+  }
+
+  .connecting-line {
+    display: none;
+  }
+
+  /* Vertical connecting line for mobile */
+  .timeline-track::before {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 32px;
+    bottom: 0;
+    width: 2px;
+    background-color: #e5e7eb;
+    z-index: 1;
+  }
+
+  .timeline-track::after {
+    content: '';
+    position: absolute;
+    left: 16px;
+    top: 32px;
+    width: 2px;
+    background: linear-gradient(180deg, #4CAF50 0%, #45a049 100%);
+    height: calc((100% / 4) * 1); /* Adjust based on current step */
+    z-index: 1;
+  }
+
+  .timestamp-date,
+  .timestamp-time {
+    font-size: 10px;
+  }
+
+  .step-indicators {
+    gap: 6px;
+  }
+
+  .indicator {
+    flex: 1;
+    font-size: 11px;
+    height: 24px;
+  }
+}
+
+@media (max-width: 600px) {
+  .status-timeline-container {
+    padding: 12px;
+    gap: 16px;
+  }
+
+  .timeline-track {
+    gap: 18px;
+  }
+
+  .timeline-dot {
+    width: 30px;
+    height: 30px;
+    border-width: 2px;
+    font-size: 12px;
   }
 
   .step-label {
     font-size: 11px;
-    flex-basis: 100%;
   }
 
   .step-content {
-    min-height: 60px;
+    min-height: auto;
+  }
+
+  .timestamp-date {
+    font-size: 9px;
+  }
+
+  .timestamp-time {
+    font-size: 9px;
+  }
+
+  .stage-duration,
+  .step-notes {
+    font-size: 9px;
+    padding: 3px 6px;
   }
 
   .step-indicators {
@@ -274,12 +395,77 @@
 
   .indicator {
     font-size: 10px;
+    height: 22px;
+  }
+
+  .progress-bar-container {
+    height: 4px;
+  }
+
+  .progress-bar-fill,
+  .progress-bar-background {
+    border-radius: 6px;
+  }
+}
+
+@media (max-width: 480px) {
+  .status-timeline-container {
+    padding: 10px;
+    gap: 14px;
+  }
+
+  .timeline-track {
+    gap: 16px;
+  }
+
+  .timeline-dot {
+    width: 28px;
+    height: 28px;
+    border-width: 1.5px;
+    font-size: 11px;
+  }
+
+  .step-label {
+    font-size: 10px;
+    flex-basis: 100%;
+  }
+
+  .step-content {
+    min-height: 50px;
+  }
+
+  .step-timestamp {
+    gap: 1px;
+  }
+
+  .timestamp-date,
+  .timestamp-time {
+    font-size: 8px;
+  }
+
+  .stage-duration,
+  .step-notes {
+    font-size: 8px;
+    padding: 2px 4px;
+    max-width: 100px;
+  }
+
+  .step-indicators {
+    gap: 3px;
+  }
+
+  .indicator {
+    font-size: 9px;
     height: 20px;
   }
 
-  .status-timeline-container {
-    padding: 16px;
-    gap: 20px;
+  .progress-bar-container {
+    height: 3px;
+    border-radius: 4px;
+  }
+
+  .indicator.completed {
+    box-shadow: none;
   }
 }
 

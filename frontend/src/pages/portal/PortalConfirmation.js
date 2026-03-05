@@ -2,15 +2,12 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
-import PortalOrderCard from '../../components/portal/PortalOrderCard';
-import OrderStatusNotification from '../../components/portal/OrderStatusNotification';
 import realtimeService from '../../services/realtimeService';
 import './Portal.css';
 
 const PortalConfirmation = () => {
   const navigate = useNavigate();
   const [lastOrder, setLastOrder] = useState(null);
-  const [isAddingToHistory, setIsAddingToHistory] = useState(false);
 
   useEffect(() => {
     const order = JSON.parse(localStorage.getItem('portalLastOrder') || '{}');
@@ -25,8 +22,6 @@ const PortalConfirmation = () => {
           const userId = userData._id || userData.id;
           
           if (userId) {
-            setIsAddingToHistory(true);
-            
             // Add to portalOrders in localStorage
             const existingOrders = localStorage.getItem('portalOrders');
             let orders = [];
@@ -58,12 +53,6 @@ const PortalConfirmation = () => {
           
           // Save updated order to localStorage
           localStorage.setItem('portalLastOrder', JSON.stringify(updatedOrder));
-          
-          // Show notification
-          realtimeService.notify(
-            `📦 Your order is now ${realtimeService.getStatusText(updatedOrder.status).toLowerCase()}!`,
-            'success'
-          );
         },
         5000 // Poll every 5 seconds
       );
@@ -106,25 +95,13 @@ const PortalConfirmation = () => {
     <div className="portal-page">
       <PortalHeader />
       
-      {/* Order Status Notifications */}
-      <OrderStatusNotification />
-      
       <div className="portal-confirmation">
         <div className="confirmation-success">
           <div className="success-icon">✅</div>
-          <p className="portal-kicker">Order Received</p>
           <h1>Thank you for your order!</h1>
           <p className="confirmation-subtitle">
-            Your order has been placed successfully. We'll notify you as it's being prepared.
+            Your order has been placed successfully.
           </p>
-        </div>
-
-        {/* Rich Order Card Display */}
-        <div className="confirmation-order-display">
-          <h2 style={{ fontSize: '16px', fontWeight: '600', marginBottom: '16px', color: '#1f2937' }}>
-            Order Details
-          </h2>
-          <PortalOrderCard order={lastOrder} onReorder={null} />
         </div>
 
         <div className="confirmation-card">
@@ -146,20 +123,6 @@ const PortalConfirmation = () => {
               <span className="items-count">{lastOrder.items.length} item(s)</span>
             </div>
           )}
-
-          {lastOrder.estimatedCompletionTime && (
-            <div className="card-row">
-              <label>Estimated Ready Time</label>
-              <span className="estimated-time">
-                ~35 minutes
-              </span>
-            </div>
-          )}
-        </div>
-
-        <div className="confirmation-message">
-          <p>📧 You'll receive updates about your order via email and in your order history.</p>
-          <p>🔔 Real-time order status updates are enabled. Check back here or in your order history for live tracking!</p>
         </div>
 
         <div className="confirmation-actions">
@@ -167,13 +130,13 @@ const PortalConfirmation = () => {
             className="primary-btn view-order-btn"
             onClick={handleViewOrder}
           >
-            📋 View My Order
+            View My Order
           </button>
           <button 
             className="secondary-btn continue-shopping-btn"
             onClick={handleContinueShopping}
           >
-            🍽️ Back to Menu
+            Back to Menu
           </button>
         </div>
       </div>

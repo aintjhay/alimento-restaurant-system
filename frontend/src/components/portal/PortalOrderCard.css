@@ -45,14 +45,20 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 56px;
+  min-width: 70px;
   height: 56px;
-  background: linear-gradient(135deg, rgba(47, 111, 106, 0.1), rgba(249, 201, 182, 0.1));
+  padding: 0 12px;
+  background: #f0f0ed;
   border-radius: 10px;
-  font-weight: 600;
+  font-weight: 700;
   font-size: 14px;
+  font-family: 'Poppins', sans-serif;
+  letter-spacing: 0.5px;
   color: #2f6f6a;
-  border: 1px solid rgba(47, 111, 106, 0.2);
+  border: 1px solid #e5e7eb;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .order-quick-info {
@@ -87,37 +93,30 @@
 }
 
 .info-time {
-  color: #9ca3af;
+  color: #6b7280;
   font-size: 13px;
 }
 
 /* Items Summary Badges */
 .items-summary {
   display: flex;
-  gap: 8px;
+  gap: 12px;
   flex-wrap: wrap;
   margin-top: 8px;
 }
 
-.badge {
+.items-count,
+.total-amount {
   display: inline-flex;
   align-items: center;
-  padding: 4px 10px;
-  border-radius: 6px;
-  font-size: 12px;
+  font-size: 13px;
   font-weight: 500;
-  transition: all 0.2s ease;
-}
-
-.items-count {
-  background-color: #e8f4f8;
-  color: #0369a1;
+  color: #6b7280;
 }
 
 .total-amount {
-  background-color: #f0fdf4;
+  font-weight: 700;
   color: #22863a;
-  font-weight: 600;
 }
 
 /* Card Right - Status & Time */
@@ -140,16 +139,6 @@
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
-.estimated-time {
-  font-size: 12px;
-  font-weight: 500;
-  color: #f97316;
-  background-color: #fff7ed;
-  padding: 4px 8px;
-  border-radius: 6px;
-  border-left: 2px solid #f97316;
-}
-
 .expand-icon {
   font-size: 12px;
   color: #9ca3af;
@@ -163,7 +152,7 @@
 
 /* ===== EXPANDED CONTENT ===== */
 .order-card-expanded {
-  padding: 20px 16px;
+  padding: 16px;
   background-color: #fafafa;
   animation: slideDown 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -445,8 +434,8 @@
   padding-top: 12px;
 }
 
-.btn-reorder,
-.btn-details {
+.btn-primary,
+.btn-secondary {
   padding: 8px 14px;
   border-radius: 8px;
   border: none;
@@ -458,23 +447,23 @@
   min-width: 140px;
 }
 
-.btn-reorder {
+.btn-primary {
   background-color: #2f6f6a;
   color: white;
 }
 
-.btn-reorder:hover {
+.btn-primary:hover {
   background-color: #1f4f4a;
   box-shadow: 0 4px 8px rgba(47, 111, 106, 0.2);
 }
 
-.btn-details {
+.btn-secondary {
   background-color: #f0f0ed;
   color: #1f2937;
   border: 1px solid #d1d5db;
 }
 
-.btn-details:hover {
+.btn-secondary:hover {
   background-color: #e5e5e0;
   border-color: #9ca3af;
 }
@@ -497,14 +486,6 @@
     flex-direction: column;
   }
 
-  .timeline {
-    gap: 8px;
-  }
-
-  .detail-row {
-    grid-template-columns: 1fr;
-  }
-
   .info-row {
     flex-wrap: wrap;
   }
@@ -518,46 +499,26 @@
     width: 100%;
   }
 
-  .btn-reorder,
-  .btn-details {
+  .btn-primary,
+  .btn-secondary {
     width: 100%;
     min-width: unset;
   }
 
   .order-card-expanded {
-    padding: 16px 12px;
+    padding: 12px;
   }
 }
 
 @media (max-width: 480px) {
   .order-number-badge {
-    width: 48px;
+    width: 56px;
     height: 48px;
     font-size: 12px;
   }
 
   .info-row {
     font-size: 12px;
-  }
-
-  .timeline {
-    flex-direction: column;
-    gap: 20px;
-  }
-
-  .timeline-line {
-    all: unset;
-    position: absolute;
-    width: 2px;
-    left: 16px;
-    top: 40px;
-    bottom: -20px;
-    background: #e5e7eb;
-  }
-
-  .timeline-item {
-    align-items: flex-start;
-    margin-left: 20px;
   }
 
   .order-item {
@@ -567,6 +528,12 @@
   .item-price {
     margin-left: 0;
     margin-top: 8px;
+  }
+
+  .btn-primary,
+  .btn-secondary {
+    font-size: 11px;
+    padding: 8px 12px;
   }
 }
 

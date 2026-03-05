@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
 import realtimeService from '../../services/realtimeService';
-import StatusTimeline from './StatusTimeline';
 import './PortalOrderCard.css';
 
 /**
- * PortalOrderCard - Enhanced order card with rich information, timeline, and status tracking
+ * PortalOrderCard - Simple order card display with status and items
  */
 const PortalOrderCard = ({ order, onReorder }) => {
   const [isExpanded, setIsExpanded] = useState(false);
@@ -16,25 +15,11 @@ const PortalOrderCard = ({ order, onReorder }) => {
   };
 
   const formatTime = (dateString) => {
+    if (!dateString) return '';
     const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-  };
-
-  const formatEstimatedTime = (dateString) => {
-    if (!dateString) return 'Calculating...';
-    const date = new Date(dateString);
-    const now = new Date();
-    const diff = date - now;
-    
-    if (diff < 0) return 'Ready';
-    
-    const minutes = Math.ceil(diff / 60000);
-    if (minutes < 1) return 'Ready';
-    if (minutes === 1) return '1 min';
-    if (minutes < 60) return `${minutes} mins`;
-    
-    const hours = Math.ceil(minutes / 60);
-    return `${hours} hr`;
+    // Convert to Philippines time (GMT+8)
+    const phTime = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
+    return phTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
   };
 
   const getStatusIcon = (status) => {
@@ -57,23 +42,6 @@ const PortalOrderCard = ({ order, onReorder }) => {
     return realtimeService.getStatusText(status);
   };
 
-  // Status timeline
-  const statusSequence = ['pending', 'preparing', 'ready', 'completed'];
-  const statusTimeline = order.statusTimeline || [];
-
-  // Calculate current progress
-  const getTimelineStep = () => {
-    for (let i = statusSequence.length - 1; i >= 0; i--) {
-      const status = statusSequence[i];
-      if (statusTimeline.some(t => t.status === status)) {
-        return i;
-      }
-    }
-    return 0;
-  };
-
-  const currentStep = getTimelineStep();
-
   // Calculate items count
   const itemsCount = order.items?.length || 0;
   const totalQuantity = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
@@ -89,7 +57,7 @@ const PortalOrderCard = ({ order, onReorder }) => {
         onClick={() => setIsExpanded(!isExpanded)}
       >
         <div className="order-card-left">
-          {/* Order Number Badge */}
+          {/* Order Number Badge - Simple */}
           <div className="order-number-badge">
             {order.orderNumber || `#${order._id?.slice(-6) || 'N/A'}`}
           </div>
@@ -108,13 +76,13 @@ const PortalOrderCard = ({ order, onReorder }) => {
 
             {/* Items Summary */}
             <div className="items-summary">
-              <span className="badge items-count">{itemsCount} items ({totalQuantity} qty)</span>
-              <span className="badge total-amount">₱{order.totalAmount?.toFixed(0) || '0'}</span>
+              <span className="items-count">{itemsCount} items ({totalQuantity} qty)</span>
+              <span className="total-amount">₱{order.totalAmount?.toFixed(0) || '0'}</span>
             </div>
           </div>
         </div>
 
-        {/* Card Right - Status Badge & Estimated Time */}
+        {/* Card Right - Status Badge */}
         <div className="order-card-right">
           <div 
             className="status-badge"
@@ -123,12 +91,6 @@ const PortalOrderCard = ({ order, onReorder }) => {
             {getStatusIcon(order.status)} {getStatusText(order.status)}
           </div>
 
-          {order.estimatedCompletionTime && order.status !== 'completed' && (
-            <div className="estimated-time">
-              ~{formatEstimatedTime(order.estimatedCompletionTime)}
-            </div>
-          )}
-
           <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
         </div>
       </div>
@@ -136,15 +98,6 @@ const PortalOrderCard = ({ order, onReorder }) => {
       {/* Expanded Content */}
       {isExpanded && (
         <div className="order-card-expanded">
-          {/* Status Timeline Visualization */}
-          <div className="status-timeline-section">
-            <h4>Order Progress</h4>
-            <StatusTimeline 
-              statusTimeline={statusTimeline} 
-              currentStatus={order.status}
-            />
-          </div>
-
           {/* Items List */}
           <div className="order-items-section">
             <h4>Items ({itemsCount})</h4>
@@ -221,45 +174,13 @@ const PortalOrderCard = ({ order, onReorder }) => {
             </div>
           </div>
 
-          {/* Payment & Delivery Info */}
-          <div className="order-details-section">
-            <div className="detail-row">
-              <div className="detail-item">
-                <label>Payment Status</label>
-                <div className="payment-status">
-                  {order.paymentStatus === 'paid' || order.paymentStatus === 'payment_verified' 
-                    ? '✅ Paid' 
-                    : '⏳ Pending Payment'}
-                </div>
-              </div>
-              <div className="detail-item">
-                <label>Payment Method</label>
-                <span className="payment-method">
-                  {order.paymentMethod ? order.paymentMethod.toUpperCase() : 'N/A'}
-                </span>
-              </div>
-            </div>
-
-            {order.customerAddress && (
-              <div className="detail-row">
-                <div className="detail-item">
-                  <label>Delivery Address</label>
-                  <span className="delivery-address">📍 {order.customerAddress}</span>
-                </div>
-              </div>
-            )}
-          </div>
-
           {/* Action Buttons */}
           <div className="order-actions">
             {order.status === 'completed' && onReorder && (
-              <button className="btn-reorder" onClick={() => onReorder(order)}>
+              <button className="btn-primary" onClick={() => onReorder(order)}>
                 🔁 Order Again
               </button>
             )}
-            <button className="btn-details">
-              📋 View Receipt
-            </button>
           </div>
         </div>
       )}

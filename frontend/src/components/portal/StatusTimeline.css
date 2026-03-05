@@ -1,0 +1,335 @@
+/**
+ * StatusTimeline.css
+ * Enhanced visual timeline for order status progression
+ */
+
+.status-timeline-container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(47, 111, 106, 0.02), rgba(249, 201, 182, 0.02));
+  border-radius: 12px;
+  border: 1px solid rgba(47, 111, 106, 0.08);
+}
+
+/* ===== TIMELINE TRACK ===== */
+.timeline-track {
+  display: flex;
+  gap: 16px;
+  position: relative;
+}
+
+.timeline-step {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  flex: 1;
+  position: relative;
+}
+
+/* Timeline Dot */
+.timeline-dot {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: #e5e7eb;
+  border: 3px solid #d1d5db;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  color: #9ca3af;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  z-index: 2;
+  flex-shrink: 0;
+}
+
+.timeline-dot.completed {
+  background: linear-gradient(135deg, #4CAF50, #45a049);
+  border-color: #2e7d32;
+  color: white;
+  box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+.timeline-dot.current {
+  background: linear-gradient(135deg, #FF9800, #F57C00);
+  border-color: #E65100;
+  color: white;
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
+  animation: pulse-current 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes pulse-dot {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(76, 175, 80, 0.4);
+  }
+  50% {
+    box-shadow: 0 8px 20px rgba(76, 175, 80, 0.6);
+  }
+}
+
+@keyframes pulse-current {
+  0%, 100% {
+    box-shadow: 0 4px 12px rgba(255, 152, 0, 0.5);
+  }
+  50% {
+    box-shadow: 0 8px 20px rgba(255, 152, 0, 0.7);
+  }
+}
+
+/* Step Content */
+.step-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  text-align: center;
+  flex: 1;
+  min-height: 80px;
+  justify-content: flex-start;
+}
+
+.step-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: #1f2937;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.step-timestamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  font-size: 11px;
+}
+
+.timestamp-date {
+  color: #6b7280;
+  font-weight: 500;
+}
+
+.timestamp-time {
+  color: #9ca3af;
+  font-size: 10px;
+}
+
+.step-notes {
+  margin-top: 4px;
+  padding: 4px 8px;
+  background-color: #fef3c7;
+  color: #92400e;
+  border-radius: 4px;
+  font-size: 10px;
+  font-style: italic;
+  max-width: 120px;
+  word-wrap: break-word;
+  border-left: 2px solid #f59e0b;
+}
+
+.step-pending {
+  color: #9ca3af;
+  font-size: 11px;
+  font-style: italic;
+  animation: blink 1.5s ease-in-out infinite;
+}
+
+@keyframes blink {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* Connecting Line */
+.connecting-line {
+  position: absolute;
+  height: 3px;
+  background-color: #e5e7eb;
+  top: 20px;
+  left: 50%;
+  right: -50%;
+  z-index: 1;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.connecting-line.completed {
+  background: linear-gradient(90deg, #4CAF50 0%, #4CAF50 100%, #e5e7eb 100%);
+}
+
+/* ===== PROGRESS BAR ===== */
+.progress-bar-container {
+  position: relative;
+  height: 6px;
+  background-color: #f0f0f0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e5e7eb;
+}
+
+.progress-bar-background {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #e5e7eb;
+}
+
+.progress-bar-fill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #4CAF50, #45a049);
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  border-radius: 8px;
+  box-shadow: 0 0 12px rgba(76, 175, 80, 0.4);
+}
+
+/* ===== STEP INDICATORS ===== */
+.step-indicators {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.indicator {
+  flex: 1;
+  height: 24px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 11px;
+  font-weight: 600;
+  background-color: #f3f4f6;
+  color: #9ca3af;
+  border: 1px solid #e5e7eb;
+  transition: all 0.2s ease;
+}
+
+.indicator.completed {
+  background-color: #d1fae5;
+  color: #065f46;
+  border-color: #a7f3d0;
+  box-shadow: 0 2px 4px rgba(16, 185, 129, 0.1);
+}
+
+/* ===== RESPONSIVE DESIGN ===== */
+@media (max-width: 768px) {
+  .timeline-track {
+    gap: 12px;
+  }
+
+  .timeline-dot {
+    width: 36px;
+    height: 36px;
+    border-width: 2px;
+  }
+
+  .step-label {
+    font-size: 12px;
+  }
+
+  .timestamp-date,
+  .timestamp-time {
+    font-size: 10px;
+  }
+}
+
+@media (max-width: 480px) {
+  .timeline-track {
+    gap: 8px;
+  }
+
+  .timeline-dot {
+    width: 32px;
+    height: 32px;
+    border-width: 2px;
+  }
+
+  .step-label {
+    font-size: 11px;
+    flex-basis: 100%;
+  }
+
+  .step-content {
+    min-height: 60px;
+  }
+
+  .step-indicators {
+    gap: 4px;
+  }
+
+  .indicator {
+    font-size: 10px;
+    height: 20px;
+  }
+
+  .status-timeline-container {
+    padding: 16px;
+    gap: 20px;
+  }
+}
+
+/* ===== ANIMATIONS ===== */
+@keyframes slideInTimeline {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.status-timeline-container {
+  animation: slideInTimeline 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.timeline-step {
+  animation: slideInTimeline 0.6s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+.timeline-step:nth-child(1) {
+  animation-delay: 0s;
+}
+
+.timeline-step:nth-child(2) {
+  animation-delay: 0.1s;
+}
+
+.timeline-step:nth-child(3) {
+  animation-delay: 0.2s;
+}
+
+.timeline-step:nth-child(4) {
+  animation-delay: 0.3s;
+}
+
+/* ===== PRINT STYLES ===== */
+@media print {
+  .timeline-dot.completed {
+    box-shadow: none;
+  }
+
+  .progress-bar-fill {
+    box-shadow: none;
+  }
+
+  .indicator.completed {
+    box-shadow: none;
+  }
+}

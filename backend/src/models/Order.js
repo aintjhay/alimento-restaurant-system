@@ -115,6 +115,19 @@ const orderSchema = new mongoose.Schema({
   cookingTime: Number, // in minutes
   servedAt: Date,
   completedAt: Date,
+  estimatedCompletionTime: Date, // Estimated when order will be ready
+  statusTimeline: [{
+    status: {
+      type: String,
+      enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled']
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    changedBy: String, // Admin/staff name who made the change
+    notes: String
+  }],
   createdAt: {
     type: Date,
     default: Date.now
@@ -140,6 +153,21 @@ orderSchema.pre('save', async function(next) {
     this.orderNumber = `ORD-${dateStr}-${(count + 1).toString().padStart(4, '0')}`;
   }
   
+  // Initialize status timeline on creation
+  if (this.isNew && (!this.statusTimeline || this.statusTimeline.length === 0)) {
+    this.statusTimeline = [{
+      status: this.status || 'pending',
+      timestamp: new Date(),
+      notes: 'Order created'
+    }];
+  }
+  
+  // Set estimated completion time (30-45 minutes from creation)
+  if (this.isNew && !this.estimatedCompletionTime) {
+    const estimatedTime = new Date();
+    estimatedTime.setMinutes(estimatedTime.getMinutes() + 35); // 35 minutes default
+    this.estimatedCompletionTime = estimatedTime;
+  }
   // Calculate item totals and overall total
   if (this.isModified('items')) {
     this.items.forEach(item => {

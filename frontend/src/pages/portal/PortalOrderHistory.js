@@ -2,7 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
-import CheckCircleIcon from '../../components/icons/CheckIcon';
+import PortalOrderCard from '../../components/portal/PortalOrderCard';
+import OrderStatusNotification from '../../components/portal/OrderStatusNotification';
+import realtimeService from '../../services/realtimeService';
 import { ordersAPI } from '../../services/api';
 import './Portal.css';
 
@@ -11,7 +13,8 @@ const PortalOrderHistory = () => {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, pending, completed, cancelled
+  const [filter, setFilter] = useState('all'); // all, pending, confirmed, preparing, completed
+  const [notifications, setNotifications] = useState([]);
 
   useEffect(() => {
     const portalUser = localStorage.getItem('portalUser');
@@ -35,7 +38,51 @@ const PortalOrderHistory = () => {
       console.error('Error loading user:', err);
       navigate('/portal/login');
     }
+
+    // Listen for notifications
+    realtimeService.on('notifications', 'new', (notification) => {
+      addNotification(notification);
+    });
+
+    return () => {
+      realtimeService.stopAllPolling();
+    };
   }, [navigate]);
+
+  // Watch for order status changes and show notifications
+  useEffect(() => {
+    orders.forEach(order => {
+      if (order.status !== 'completed' && order.status !== 'cancelled') {
+        realtimeService.startPolling(
+          order._id || order.id,
+          (updatedOrder) => {
+            // Check if status changed
+            const oldOrder = orders.find(o => (o._id || o.id) === (updatedOrder._id || updatedOrder.id));
+            if (oldOrder && oldOrder.status !== updatedOrder.status) {
+              realtimeService.notify(
+                `📦 Order ${updatedOrder.orderNumber || '#' + updatedOrder._id?.slice(-6)} is now ${realtimeService.getStatusText(updatedOrder.status).toLowerCase()}!`,
+                'success'
+              );
+            }
+            
+            // Update order in state
+            setOrders(prevOrders =>
+              prevOrders.map(o =>
+                (o._id || o.id) === (updatedOrder._id || updatedOrder.id) ? updatedOrder : o
+              )
+            );
+          },
+          5000 // Poll every 5 seconds
+        );
+      }
+    });
+
+    return () => {
+      orders.forEach(order => {
+        realtimeService.stopPolling(order._id || order.id);
+      });
+    };
+  }, [orders]);
 
   const loadOrderHistoryFromStorage = async () => {
     setLoading(true);
@@ -70,6 +117,9 @@ const PortalOrderHistory = () => {
       if (data.success && Array.isArray(data.orders)) {
         console.log(`✅ Found ${data.orders.length} orders for user ${userId}`);
         setOrders(data.orders);
+        
+        // Save to localStorage as backup
+        localStorage.setItem('portalOrders', JSON.stringify(data.orders));
       } else {
         console.log('⚠️ No orders found or error in response');
         setOrders([]);
@@ -83,26 +133,33 @@ const PortalOrderHistory = () => {
     }
   };
 
-  const getStatusColor = (status) => {
-    const colors = {
-      'pending': '#ff9800',
-      'confirmed': '#2196f3',
-      'preparing': '#2196f3',
-      'completed': '#4caf50',
-      'cancelled': '#f44336'
-    };
-    return colors[status] || '#999';
+  const addNotification = (notification) => {
+    setNotifications(prev => [notification, ...prev]);
+    // Auto remove after duration
+    setTimeout(() => {
+      setNotifications(prev => prev.filter(n => n.id !== notification.id));
+    }, notification.duration || 5000);
   };
 
-  const getStatusText = (status) => {
-    const texts = {
-      'pending': 'Pending Payment',
-      'confirmed': 'Confirmed',
-      'preparing': 'Preparing',
-      'completed': 'Completed',
-      'cancelled': 'Cancelled'
-    };
-    return texts[status] || status;
+  const handleReorder = (order) => {
+    // Add items back to cart
+    if (order.items && order.items.length > 0) {
+      const CART_KEY = 'portalCart';
+      const cartItems = order.items.map(item => ({
+        menuItemId: item.menuItemId,
+        name: item.name,
+        basePrice: item.price,
+        itemPrice: item.price, // Will be recalculated
+        quantity: item.quantity,
+        image: item.image || '',
+        modifiers: item.modifiers || [],
+        addons: item.addons || [],
+        specialInstructions: item.specialInstructions || ''
+      }));
+      
+      localStorage.setItem(CART_KEY, JSON.stringify(cartItems));
+      navigate('/portal/checkout');
+    }
   };
 
   const filteredOrders = orders.filter(order => {
@@ -118,11 +175,14 @@ const PortalOrderHistory = () => {
     <div className="portal-page">
       <PortalHeader />
       
+      {/* Order Status Notifications */}
+      <OrderStatusNotification />
+      
       <main className="portal-main">
         <div className="portal-section">
           <div className="portal-section-header">
             <h1>Your Orders</h1>
-            <p>Track and view your order history</p>
+            <p>Track and view your order history with real-time updates</p>
           </div>
 
           {/* Filter Buttons */}
@@ -156,70 +216,15 @@ const PortalOrderHistory = () => {
                 </button>
               </div>
             ) : (
-              filteredOrders.map((order) => (
-                <div key={order.id} className="order-card">
-                  <div className="order-header">
-                    <div>
-                      <h3>Order #{order.orderNumber}</h3>
-                      <p className="order-date">
-                        {new Date(order.createdAt).toLocaleDateString()} at {new Date(order.createdAt).toLocaleTimeString()}
-                      </p>
-                    </div>
-                    <div className="order-status">
-                      <span 
-                        className="status-badge"
-                        style={{ backgroundColor: getStatusColor(order.status) }}
-                      >
-                        {getStatusText(order.status)}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="order-items">
-                    {order.items && order.items.map((item, idx) => (
-                      <div key={idx} className="order-item">
-                        <div className="item-info">
-                          <p className="item-name">{item.name} x {item.quantity}</p>
-                          {item.specialInstructions && (
-                            <p className="item-instructions">"{item.specialInstructions}"</p>
-                          )}
-                        </div>
-                        <div className="item-actions">
-                          <p className="item-price">₱{(item.itemTotal || 0).toFixed(2)}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-
-                  <div className="order-footer">
-                    <div className="order-totals">
-                      <div className="total-line">
-                        <span>Subtotal:</span>
-                        <span>₱{(order.subtotal || 0).toFixed(2)}</span>
-                      </div>
-                      <div className="total-line">
-                        <span>Tax (12%):</span>
-                        <span>₱{(order.tax || 0).toFixed(2)}</span>
-                      </div>
-                      <div className="total-line">
-                        <span>Delivery:</span>
-                        <span>₱{(order.deliveryFee || 0).toFixed(2)}</span>
-                      </div>
-                      <div className="total-line total">
-                        <span>Total:</span>
-                        <strong>₱{(order.total || 0).toFixed(2)}</strong>
-                      </div>
-                    </div>
-                  </div>
-
-                  <button 
-                    className="order-action-btn"
-                    onClick={() => navigate('/portal')}
-                  >
-                    Order Again
-                  </button>
-                </div>
-              ))
+              <div className="orders-grid">
+                {filteredOrders.map((order) => (
+                  <PortalOrderCard
+                    key={order._id || order.id}
+                    order={order}
+                    onReorder={handleReorder}
+                  />
+                ))}
+              </div>
             )}
           </div>
         </div>

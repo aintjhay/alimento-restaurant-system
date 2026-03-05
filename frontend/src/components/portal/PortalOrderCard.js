@@ -1,0 +1,270 @@
+import React, { useState } from 'react';
+import realtimeService from '../../services/realtimeService';
+import StatusTimeline from './StatusTimeline';
+import './PortalOrderCard.css';
+
+/**
+ * PortalOrderCard - Enhanced order card with rich information, timeline, and status tracking
+ */
+const PortalOrderCard = ({ order, onReorder }) => {
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  // Helper functions
+  const formatDate = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+  };
+
+  const formatTime = (dateString) => {
+    const date = new Date(dateString);
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+  };
+
+  const formatEstimatedTime = (dateString) => {
+    if (!dateString) return 'Calculating...';
+    const date = new Date(dateString);
+    const now = new Date();
+    const diff = date - now;
+    
+    if (diff < 0) return 'Ready';
+    
+    const minutes = Math.ceil(diff / 60000);
+    if (minutes < 1) return 'Ready';
+    if (minutes === 1) return '1 min';
+    if (minutes < 60) return `${minutes} mins`;
+    
+    const hours = Math.ceil(minutes / 60);
+    return `${hours} hr`;
+  };
+
+  const getStatusIcon = (status) => {
+    const icons = {
+      'pending': '⏳',
+      'confirmed': '✓',
+      'preparing': '👨‍🍳',
+      'ready': '📦',
+      'completed': '✅',
+      'cancelled': '❌'
+    };
+    return icons[status] || '•';
+  };
+
+  const getStatusColor = (status) => {
+    return realtimeService.getStatusColor(status);
+  };
+
+  const getStatusText = (status) => {
+    return realtimeService.getStatusText(status);
+  };
+
+  // Status timeline
+  const statusSequence = ['pending', 'preparing', 'ready', 'completed'];
+  const statusTimeline = order.statusTimeline || [];
+
+  // Calculate current progress
+  const getTimelineStep = () => {
+    for (let i = statusSequence.length - 1; i >= 0; i--) {
+      const status = statusSequence[i];
+      if (statusTimeline.some(t => t.status === status)) {
+        return i;
+      }
+    }
+    return 0;
+  };
+
+  const currentStep = getTimelineStep();
+
+  // Calculate items count
+  const itemsCount = order.items?.length || 0;
+  const totalQuantity = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
+
+  return (
+    <div 
+      className="portal-order-card"
+      style={{ borderLeftColor: getStatusColor(order.status) }}
+    >
+      {/* Card Header - Always Visible */}
+      <div 
+        className="order-card-header"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="order-card-left">
+          {/* Order Number Badge */}
+          <div className="order-number-badge">
+            {order.orderNumber || `#${order._id?.slice(-6) || 'N/A'}`}
+          </div>
+
+          {/* Quick Info */}
+          <div className="order-quick-info">
+            <div className="info-row">
+              <span className="info-label">
+                {getStatusIcon(order.status)} {getStatusText(order.status)}
+              </span>
+              <span className="info-separator">•</span>
+              <span className="info-date">{formatDate(order.createdAt)}</span>
+              <span className="info-separator">•</span>
+              <span className="info-time">{formatTime(order.createdAt)}</span>
+            </div>
+
+            {/* Items Summary */}
+            <div className="items-summary">
+              <span className="badge items-count">{itemsCount} items ({totalQuantity} qty)</span>
+              <span className="badge total-amount">₱{order.totalAmount?.toFixed(0) || '0'}</span>
+            </div>
+          </div>
+        </div>
+
+        {/* Card Right - Status Badge & Estimated Time */}
+        <div className="order-card-right">
+          <div 
+            className="status-badge"
+            style={{ backgroundColor: getStatusColor(order.status) }}
+          >
+            {getStatusIcon(order.status)} {getStatusText(order.status)}
+          </div>
+
+          {order.estimatedCompletionTime && order.status !== 'completed' && (
+            <div className="estimated-time">
+              ~{formatEstimatedTime(order.estimatedCompletionTime)}
+            </div>
+          )}
+
+          <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
+        </div>
+      </div>
+
+      {/* Expanded Content */}
+      {isExpanded && (
+        <div className="order-card-expanded">
+          {/* Status Timeline Visualization */}
+          <div className="status-timeline-section">
+            <h4>Order Progress</h4>
+            <StatusTimeline 
+              statusTimeline={statusTimeline} 
+              currentStatus={order.status}
+            />
+          </div>
+
+          {/* Items List */}
+          <div className="order-items-section">
+            <h4>Items ({itemsCount})</h4>
+            <div className="items-list">
+              {order.items?.map((item, idx) => (
+                <div key={idx} className="order-item">
+                  <div className="item-details">
+                    <div className="item-header">
+                      <span className="item-name">{item.name || 'Item'}</span>
+                      <span className="item-qty">x{item.quantity || 1}</span>
+                    </div>
+                    {item.specialInstructions && (
+                      <div className="item-instructions">
+                        📝 {item.specialInstructions}
+                      </div>
+                    )}
+                    {item.modifiers && item.modifiers.length > 0 && (
+                      <div className="item-modifiers">
+                        {item.modifiers.map((mod, i) => (
+                          <span key={i} className="modifier-tag">
+                            {mod.modifierName}: {mod.selectedOption}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                    {item.addons && item.addons.length > 0 && (
+                      <div className="item-addons">
+                        {item.addons.map((addon, i) => (
+                          <span key={i} className="addon-tag">
+                            + {addon.name}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="item-price">
+                    ₱{(item.itemTotal || item.price * item.quantity).toFixed(2)}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Order Summary */}
+          <div className="order-summary-section">
+            <h4>Order Summary</h4>
+            <div className="summary-lines">
+              <div className="summary-line">
+                <span>Subtotal:</span>
+                <span>₱{(order.subtotal || 0).toFixed(2)}</span>
+              </div>
+              {order.taxAmount > 0 && (
+                <div className="summary-line">
+                  <span>Tax (12%):</span>
+                  <span>₱{(order.taxAmount || 0).toFixed(2)}</span>
+                </div>
+              )}
+              {order.deliveryFee > 0 && (
+                <div className="summary-line">
+                  <span>Delivery Fee:</span>
+                  <span>₱{(order.deliveryFee || 0).toFixed(2)}</span>
+                </div>
+              )}
+              {order.discount > 0 && (
+                <div className="summary-line discount">
+                  <span>Discount:</span>
+                  <span>-₱{(order.discount || 0).toFixed(2)}</span>
+                </div>
+              )}
+              <div className="summary-line total">
+                <span>Total:</span>
+                <span className="total-amount">₱{(order.totalAmount || 0).toFixed(2)}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Payment & Delivery Info */}
+          <div className="order-details-section">
+            <div className="detail-row">
+              <div className="detail-item">
+                <label>Payment Status</label>
+                <div className="payment-status">
+                  {order.paymentStatus === 'paid' || order.paymentStatus === 'payment_verified' 
+                    ? '✅ Paid' 
+                    : '⏳ Pending Payment'}
+                </div>
+              </div>
+              <div className="detail-item">
+                <label>Payment Method</label>
+                <span className="payment-method">
+                  {order.paymentMethod ? order.paymentMethod.toUpperCase() : 'N/A'}
+                </span>
+              </div>
+            </div>
+
+            {order.customerAddress && (
+              <div className="detail-row">
+                <div className="detail-item">
+                  <label>Delivery Address</label>
+                  <span className="delivery-address">📍 {order.customerAddress}</span>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Action Buttons */}
+          <div className="order-actions">
+            {order.status === 'completed' && onReorder && (
+              <button className="btn-reorder" onClick={() => onReorder(order)}>
+                🔁 Order Again
+              </button>
+            )}
+            <button className="btn-details">
+              📋 View Receipt
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
+
+export default PortalOrderCard;

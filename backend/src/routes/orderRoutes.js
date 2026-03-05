@@ -565,3 +565,5 @@ router.post('/migrate/link-users', async (req, res) => {
     }
 });
 
+module.exports = router;
+

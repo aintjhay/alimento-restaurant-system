@@ -299,6 +299,20 @@ const PortalCheckout = () => {
     <div className="portal-page">
       <PortalHeader />
       
+      {/* Checkout Type Header */}
+      {checkoutType === 'guest' && (
+        <div className="checkout-guest-banner">
+          <span>👤 Checkout as Guest</span>
+          <button
+            type="button"
+            onClick={() => navigate('/portal/login')}
+            className="guest-login-btn"
+          >
+            Already have an account? Login
+          </button>
+        </div>
+      )}
+      
       <div className="portal-checkout">
         <div className="checkout-summary">
           <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '1rem' }}>
@@ -511,29 +525,29 @@ const PortalCheckout = () => {
             <h3>Payment method</h3>
             
             <div className="payment-options">
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="cash"
-                  checked={paymentMethod === 'cash'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>Cash on Delivery</span>
-                <small>Pay when order arrives</small>
-              </label>
+              <button
+                type="button"
+                className={`payment-method-btn ${paymentMethod === 'cash' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('cash')}
+              >
+                <div className="payment-btn-icon">💰</div>
+                <div className="payment-btn-content">
+                  <span className="payment-btn-title">Cash on Delivery</span>
+                  <small>Pay when order arrives</small>
+                </div>
+              </button>
 
-              <label className="payment-option">
-                <input
-                  type="radio"
-                  name="paymentMethod"
-                  value="gcash"
-                  checked={paymentMethod === 'gcash'}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                />
-                <span>GCash Payment</span>
-                <small>Upload proof of payment</small>
-              </label>
+              <button
+                type="button"
+                className={`payment-method-btn ${paymentMethod === 'gcash' ? 'active' : ''}`}
+                onClick={() => setPaymentMethod('gcash')}
+              >
+                <div className="payment-btn-icon">💳</div>
+                <div className="payment-btn-content">
+                  <span className="payment-btn-title">GCash Payment</span>
+                  <small>Upload proof of payment</small>
+                </div>
+              </button>
             </div>
 
             {paymentMethod === 'gcash' && (

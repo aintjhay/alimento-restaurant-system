@@ -480,7 +480,7 @@ body {
 }
 
 .orders-table td {
-  padding: 1.25rem 1.75rem;
+  padding: 1.5rem 2rem;
   border-bottom: 1px solid var(--gray-100);
   font-size: 0.875rem;
   position: relative;
@@ -507,7 +507,9 @@ body {
   color: var(--teal-main);
   font-family: 'Courier New', monospace;
   white-space: nowrap;
-  font-size: 0.8rem;
+  font-size: 1.1rem;
+  display: block;
+  padding: 0.5rem 0;
 }
 
 .table-number {

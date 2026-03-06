@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import './ModifierModal.css';
 import { getFoodImage } from '../../utils/imageUtils';
+import './ModifierModal.css';
 
 function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   const [selectedModifiers, setSelectedModifiers] = useState({});
@@ -92,15 +92,11 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
         <div className="modal-content">
           {/* Item Image */}
           {item.image && (
-            <div className="modal-item-image-container">
-              <img 
-                src={getFoodImage(item.image)} 
-                alt={item.name}
-                className="modal-item-image"
-              />
+            <div className="item-image-section">
+              <img src={getFoodImage(item.image)} alt={item.name} className="item-image" />
             </div>
           )}
-
+          
           {/* Quantity Selector */}
           <div className="quantity-selector">
             <label>Quantity:</label>

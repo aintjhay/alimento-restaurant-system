@@ -139,6 +139,21 @@ const PortalConfirmation = () => {
             Back to Menu
           </button>
         </div>
+
+        {/* Create Account Section for Guests */}
+        <div className="create-account-section">
+          <h3>Save your preferences?</h3>
+          <p>
+            Create an account to save your addresses, track orders, and get personalized recommendations.
+          </p>
+          <button
+            type="button"
+            onClick={() => navigate('/portal/login')}
+            className="secondary-btn"
+          >
+            Create an Account After This Order
+          </button>
+        </div>
       </div>
       
       <PortalFooter />

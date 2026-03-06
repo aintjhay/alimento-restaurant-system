@@ -1,12 +1,11 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
-import MiniForecast from '../../components/pos/MiniForecast';
 import './PosSystem.css';
 import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import { 
   FaCoffee, FaHamburger, FaPizzaSlice, FaGlassMartiniAlt, 
   FaUtensils, FaIceCream, FaWineBottle, FaSearch,
-  FaShoppingCart, FaTrash, FaPlus, FaMinus
+  FaShoppingCart, FaTrash, FaPlus, FaMinus, FaPrint, FaCheck
 } from 'react-icons/fa';
 
 // Import logo
@@ -23,13 +22,11 @@ function PosSystem() {
   const [notes, setNotes] = useState('');
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
-  const [selectedItem, setSelectedItem] = useState(null);
-  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
   const [isUsingFallbackData, setIsUsingFallbackData] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
   
   // Categories
   const categories = [
-    { id: 'all', name: 'All', icon: <FaUtensils /> },
     { id: 'Cocktails', name: 'Cocktails', icon: <FaGlassMartiniAlt /> },
     { id: 'Pasta', name: 'Pasta', icon: <FaUtensils /> },
     { id: 'Sandwiches', name: 'Sandwiches', icon: <FaHamburger /> },
@@ -40,7 +37,9 @@ function PosSystem() {
     { id: 'Coolers', name: 'Coolers', icon: <FaWineBottle /> }
   ];
   
-  const [activeCategory, setActiveCategory] = useState('all');
+  const [activeCategory, setActiveCategory] = useState('Cocktails');
+  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
+  const [selectedItemForModal, setSelectedItemForModal] = useState(null);
 
   // Sample menu data (fallback if API fails) - Synced from backend completeMenu.js
   const sampleMenu = [
@@ -145,9 +144,7 @@ function PosSystem() {
     let filtered = menuItems;
     
     // Filter by category
-    if (activeCategory !== 'all') {
-      filtered = filtered.filter(item => item.category === activeCategory);
-    }
+    filtered = filtered.filter(item => item.category === activeCategory);
     
     // Filter by search term
     if (searchTerm.trim() !== '') {
@@ -164,14 +161,11 @@ function PosSystem() {
 
   // Handle item click
   const handleItemClick = (item) => {
-    if (item.modifiers && item.modifiers.length > 0) {
-      setSelectedItem(item);
-      setIsModifierModalOpen(true);
-    } else if (item.addons && item.addons.length > 0) {
-      setSelectedItem(item);
+    // Check if item has modifiers or addons
+    if ((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) {
+      setSelectedItemForModal(item);
       setIsModifierModalOpen(true);
     } else {
-      // Add directly to cart if no modifiers/addons
       addToCartDirect(item);
     }
   };
@@ -179,8 +173,19 @@ function PosSystem() {
   // Handle options button click - separate from card click
   const handleOptionsClick = (e, item) => {
     e.stopPropagation(); // Prevent card click from triggering
-    setSelectedItem(item);
+    setSelectedItemForModal(item);
     setIsModifierModalOpen(true);
+  };
+
+  // Handle modal close
+  const handleCloseModifierModal = () => {
+    setIsModifierModalOpen(false);
+    setSelectedItemForModal(null);
+  };
+
+  // Handle modal add to cart
+  const handleModalAddToCart = (cartItem) => {
+    addToCart(cartItem);
   };
 
   // Get modifier and addon names for preview
@@ -263,6 +268,59 @@ function PosSystem() {
     }
   };
 
+  // Get item quantity in cart (for card controls)
+  const getItemQuantityInCart = (itemId) => {
+    const cartItem = cart.find(item => item.id === itemId || item._id === itemId);
+    return cartItem ? cartItem.quantity : 0;
+  };
+
+  // Handle quantity change directly on card
+  const handleCardQuantityChange = (item, change) => {
+    const currentQty = getItemQuantityInCart(item._id || item.id);
+    const newQty = currentQty + change;
+    
+    if (newQty > 0) {
+      // Find and update the item
+      const updatedCart = cart.map(cartItem => 
+        (cartItem.id === item._id || cartItem.id === item.id) 
+          ? { ...cartItem, quantity: newQty }
+          : cartItem
+      );
+      setCart(updatedCart);
+      localStorage.setItem('portalCart', JSON.stringify(updatedCart));
+    } else if (newQty === 0) {
+      // Remove from cart
+      const updatedCart = cart.filter(cartItem => 
+        cartItem.id !== item._id && cartItem.id !== item.id
+      );
+      setCart(updatedCart);
+      localStorage.setItem('portalCart', JSON.stringify(updatedCart));
+    }
+  };
+
+  // Handle direct add to cart from card
+  const handleCardAddToCart = (item, e) => {
+    e.stopPropagation();
+    const currentQty = getItemQuantityInCart(item._id || item.id);
+    
+    if (currentQty === 0) {
+      // First time adding - add with quantity 1
+      const newItem = {
+        id: item._id || item.id,
+        name: item.name,
+        category: item.category,
+        price: item.price,
+        quantity: 1,
+        modifiers: [],
+        addons: [],
+        specialInstructions: ''
+      };
+      const updatedCart = [...cart, newItem];
+      setCart(updatedCart);
+      localStorage.setItem('portalCart', JSON.stringify(updatedCart));
+    }
+  };
+
   // Calculate totals
   const calculateSubtotal = () => {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
@@ -317,6 +375,7 @@ function PosSystem() {
       taxAmount: calculateTax(),
       totalAmount: calculateTotal(),
       notes,
+      paymentMethod: paymentMethod,
       status: 'pending',
       paymentStatus: 'unpaid'
     };
@@ -357,6 +416,20 @@ function PosSystem() {
       localStorage.setItem('failedOrders', JSON.stringify(failedOrders));
       alert('Order saved locally. Check failed orders in localStorage.');
     }
+  };
+
+  // Print receipt
+  const handlePrintReceipt = () => {
+    if (cart.length === 0) {
+      alert('Cannot print receipt: Cart is empty');
+      return;
+    }
+    window.print();
+  };
+
+  // Place order (calls handleSubmitOrder)
+  const handlePlaceOrder = () => {
+    handleSubmitOrder();
   };
 
   // Get image source
@@ -413,6 +486,26 @@ function PosSystem() {
             </span>
           </div>
         </div>
+
+        {/* Search Bar in Center */}
+        <div className="header-search">
+          <FaSearch className="search-icon" />
+          <input
+            type="text"
+            placeholder="Search menu items..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="search-input"
+          />
+          {searchTerm && (
+            <button 
+              onClick={() => setSearchTerm('')}
+              className="clear-search"
+            >
+              ✕
+            </button>
+          )}
+        </div>
         
         <div className="header-controls">
           <div className="control-group">
@@ -449,26 +542,6 @@ function PosSystem() {
       <div className="pos-main">
         {/* Left Side - Menu */}
         <div className="menu-section">
-          {/* Search Bar */}
-          <div className="search-container">
-            <FaSearch className="search-icon" />
-            <input
-              type="text"
-              placeholder="Search menu items..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="search-input"
-            />
-            {searchTerm && (
-              <button 
-                onClick={() => setSearchTerm('')}
-                className="clear-search"
-              >
-                ✕
-              </button>
-            )}
-          </div>
-
           {/* Category Tabs */}
           <div className="category-tabs">
             {categories.map(category => (
@@ -497,99 +570,8 @@ function PosSystem() {
               <p>No items found</p>
               <p>Try a different search or category</p>
             </div>
-          ) : activeCategory === 'all' ? (
-            // Show items grouped by category when viewing "All"
-            <div className="menu-items-by-category">
-              {categories.filter(cat => cat.id !== 'all').map(category => {
-                const categoryItems = filteredItems.filter(item => item.category === category.name);
-                if (categoryItems.length === 0) return null;
-                
-                return (
-                  <div key={category.id} className="category-section">
-                    <div className="category-section-header" style={{ borderColor: getCategoryColor(category.name) }}>
-                      <span className="category-icon">{category.icon}</span>
-                      <h2>{category.name}</h2>
-                    </div>
-                    <div className="menu-items-grid">
-                      {categoryItems.map(item => (
-                        <div 
-                          key={item._id || item.id} 
-                          className="menu-item-card"
-                          onClick={() => handleItemClick(item)}
-                        >
-                          <div className="item-image-container">
-                            <div 
-                              className="item-image"
-                              style={{
-                                backgroundImage: item.image ? `url(${getImageSource(item.image)})` : 'none',
-                                backgroundColor: getCategoryColor(item.category)
-                              }}
-                            >
-                              {!item.image && (
-                                <span className="image-fallback">
-                                  {item.name.charAt(0)}
-                                </span>
-                              )}
-                            </div>
-                            <div 
-                              className="item-category-badge"
-                              style={{ backgroundColor: getCategoryColor(item.category) }}
-                            >
-                              {item.category}
-                            </div>
-                            {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
-                              <button 
-                                className="item-modifier-indicator-btn"
-                                onClick={(e) => handleOptionsClick(e, item)}
-                                title="Click to customize this item"
-                              >
-                                ⚙️ Options
-                              </button>
-                            )}
-                          </div>
-                          
-                          <div className="item-details">
-                            <h3 className="item-name">{item.name}</h3>
-                            <p className="item-description">{item.description}</p>
-                            
-                            {((item.modifiers && item.modifiers.length > 0) || (item.addons && item.addons.length > 0)) && (
-                              <div className="item-customization-preview">
-                                {getCustomizationPreview(item).map((option, index) => (
-                                  <span key={index} className="customization-pill">
-                                    {option}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            
-                            <div className="item-footer">
-                              <div className="item-price-tags">
-                                <span className="item-price">₱{item.price.toFixed(2)}</span>
-                                {item.tags && item.tags.length > 0 && (
-                                  <div className="item-tags">
-                                    {item.tags.slice(0, 2).map((tag, index) => (
-                                      <span key={index} className="item-tag">
-                                        {tag}
-                                      </span>
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                              
-                              <button className="add-to-cart-btn">
-                                <FaPlus /> Add
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
           ) : (
-            // Show items in grid for specific category
+            // Show items in grid for selected category
             <div className="menu-items-grid">
               {filteredItems.map(item => (
                 <div 
@@ -643,22 +625,40 @@ function PosSystem() {
                     )}
                     
                     <div className="item-footer">
-                      <div className="item-price-tags">
-                        <span className="item-price">₱{item.price.toFixed(2)}</span>
-                        {item.tags && item.tags.length > 0 && (
-                          <div className="item-tags">
-                            {item.tags.slice(0, 2).map((tag, index) => (
-                              <span key={index} className="item-tag">
-                                {tag}
-                              </span>
-                            ))}
-                          </div>
-                        )}
-                      </div>
+                      <span className="item-price">₱{item.price.toFixed(2)}</span>
                       
-                      <button className="add-to-cart-btn">
-                        <FaPlus /> Add
-                      </button>
+                      {getItemQuantityInCart(item._id || item.id) > 0 ? (
+                        <div className="quantity-control-card" onClick={(e) => e.stopPropagation()}>
+                          <button 
+                            className="qty-btn-card"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCardQuantityChange(item, -1);
+                            }}
+                          >
+                            −
+                          </button>
+                          <span className="qty-display-card">
+                            {getItemQuantityInCart(item._id || item.id)}
+                          </span>
+                          <button 
+                            className="qty-btn-card"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleCardQuantityChange(item, 1);
+                            }}
+                          >
+                            +
+                          </button>
+                        </div>
+                      ) : (
+                        <button 
+                          className="add-to-cart-btn"
+                          onClick={(e) => handleCardAddToCart(item, e)}
+                        >
+                          <FaPlus /> Add
+                        </button>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -671,18 +671,13 @@ function PosSystem() {
         <div className="cart-section">
           <div className="cart-header">
             <h2>
-              <FaShoppingCart /> Order Cart ({calculateTotalItems()})
+              <FaShoppingCart /> Order Cart
             </h2>
             {cart.length > 0 && (
               <button onClick={clearCart} className="clear-cart-btn">
                 <FaTrash /> Clear All
               </button>
             )}
-          </div>
-
-          {/* Demand Forecast Widget */}
-          <div className="forecast-widget-container">
-            <MiniForecast />
           </div>
           
           <div className="cart-items-container">
@@ -788,22 +783,34 @@ function PosSystem() {
                 </div>
               </div>
 
-              <div className="order-notes">
-                <label>Order Notes:</label>
-                <textarea
-                  placeholder="Special instructions, allergies, etc."
-                  value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
-                  rows="3"
-                />
-              </div>
-
               <div className="cart-actions">
+                <div className="payment-method-selector">
+                  <button
+                    type="button"
+                    className={`payment-tab ${paymentMethod === 'cash' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('cash')}
+                  >
+                    Cash
+                  </button>
+                  <button
+                    type="button"
+                    className={`payment-tab ${paymentMethod === 'online' ? 'active' : ''}`}
+                    onClick={() => setPaymentMethod('online')}
+                  >
+                    Online
+                  </button>
+                </div>
                 <button 
-                  onClick={handleSubmitOrder}
-                  className="submit-order-btn"
+                  onClick={handlePrintReceipt}
+                  className="print-receipt-btn"
                 >
-                  <FaShoppingCart /> Submit Order - Table {tableNumber}
+                  <FaPrint /> Print Receipt
+                </button>
+                <button 
+                  onClick={handlePlaceOrder}
+                  className="place-order-btn"
+                >
+                  <FaCheck /> Place Order
                 </button>
               </div>
             </>
@@ -811,15 +818,11 @@ function PosSystem() {
         </div>
       </div>
 
-      {/* Modifier Modal */}
-      <ModifierModal
-        item={selectedItem}
+      <ModifierModal 
+        item={selectedItemForModal}
         isOpen={isModifierModalOpen}
-        onClose={() => {
-          setIsModifierModalOpen(false);
-          setSelectedItem(null);
-        }}
-        onAddToCart={addToCart}
+        onClose={handleCloseModifierModal}
+        onAddToCart={handleModalAddToCart}
       />
     </div>
   );

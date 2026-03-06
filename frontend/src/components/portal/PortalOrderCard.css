@@ -45,7 +45,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-width: 70px;
+  min-width: 140px;
   height: 56px;
   padding: 0 12px;
   background: #f0f0ed;
@@ -57,8 +57,8 @@
   color: #2f6f6a;
   border: 1px solid #e5e7eb;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  text-overflow: clip;
 }
 
 .order-quick-info {
@@ -69,7 +69,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 18px;
   margin-bottom: 8px;
   color: #1f2937;
   font-weight: 500;
@@ -89,12 +89,12 @@
 
 .info-date {
   color: #6b7280;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 .info-time {
   color: #6b7280;
-  font-size: 13px;
+  font-size: 17px;
 }
 
 /* Items Summary Badges */
@@ -109,7 +109,7 @@
 .total-amount {
   display: inline-flex;
   align-items: center;
-  font-size: 13px;
+  font-size: 17px;
   font-weight: 500;
   color: #6b7280;
 }
@@ -130,7 +130,7 @@
 .status-badge {
   padding: 6px 12px;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 15px;
   font-weight: 600;
   color: white;
   display: inline-flex;

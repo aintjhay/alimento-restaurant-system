@@ -40,8 +40,9 @@ export const ForecastIcon = ({ size = 24, color = '#00796b' }) => (
 
 export const RefreshIcon = ({ size = 24, color = '#00796b' }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-    <path d="M21.5 2V8H15.5M2.5 22V16H8.5" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    <path d="M3.929 13.41C5.587 15.75 8.365 17.25 11.5 17.25C16.525 17.25 20.75 13.025 20.75 8M20.071 10.59C18.413 8.25 15.635 6.75 12.5 6.75C7.475 6.75 3.25 10.975 3.25 16" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M1 4V10H7" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M23 20V14H17" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10M23 14L18.36 18.36A9 9 0 0 1 3.51 15" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
   </svg>
 );
 

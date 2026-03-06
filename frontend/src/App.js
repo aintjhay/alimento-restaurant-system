@@ -8,7 +8,6 @@ import Dashboard from './pages/dashboard/Dashboard';
 import PosSystem from './pages/pos/PosSystem';
 import Login from './pages/auth/Login';
 import PortalHome from './pages/portal/PortalHome';
-import PortalCheckoutChoice from './pages/portal/PortalCheckoutChoice';
 import PortalLoginRegister from './pages/portal/PortalLoginRegister';
 import PortalCheckout from './pages/portal/PortalCheckout';
 import PortalConfirmation from './pages/portal/PortalConfirmation';
@@ -27,7 +26,6 @@ function App() {
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
             <Route path="/portal" element={<PortalHome />} />
-            <Route path="/portal/checkout-choice" element={<PortalCheckoutChoice />} />
             <Route path="/portal/login" element={<PortalLoginRegister />} />
             <Route path="/portal/checkout" element={<PortalCheckout />} />
             <Route path="/portal/confirmation" element={<PortalConfirmation />} />

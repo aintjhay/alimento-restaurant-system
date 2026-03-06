@@ -162,17 +162,8 @@ const PortalHome = () => {
     if (cart.length === 0) return;
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     
-    // Check if user is already logged in
-    const checkoutType = localStorage.getItem('portalCheckoutType');
-    const portalUser = localStorage.getItem('portalUser');
-    
-    if (checkoutType === 'registered' && portalUser) {
-      // User is logged in, go directly to checkout
-      navigate('/portal/checkout');
-    } else {
-      // User not logged in, show choice page
-      navigate('/portal/checkout-choice');
-    }
+    // Go directly to checkout (skip choice page for better UX)
+    navigate('/portal/checkout');
   };
 
   const handleConfirmModal = () => {

@@ -128,14 +128,33 @@
   transform: scale(1.1);
 }
 
+.portal-category-bar {
+  background: white;
+  border-bottom: 1px solid var(--portal-border);
+  padding: 0 10vw;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.category-bar-inner {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding: 1rem 0;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.category-bar-inner::-webkit-scrollbar {
+  display: none;
+}
+
 .portal-content {
   display: grid;
-  grid-template-columns: 220px 1fr 340px;
+  grid-template-columns: 1fr 340px;
   gap: 2rem;
   padding: 2rem 10vw 4rem;
 }
 
-.portal-categories h2,
 .portal-cart h2 {
   font-family: 'Inter', sans-serif;
   font-size: 1.25rem;
@@ -145,42 +164,36 @@
   letter-spacing: -0.02rem;
 }
 
-.category-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
 .category-chip {
   display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.75rem 1.15rem;
-  border-radius: 12px;
+  gap: 0.6rem;
+  padding: 0.6rem 1.1rem;
+  border-radius: 40px;
   border: 1.5px solid var(--portal-border);
   background: white;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   cursor: pointer;
-  font-size: 0.95rem;
-  font-weight: 400;
+  font-size: 0.9rem;
+  font-weight: 500;
   color: var(--portal-ink);
   font-family: 'Inter', sans-serif;
   transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  position: relative;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .category-chip:hover {
-  border-color: rgba(47, 111, 106, 0.2);
-  box-shadow: var(--portal-shadow-hover);
-  transform: translateY(-1px);
+  border-color: rgba(47, 111, 106, 0.35);
+  background: rgba(47, 111, 106, 0.05);
+  color: var(--portal-moss);
 }
 
 .category-chip.active {
   background: linear-gradient(135deg, var(--portal-moss) 0%, #26625e 100%);
   border-color: var(--portal-moss);
   color: white;
-  box-shadow: 0 4px 12px rgba(47, 111, 106, 0.3);
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(47, 111, 106, 0.25);
 }
 
 .category-chip.active .chip-icon {
@@ -1142,6 +1155,23 @@
 .continue-shopping-btn:hover {
   background: #e5e7eb;
   border-color: #9ca3af;
+}
+
+.text-link-btn {
+  background: none;
+  border: none;
+  color: #2f6f6a;
+  font-size: 0.95rem;
+  font-weight: 500;
+  cursor: pointer;
+  padding: 0.5rem 1rem;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  transition: color 0.2s ease;
+}
+
+.text-link-btn:hover {
+  color: #1e5a55;
 }
 
 .portal-loading {
@@ -2323,7 +2353,7 @@
 
 @media (max-width: 1100px) {
   .portal-content {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr 300px;
   }
 
   .checkout-choice-grid {
@@ -2477,6 +2507,10 @@
     grid-template-columns: 1fr;
   }
 
+  .portal-category-bar {
+    padding: 0 3vw;
+  }
+
   .portal-cart {
     position: static;
     max-height: none;
@@ -2622,15 +2656,7 @@
 }
 
 .portal-section-header h1::before {
-  content: '📦';
-  font-size: 2.5rem;
-  display: block;
-  animation: bounce 2s ease-in-out infinite;
-}
-
-@keyframes bounce {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-8px); }
+  content: none;
 }
 
 .portal-section-header p {
@@ -2765,13 +2791,7 @@
   animation: fadeIn 0.4s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-.empty-state::before {
-  content: '🍽️';
-  font-size: 5rem;
-  display: block;
-  opacity: 0.6;
-  animation: float 3s ease-in-out infinite;
-}
+/* Emoji plate icon removed — use SVG .empty-icon elements instead */
 
 @keyframes float {
   0%, 100% { transform: translateY(0); }
@@ -3516,6 +3536,11 @@ html {
   background: linear-gradient(135deg, #fafbfc 0%, #f8f9fa 100%);
   border-radius: 10px;
   border: 2px dashed #e5e7eb;
+}
+
+/* Suppress the global ::before plate icon inside the addresses empty state */
+.profile-section-addresses .empty-state::before {
+  display: none;
 }
 
 .empty-icon {

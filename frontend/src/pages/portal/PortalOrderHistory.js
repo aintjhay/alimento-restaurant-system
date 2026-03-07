@@ -6,6 +6,7 @@ import PortalOrderCard from '../../components/portal/PortalOrderCard';
 import OrderStatusNotification from '../../components/portal/OrderStatusNotification';
 import realtimeService from '../../services/realtimeService';
 import { ordersAPI } from '../../services/api';
+import UtensilsIcon from '../../components/icons/UtensilsIcon';
 import './Portal.css';
 
 const PortalOrderHistory = () => {
@@ -182,7 +183,9 @@ const PortalOrderHistory = () => {
       <main className="portal-main">
         <div className="portal-section">
           <div className="portal-section-header">
-            <h1>Your Orders</h1>
+            <h1>
+              Your Orders
+            </h1>
             <p>Track and view your order history with real-time updates</p>
           </div>
 
@@ -212,7 +215,8 @@ const PortalOrderHistory = () => {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="empty-state">
-                <p>No orders found</p>
+                <div className="empty-icon"><UtensilsIcon size={52} color="#d1d5db" /></div>
+                <p className="empty-title">No orders found</p>
                 <button 
                   className="primary-btn"
                   onClick={() => navigate('/portal')}

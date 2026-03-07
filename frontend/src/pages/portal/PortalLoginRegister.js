@@ -333,10 +333,6 @@ const PortalLoginRegister = () => {
                       'Login'
                     )}
                   </button>
-
-                  <p className="auth-demo-note">
-                    Demo: Use any email and password to login
-                  </p>
                 </form>
               ) : (
                 // REGISTER FORM

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import realtimeService from '../../services/realtimeService';
@@ -7,6 +8,7 @@ import './Portal.css';
 
 const PortalConfirmation = () => {
   const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
   const [lastOrder, setLastOrder] = useState(null);
 
   useEffect(() => {
@@ -133,27 +135,29 @@ const PortalConfirmation = () => {
             View My Order
           </button>
           <button 
-            className="secondary-btn continue-shopping-btn"
+            className="text-link-btn"
             onClick={handleContinueShopping}
           >
             Back to Menu
           </button>
         </div>
 
-        {/* Create Account Section for Guests */}
-        <div className="create-account-section">
-          <h3>Save your preferences?</h3>
-          <p>
-            Create an account to save your addresses, track orders, and get personalized recommendations.
-          </p>
-          <button
-            type="button"
-            onClick={() => navigate('/portal/login')}
-            className="secondary-btn"
-          >
-            Create an Account After This Order
-          </button>
-        </div>
+        {/* Create Account Section - only shown to guest users */}
+        {!isAuthenticated && (
+          <div className="create-account-section">
+            <h3>Save your preferences?</h3>
+            <p>
+              Create an account to save your addresses, track orders, and get personalized recommendations.
+            </p>
+            <button
+              type="button"
+              onClick={() => navigate('/portal/login')}
+              className="secondary-btn"
+            >
+              Create an Account After This Order
+            </button>
+          </div>
+        )}
       </div>
       
       <PortalFooter />

@@ -5,6 +5,11 @@ import { useAuth } from '../../context/AuthContext';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import EditProfileModal from '../../components/portal/EditProfileModal';
+import PencilIcon from '../../components/icons/PencilIcon';
+import MapPinIcon from '../../components/icons/MapPinIcon';
+import UserIcon from '../../components/icons/UserIcon';
+import HomeIcon from '../../components/icons/HomeIcon';
+import TrashIcon from '../../components/icons/TrashIcon';
 import './Portal.css';
 
 const PortalUserProfile = () => {
@@ -18,6 +23,8 @@ const PortalUserProfile = () => {
   const [showAddAddress, setShowAddAddress] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [confirmDeleteId, setConfirmDeleteId] = useState(null);
 
   // Form states
   const [formData, setFormData] = useState({
@@ -61,6 +68,11 @@ const PortalUserProfile = () => {
     }
   }, [isAuthenticated, authUser, token, navigate]);
 
+  const showSuccess = (msg) => {
+    setSuccessMessage(msg);
+    setTimeout(() => setSuccessMessage(''), 3500);
+  };
+
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
     setIsLoadingSave(true);
@@ -78,10 +90,11 @@ const PortalUserProfile = () => {
       if (response.data.success) {
         setUser(response.data.user);
         setIsEditing(false);
-        alert('Profile updated successfully!');
+        showSuccess('Profile updated successfully!');
       }
     } catch (err) {
-      alert('Error updating profile: ' + err.message);
+      setError('Error updating profile: ' + (err.response?.data?.message || err.message));
+      setTimeout(() => setError(null), 4000);
     } finally {
       setIsLoadingSave(false);
     }
@@ -116,31 +129,32 @@ const PortalUserProfile = () => {
         setShowAddAddress(false);
         // Refresh auth context so checkout gets updated addresses
         await fetchCurrentUser();
-        alert('Address added successfully!');
+        showSuccess('Address added successfully!');
       }
     } catch (err) {
-      alert('Error adding address: ' + err.message);
+      setError('Error adding address: ' + (err.response?.data?.message || err.message));
+      setTimeout(() => setError(null), 4000);
     }
   };
 
   const handleDeleteAddress = async (addressId) => {
-    if (window.confirm('Are you sure you want to delete this address?')) {
-      try {
-        const response = await axios.delete(`${API_BASE}/users/${authUser.id}/addresses/${addressId}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-
-        if (response.data.success) {
-          setAddresses(response.data.addresses);
-          // Refresh auth context so checkout gets updated addresses
-          await fetchCurrentUser();
-          alert('Address deleted successfully!');
+    setConfirmDeleteId(null);
+    try {
+      const response = await axios.delete(`${API_BASE}/users/${authUser.id}/addresses/${addressId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
         }
-      } catch (err) {
-        alert('Error deleting address: ' + err.message);
+      });
+
+      if (response.data.success) {
+        setAddresses(response.data.addresses);
+        // Refresh auth context so checkout gets updated addresses
+        await fetchCurrentUser();
+        showSuccess('Address removed.');
       }
+    } catch (err) {
+      setError('Error deleting address: ' + (err.response?.data?.message || err.message));
+      setTimeout(() => setError(null), 4000);
     }
   };
 
@@ -171,11 +185,22 @@ const PortalUserProfile = () => {
             <p className="profile-email">{user?.email}</p>
           </div>
 
+          {successMessage && (
+            <div style={{ background: '#d1fae5', color: '#065f46', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500', fontSize: '0.95rem' }}>
+              ✓ {successMessage}
+            </div>
+          )}
+          {error && (
+            <div style={{ background: '#fee2e2', color: '#991b1b', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500', fontSize: '0.95rem' }}>
+              {error}
+            </div>
+          )}
+
           {/* Personal Information Section */}
           <div className="profile-section profile-section-personal">
             <div className="section-header">
               <div className="section-title">
-                <span className="section-icon">👤</span>
+                <span className="section-icon"><UserIcon size={22} color="#2f6f6a" /></span>
                 <h2>Personal Information</h2>
               </div>
               {!isEditing && (
@@ -183,7 +208,7 @@ const PortalUserProfile = () => {
                   className="btn-edit-profile"
                   onClick={() => setIsEditing(true)}
                 >
-                  ✏️ Edit
+                  <PencilIcon size={15} color="white" /> Edit
                 </button>
               )}
             </div>
@@ -199,7 +224,22 @@ const PortalUserProfile = () => {
               </div>
               <div className="info-row">
                 <span className="label">Phone:</span>
-                <span className="value">{user?.phone || 'Not provided'}</span>
+                <span className="value">
+                  {user?.phone
+                    ? user.phone
+                    : (
+                      <>
+                        <span style={{ color: '#9ca3af' }}>Not provided</span>
+                        <button
+                          onClick={() => setIsEditing(true)}
+                          style={{ marginLeft: '0.6rem', background: 'none', border: 'none', color: '#2f6f6a', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
+                        >
+                          + Add
+                        </button>
+                      </>
+                    )
+                  }
+                </span>
               </div>
             </div>
           </div>
@@ -218,7 +258,7 @@ const PortalUserProfile = () => {
           <div className="profile-section profile-section-addresses">
             <div className="section-header">
               <div className="section-title">
-                <span className="section-icon">📍</span>
+                <span className="section-icon"><MapPinIcon size={22} color="#2f6f6a" /></span>
                 <h2>Saved Delivery Addresses</h2>
               </div>
               {!showAddAddress && (
@@ -303,7 +343,7 @@ const PortalUserProfile = () => {
 
                 <div className="form-actions">
                   <button type="submit" className="btn-primary">
-                    ✅ Add Address
+                    Add Address
                   </button>
                   <button
                     type="button"
@@ -319,7 +359,7 @@ const PortalUserProfile = () => {
             <div className="addresses-list">
               {addresses.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon">🏡</div>
+                  <div className="empty-icon"><HomeIcon size={48} color="#d1d5db" /></div>
                   <p className="empty-title">No saved addresses yet</p>
                   <p className="empty-text">Add your first delivery address to get started</p>
                 </div>
@@ -342,11 +382,30 @@ const PortalUserProfile = () => {
                     </div>
                     <button
                       className="btn-delete-address"
-                      onClick={() => handleDeleteAddress(address._id)}
+                      onClick={() => setConfirmDeleteId(address._id)}
                       title="Delete address"
                     >
-                      🗑️
+                      <TrashIcon size={16} color="currentColor" />
                     </button>
+                    {confirmDeleteId === address._id && (
+                      <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+                        <p style={{ margin: 0, fontSize: '0.9rem', color: '#92400e', fontWeight: '500' }}>Remove this address?</p>
+                        <div style={{ display: 'flex', gap: '0.5rem' }}>
+                          <button
+                            onClick={() => handleDeleteAddress(address._id)}
+                            style={{ padding: '0.35rem 0.9rem', background: '#dc2626', color: 'white', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+                          >
+                            Yes, remove
+                          </button>
+                          <button
+                            onClick={() => setConfirmDeleteId(null)}
+                            style={{ padding: '0.35rem 0.9rem', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '6px', cursor: 'pointer', fontWeight: '600', fontSize: '0.85rem' }}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
+                    )}
                   </div>
                 ))
               )}

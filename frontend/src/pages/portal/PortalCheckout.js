@@ -31,6 +31,7 @@ const PortalCheckout = () => {
   const [customerContact, setCustomerContact] = useState('');
   const [customerAddress, setCustomerAddress] = useState('');
   const [customerEmail, setCustomerEmail] = useState('');
+  const [specialInstructions, setSpecialInstructions] = useState('');
   const [paymentMethod, setPaymentMethod] = useState('cash');
   const [paymentProof, setPaymentProof] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -56,6 +57,7 @@ const PortalCheckout = () => {
         ? `${authUser.firstName} ${authUser.lastName}` 
         : authUser.name || '');
       setCustomerEmail(authUser.email || '');
+      if (authUser.phone) setCustomerContact(authUser.phone);
       setCheckoutType('registered');
       
       // Load saved addresses from authenticated user
@@ -211,6 +213,7 @@ const PortalCheckout = () => {
         customerContact,
         customerAddress,
         customerEmail: customerEmail || '',
+        specialInstructions: specialInstructions.trim(),
         items: buildOrderItems(),
         subtotal,
         taxAmount,
@@ -360,7 +363,7 @@ const PortalCheckout = () => {
             </div>
             <div>
               <span>Tax (12%)</span>
-              <span>₱{taxAmount.toFixed(0)}</span>
+              <span>₱{taxAmount.toFixed(2)}</span>
             </div>
             <div>
               <span>Delivery fee</span>
@@ -368,7 +371,7 @@ const PortalCheckout = () => {
             </div>
             <div className="summary-grand">
               <span>Total</span>
-              <strong>₱{totalAmount.toFixed(0)}</strong>
+              <strong>₱{totalAmount.toFixed(2)}</strong>
             </div>
           </div>
         </div>
@@ -520,6 +523,19 @@ const PortalCheckout = () => {
               <input type="email" value={customerEmail} onChange={(event) => setCustomerEmail(event.target.value)} style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box' }} />
             </div>
           )}
+
+          <div style={{ marginBottom: '1.5rem' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
+              <ClockIcon size={20} color="#2f6f6a" />
+              <label style={{ margin: 0, fontWeight: '500', color: '#333', fontSize: '0.95rem' }}>Special instructions <span style={{ color: '#999', fontWeight: '400' }}>(optional)</span></label>
+            </div>
+            <textarea
+              value={specialInstructions}
+              onChange={(event) => setSpecialInstructions(event.target.value)}
+              placeholder="e.g. No onions, extra sauce, ring the doorbell..."
+              style={{ width: '100%', padding: '0.75rem', border: '1px solid #ddd', borderRadius: '6px', boxSizing: 'border-box', minHeight: '80px', resize: 'vertical', fontFamily: 'inherit', fontSize: '0.95rem' }}
+            />
+          </div>
 
           <div className="payment-section">
             <h3>Payment method</h3>

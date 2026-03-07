@@ -245,6 +245,21 @@ const PortalHome = () => {
         </div>
       </header>
 
+      <div className="portal-category-bar">
+        <div className="category-bar-inner">
+          {categories.map(category => (
+            <button
+              key={category}
+              className={`category-chip ${activeCategory === category ? 'active' : ''}`}
+              onClick={() => setActiveCategory(category)}
+            >
+              <span className="chip-icon">{category === 'All' ? '▦' : getCategoryIcon(category)}</span>
+              {category}
+            </button>
+          ))}
+        </div>
+      </div>
+
       {recommendedItems.length > 0 && activeCategory === 'All' && !searchTerm && (
         <section className="recommended-section">
           <div className="recommended-container">
@@ -283,22 +298,6 @@ const PortalHome = () => {
       )}
 
       <div className="portal-content">
-        <aside className="portal-categories">
-          <h2>Categories</h2>
-          <div className="category-list">
-            {categories.map(category => (
-              <button
-                key={category}
-                className={`category-chip ${activeCategory === category ? 'active' : ''}`}
-                onClick={() => setActiveCategory(category)}
-              >
-                <span className="chip-icon">{category === 'All' ? '▦' : getCategoryIcon(category)}</span>
-                {category}
-              </button>
-            ))}
-          </div>
-        </aside>
-
         <main className="portal-menu">
           <div className="menu-grid">
             {filteredItems.map(item => (

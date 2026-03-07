@@ -150,6 +150,15 @@
   transform: rotate(180deg);
 }
 
+.view-details-hint {
+  font-size: 0.78rem;
+  color: #2f6f6a;
+  font-weight: 500;
+  cursor: pointer;
+  user-select: none;
+  letter-spacing: 0.01em;
+}
+
 /* ===== EXPANDED CONTENT ===== */
 .order-card-expanded {
   padding: 16px;

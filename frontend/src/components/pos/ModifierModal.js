@@ -5,7 +5,6 @@ import './ModifierModal.css';
 function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   const [selectedModifiers, setSelectedModifiers] = useState({});
   const [selectedAddons, setSelectedAddons] = useState([]);
-  const [specialInstructions, setSpecialInstructions] = useState('');
   const [quantity, setQuantity] = useState(1);
 
   if (!isOpen || !item) return null;
@@ -29,19 +28,31 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   };
 
   const calculateTotalPrice = () => {
-    let total = item.price;
+    let modifierPrice = null; // For replacement modifiers (Temperature, Size, etc.)
+    let modifierExtra = 0;    // For additional modifiers
     
-    // Add modifier prices
-    Object.values(selectedModifiers).forEach(mod => {
-      total += mod.extraPrice;
+    // Check modifiers
+    Object.entries(selectedModifiers).forEach(([modifierName, modValue]) => {
+      // Modifiers like Temperature, Size, Quantity replace the base price
+      if (['Temperature', 'Size', 'Quantity'].includes(modifierName)) {
+        modifierPrice = modValue.extraPrice;
+      } else {
+        // Other modifiers add to the price
+        modifierExtra += modValue.extraPrice;
+      }
     });
     
-    // Add addon prices
+    // Calculate item total (using replacement price or base price)
+    const unitPrice = modifierPrice !== null ? modifierPrice : item.price;
+    const itemTotal = unitPrice * quantity + modifierExtra;
+    
+    // Add addon prices (not multiplied by quantity)
+    let addonTotal = 0;
     selectedAddons.forEach(addon => {
-      total += addon.price;
+      addonTotal += addon.price;
     });
     
-    return total * quantity;
+    return itemTotal + addonTotal;
   };
 
   const handleAddToCart = () => {
@@ -57,7 +68,6 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
         extraPrice: value.extraPrice
       })),
       addons: selectedAddons,
-      specialInstructions: specialInstructions,
       image: item.image,
       category: item.category
     };
@@ -70,7 +80,6 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   const resetForm = () => {
     setSelectedModifiers({});
     setSelectedAddons([]);
-    setSpecialInstructions('');
     setQuantity(1);
   };
 
@@ -89,7 +98,7 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
           <button className="close-btn" onClick={onClose}>×</button>
         </div>
         
-        <div className="modal-content">
+        <div className="modifier-modal-body">
           {/* Item Image */}
           {item.image && (
             <div className="item-image-section">
@@ -167,35 +176,49 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
             </div>
           )}
 
-          {/* Special Instructions */}
-          <div className="instructions-section">
-            <label>Special Instructions:</label>
-            <textarea
-              placeholder="E.g., No onions, extra sauce, etc."
-              value={specialInstructions}
-              onChange={(e) => setSpecialInstructions(e.target.value)}
-              rows="3"
-            />
-          </div>
-
           {/* Price Summary */}
           <div className="price-summary">
-            <div className="price-row">
-              <span>Base Price:</span>
-              <span>₱{item.price.toFixed(2)} × {quantity}</span>
-            </div>
-            
-            {Object.values(selectedModifiers).map((mod, index) => (
-              <div key={index} className="price-row">
-                <span>{mod.name}:</span>
-                <span>+₱{mod.extraPrice} × {quantity}</span>
+            {/* Show base price or selected replacement modifier price */}
+            {Object.entries(selectedModifiers).some(([modName]) => 
+              ['Temperature', 'Size', 'Quantity'].includes(modName)
+            ) ? (
+              // If a replacement modifier is selected, show it instead of base price
+              <div className="price-row">
+                <span>
+                  {Object.entries(selectedModifiers)
+                    .filter(([modName]) => ['Temperature', 'Size', 'Quantity'].includes(modName))
+                    .map(([modName, modValue]) => `${modName} (${modValue.name})`)
+                    .join(', ')}:
+                </span>
+                <span>
+                  ₱{(Object.values(selectedModifiers).find(mod => 
+                    Object.keys(selectedModifiers).some(k => ['Temperature', 'Size', 'Quantity'].includes(k))
+                  )?.extraPrice || item.price).toFixed(2)} × {quantity}
+                </span>
               </div>
-            ))}
+            ) : (
+              // No replacement modifier, show base price
+              <div className="price-row">
+                <span>Base Price:</span>
+                <span>₱{item.price.toFixed(2)} × {quantity}</span>
+              </div>
+            )}
             
+            {/* Show additional modifiers (non-replacement) */}
+            {Object.entries(selectedModifiers)
+              .filter(([modName]) => !['Temperature', 'Size', 'Quantity'].includes(modName))
+              .map(([modName, modValue], index) => (
+                <div key={index} className="price-row">
+                  <span>{modName} ({modValue.name}):</span>
+                  <span>{modValue.extraPrice > 0 ? '+' : ''}₱{modValue.extraPrice.toFixed(2)}</span>
+                </div>
+              ))}
+            
+            {/* Show add-ons */}
             {selectedAddons.map((addon, index) => (
               <div key={index} className="price-row">
                 <span>{addon.name}:</span>
-                <span>+₱{addon.price} × {quantity}</span>
+                <span>+₱{addon.price.toFixed(2)}</span>
               </div>
             ))}
             

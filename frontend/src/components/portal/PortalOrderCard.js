@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
 import realtimeService from '../../services/realtimeService';
+import { PendingIcon, PreparingIcon, ReadyIcon, CompletedIcon } from '../icons/StatusIcons';
+import CheckIcon from '../icons/CheckIcon';
+import XIcon from '../icons/XIcon';
+import RefreshIcon from '../icons/RefreshIcon';
 import './PortalOrderCard.css';
 
 /**
@@ -11,27 +15,26 @@ const PortalOrderCard = ({ order, onReorder }) => {
   // Helper functions
   const formatDate = (dateString) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Manila' });
   };
 
   const formatTime = (dateString) => {
     if (!dateString) return '';
     const date = new Date(dateString);
-    // Convert to Philippines time (GMT+8)
-    const phTime = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Manila' }));
-    return phTime.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
+    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' });
   };
 
   const getStatusIcon = (status) => {
+    const props = { size: 14 };
     const icons = {
-      'pending': '⏳',
-      'confirmed': '✓',
-      'preparing': '👨‍🍳',
-      'ready': '📦',
-      'completed': '✅',
-      'cancelled': '❌'
+      'pending':   <PendingIcon {...props} />,
+      'confirmed': <CheckIcon size={14} color="currentColor" />,
+      'preparing': <PreparingIcon {...props} />,
+      'ready':     <ReadyIcon {...props} />,
+      'completed': <CompletedIcon {...props} />,
+      'cancelled': <XIcon size={14} color="currentColor" />,
     };
-    return icons[status] || '•';
+    return icons[status] || null;
   };
 
   const getStatusColor = (status) => {
@@ -65,10 +68,6 @@ const PortalOrderCard = ({ order, onReorder }) => {
           {/* Quick Info */}
           <div className="order-quick-info">
             <div className="info-row">
-              <span className="info-label">
-                {getStatusIcon(order.status)} {getStatusText(order.status)}
-              </span>
-              <span className="info-separator">•</span>
               <span className="info-date">{formatDate(order.createdAt)}</span>
               <span className="info-separator">•</span>
               <span className="info-time">{formatTime(order.createdAt)}</span>
@@ -76,8 +75,10 @@ const PortalOrderCard = ({ order, onReorder }) => {
 
             {/* Items Summary */}
             <div className="items-summary">
-              <span className="items-count">{itemsCount} items ({totalQuantity} qty)</span>
-              <span className="total-amount">₱{order.totalAmount?.toFixed(0) || '0'}</span>
+              <span className="items-count">
+                {itemsCount} {itemsCount === 1 ? 'item' : 'items'} ({totalQuantity} qty)
+              </span>
+              <span className="total-amount">₱{order.totalAmount?.toFixed(2) || '0.00'}</span>
             </div>
           </div>
         </div>
@@ -88,10 +89,14 @@ const PortalOrderCard = ({ order, onReorder }) => {
             className="status-badge"
             style={{ backgroundColor: getStatusColor(order.status) }}
           >
-            {getStatusIcon(order.status)} {getStatusText(order.status)}
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
+              {getStatusIcon(order.status)} {getStatusText(order.status)}
+            </span>
           </div>
 
-          <span className={`expand-icon ${isExpanded ? 'expanded' : ''}`}>▼</span>
+          <span className="view-details-hint">
+            {isExpanded ? 'Hide details ▲' : 'View details ▼'}
+          </span>
         </div>
       </div>
 
@@ -178,7 +183,7 @@ const PortalOrderCard = ({ order, onReorder }) => {
           <div className="order-actions">
             {order.status === 'completed' && onReorder && (
               <button className="btn-primary" onClick={() => onReorder(order)}>
-                🔁 Order Again
+                <RefreshIcon size={15} color="white" /> Order Again
               </button>
             )}
           </div>

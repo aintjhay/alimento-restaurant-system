@@ -513,6 +513,17 @@ const PortalHome = () => {
         />
       )}
 
+      {/* Floating cart button — visible on mobile only */}
+      <button
+        className="floating-cart-btn"
+        onClick={() => setShowCartModal(true)}
+      >
+        🛒 View Cart
+        {cart.length > 0 && (
+          <span className="floating-cart-badge">{cart.reduce((sum, i) => sum + i.quantity, 0)}</span>
+        )}
+      </button>
+
       <PortalFooter />
     </div>
   );

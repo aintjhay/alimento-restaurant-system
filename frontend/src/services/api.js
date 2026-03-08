@@ -1,7 +1,7 @@
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
 // Helper function to fetch with timeout
-const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
+const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), timeout);
   
@@ -22,7 +22,8 @@ const fetchWithTimeout = async (url, options = {}, timeout = 5000) => {
 export const menuAPI = {
     getAll: async () => {
         try {
-            const response = await fetchWithTimeout(`${API_URL}/menu`, {}, 8000);
+            // Use longer timeout (45 seconds) for initial menu load - backend may be cold starting
+            const response = await fetchWithTimeout(`${API_URL}/menu`, {}, 45000);
             if (!response.ok) throw new Error('Failed to fetch menu');
             const data = await response.json();
             return data.data || data; // Handle both formats

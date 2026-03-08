@@ -375,6 +375,53 @@
   color: #22863a !important;
 }
 
+/* ===== SMS STATUS SECTION ===== */
+.order-sms-status {
+  margin-bottom: 24px;
+  padding: 12px 14px;
+  background: #ffffff;
+  border: 1px solid rgba(47, 111, 106, 0.15);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 1px 6px rgba(47, 111, 106, 0.06);
+}
+
+.sms-status-icon {
+  width: 36px;
+  height: 36px;
+  min-width: 36px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #2f6f6a 0%, #3d8b7f 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  box-shadow: 0 2px 6px rgba(47, 111, 106, 0.18);
+}
+
+.sms-status-content {
+  flex: 1;
+}
+
+.sms-status-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  color: #1f2937;
+  letter-spacing: 0.02em;
+}
+
+.sms-status-number {
+  margin: 3px 0 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+  font-family: 'Courier New', monospace;
+  letter-spacing: 0.04em;
+}
+
 /* ===== ORDER DETAILS SECTION ===== */
 .order-details-section {
   margin-bottom: 24px;

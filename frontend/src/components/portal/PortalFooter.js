@@ -2,7 +2,7 @@ import React from 'react';
 import MapPinIcon from '../icons/MapPinIcon';
 import ClockIcon from '../icons/ClockIcon';
 import PhoneIcon from '../icons/PhoneIcon';
-import EmailIcon from '../icons/EmailIcon';
+import { FaFacebook, FaInstagram, FaTiktok } from 'react-icons/fa';
 
 const PortalFooter = () => {
   const currentYear = new Date().getFullYear();
@@ -44,10 +44,23 @@ const PortalFooter = () => {
 
           <div className="footer-section">
             <div className="footer-section-header">
-              <EmailIcon size={24} color="currentColor" />
-              <h3>Quick Ordering</h3>
+              <FaInstagram size={20} />
+              <h3>Follow Us</h3>
             </div>
-            <p className="footer-info">Browse our menu, customize items, and enjoy fast delivery to your location.</p>
+            <div className="footer-social-links">
+              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                <FaFacebook size={18} />
+                Facebook
+              </a>
+              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                <FaInstagram size={18} />
+                Instagram
+              </a>
+              <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+                <FaTiktok size={18} />
+                TikTok
+              </a>
+            </div>
           </div>
         </div>
 

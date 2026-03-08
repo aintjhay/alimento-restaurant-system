@@ -5,6 +5,7 @@ import { getCategoryIcon, getFoodImage, getItemColor } from '../../utils/imageUt
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import CartModal from '../../components/portal/CartModal';
+import UtensilsIcon from '../../components/icons/UtensilsIcon';
 import { FaSearch, FaTimes } from 'react-icons/fa';
 import './Portal.css';
 
@@ -42,9 +43,20 @@ const PortalHome = () => {
     const fetchMenu = async () => {
       setLoading(true);
       try {
+        console.log('🔄 Fetching menu from API...');
         const data = await menuAPI.getAll();
-        setMenuItems(Array.isArray(data) ? data : []);
+        console.log('✅ Menu data received:', data);
+        
+        if (Array.isArray(data) && data.length > 0) {
+          setMenuItems(data);
+        } else if (data && data.data && Array.isArray(data.data)) {
+          setMenuItems(data.data);
+        } else {
+          console.warn('⚠️ Menu data is empty or invalid');
+          setMenuItems([]);
+        }
       } catch (error) {
+        console.error('❌ Menu fetch error:', error);
         setMenuItems([]);
       } finally {
         setLoading(false);
@@ -55,18 +67,31 @@ const PortalHome = () => {
   }, []);
 
   const categories = useMemo(() => {
+    const ORDER = ['Rice Meals', 'Pasta', 'Sandwiches', 'Sides', 'Cocktails', 'Coolers', 'Coffee', 'Yogurt Milkshakes'];
     const unique = new Set(menuItems.map(item => item.category));
-    return ['All', ...Array.from(unique)];
+    const sorted = ORDER.filter(c => unique.has(c));
+    // Append any unlisted categories at the end
+    unique.forEach(c => { if (!ORDER.includes(c)) sorted.push(c); });
+    return ['All', ...sorted];
   }, [menuItems]);
 
   const filteredItems = useMemo(() => {
-    return menuItems.filter(item => {
+    const ORDER = ['Rice Meals', 'Pasta', 'Sandwiches', 'Sides', 'Cocktails', 'Coolers', 'Coffee', 'Yogurt Milkshakes'];
+    const filtered = menuItems.filter(item => {
       const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
       const matchesSearch = !searchTerm.trim() ||
         item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
       return matchesCategory && matchesSearch;
     });
+    if (activeCategory === 'All') {
+      filtered.sort((a, b) => {
+        const ai = ORDER.indexOf(a.category);
+        const bi = ORDER.indexOf(b.category);
+        return (ai === -1 ? 999 : ai) - (bi === -1 ? 999 : bi);
+      });
+    }
+    return filtered;
   }, [menuItems, activeCategory, searchTerm]);
 
   const openModal = (item) => {
@@ -206,9 +231,28 @@ const PortalHome = () => {
       <div className="portal-page">
         <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
         <div className="portal-loading" style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-          <div>
-            <p>Menu is currently unavailable</p>
-            <p style={{ fontSize: '0.9rem', color: '#999', marginTop: '10px' }}>Please refresh the page or try again later.</p>
+          <div style={{ textAlign: 'center', maxWidth: '400px' }}>
+            <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem' }}>Menu is currently unavailable</p>
+            <div style={{ background: '#fff3cd', padding: '1rem', borderRadius: '8px', marginBottom: '1rem', textAlign: 'left', fontSize: '0.9rem', color: '#664d03', lineHeight: '1.6' }}>
+              <p style={{ fontWeight: '600', marginTop: 0 }}>Troubleshooting:</p>
+              <ul style={{ marginLeft: '1.5rem', marginBottom: 0 }}>
+                <li>Make sure the backend server is running on port 5000</li>
+                <li>Check that MongoDB is connected</li>
+                <li>Try refreshing the page</li>
+                <li>Check browser console (F12) for detailed error messages</li>
+              </ul>
+            </div>
+            <button onClick={() => window.location.reload()} style={{
+              padding: '0.75rem 1.5rem',
+              background: '#2f6f6a',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontWeight: '500'
+            }}>
+              Refresh Page
+            </button>
           </div>
         </div>
       </div>
@@ -270,7 +314,7 @@ const PortalHome = () => {
                   <div
                     className="recommended-image"
                     style={{ 
-                      backgroundColor: getItemColor(item.category),
+                      backgroundColor: item.image ? getItemColor(item.category) : '#dde5e4',
                       backgroundImage: item.image ? `url(${getFoodImage(item.image)})` : 'none',
                       backgroundSize: 'cover',
                       backgroundPosition: 'center'
@@ -278,7 +322,7 @@ const PortalHome = () => {
                   >
                     {!item.image && (
                       <span className="image-fallback">
-                        {item.name.charAt(0)}
+                        <UtensilsIcon size={48} color="rgba(47,111,106,0.45)" />
                       </span>
                     )}
                     {item.featured && <div className="featured-badge">⭐ Featured</div>}
@@ -305,7 +349,7 @@ const PortalHome = () => {
                 <div
                   className="menu-image"
                   style={{ 
-                    backgroundColor: getItemColor(item.category),
+                    backgroundColor: item.image ? getItemColor(item.category) : '#dde5e4',
                     backgroundImage: item.image ? `url(${getFoodImage(item.image)})` : 'none',
                     backgroundSize: 'cover',
                     backgroundPosition: 'center'
@@ -313,7 +357,7 @@ const PortalHome = () => {
                 >
                   {!item.image && (
                     <span className="image-fallback">
-                      {item.name.charAt(0)}
+                      <UtensilsIcon size={56} color="rgba(47,111,106,0.45)" />
                     </span>
                   )}
                   {(item.modifiers && item.modifiers.length > 0) && (

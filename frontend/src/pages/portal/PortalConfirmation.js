@@ -127,6 +127,7 @@ const PortalConfirmation = () => {
           )}
         </div>
 
+
         <div className="confirmation-actions">
           <button 
             className="primary-btn view-order-btn"

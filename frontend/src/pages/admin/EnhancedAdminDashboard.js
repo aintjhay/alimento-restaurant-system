@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../../config/api';
 import { LineChart, BarChart, PieChart, DoughnutChart } from '../../components/charts/ReusableCharts';
 import { format, subDays } from 'date-fns';
 import './EnhancedAdminDashboard.css';
@@ -37,7 +38,7 @@ const EnhancedAdminDashboard = () => {
       const endDate = format(new Date(), 'yyyy-MM-dd');
 
       // Fetch orders
-      const response = await axios.get('http://localhost:5000/api/orders', {
+      const response = await axios.get(`${API_BASE_URL}/api/orders`, {
         params: { limit: 500 }
       });
 
@@ -175,7 +176,7 @@ const EnhancedAdminDashboard = () => {
 
   const handleExport = async (format) => {
     try {
-      const response = await axios.get(`http://localhost:5000/api/orders/export/${format}`, {
+      const response = await axios.get(`${API_BASE_URL}/api/orders/export/${format}`, {
         responseType: format === 'pdf' ? 'blob' : 'text'
       });
 

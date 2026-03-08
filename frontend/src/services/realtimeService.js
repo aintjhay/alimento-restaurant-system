@@ -2,6 +2,7 @@
  * Real-time Service - Manages order status polling and notifications
  * Uses HTTP polling to check for order updates
  */
+import API_BASE_URL from '../config/api';
 
 class RealtimeService {
   constructor() {
@@ -38,7 +39,7 @@ class RealtimeService {
    */
   async fetchOrderStatus(orderId, onUpdate) {
     try {
-      const response = await fetch(`http://localhost:5000/api/orders/${orderId}`);
+      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}`);
       if (!response.ok) throw new Error('Failed to fetch order');
       
       const order = await response.json();

@@ -1,10 +1,10 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
+import API_BASE_URL from '../../config/api';
 import './PosSystem.css';
-import { getFoodImage, getItemColor } from '../../utils/imageUtils';
+import { getFoodImage, getItemColor, getCategoryIcon } from '../../utils/imageUtils';
 import { 
-  FaCoffee, FaHamburger, FaPizzaSlice, FaGlassMartiniAlt, 
-  FaUtensils, FaIceCream, FaWineBottle, FaSearch,
+  FaSearch,
   FaShoppingCart, FaTrash, FaPlus, FaMinus, FaPrint, FaCheck
 } from 'react-icons/fa';
 
@@ -27,17 +27,17 @@ function PosSystem() {
   
   // Categories
   const categories = [
-    { id: 'Cocktails', name: 'Cocktails', icon: <FaGlassMartiniAlt /> },
-    { id: 'Pasta', name: 'Pasta', icon: <FaUtensils /> },
-    { id: 'Sandwiches', name: 'Sandwiches', icon: <FaHamburger /> },
-    { id: 'Sides', name: 'Sides', icon: <FaPizzaSlice /> },
-    { id: 'Rice Meals', name: 'Rice Meals', icon: <FaUtensils /> },
-    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: <FaIceCream /> },
-    { id: 'Coffee', name: 'Coffee', icon: <FaCoffee /> },
-    { id: 'Coolers', name: 'Coolers', icon: <FaWineBottle /> }
+    { id: 'Rice Meals', name: 'Rice Meals', icon: getCategoryIcon('Rice Meals') },
+    { id: 'Pasta', name: 'Pasta', icon: getCategoryIcon('Pasta') },
+    { id: 'Sandwiches', name: 'Sandwiches', icon: getCategoryIcon('Sandwiches') },
+    { id: 'Sides', name: 'Sides', icon: getCategoryIcon('Sides') },
+    { id: 'Cocktails', name: 'Cocktails', icon: getCategoryIcon('Cocktails') },
+    { id: 'Coolers', name: 'Coolers', icon: getCategoryIcon('Coolers') },
+    { id: 'Coffee', name: 'Coffee', icon: getCategoryIcon('Coffee') },
+    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: getCategoryIcon('Yogurt Milkshakes') }
   ];
   
-  const [activeCategory, setActiveCategory] = useState('Cocktails');
+  const [activeCategory, setActiveCategory] = useState('Rice Meals');
   const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
   const [selectedItemForModal, setSelectedItemForModal] = useState(null);
 
@@ -115,7 +115,7 @@ function PosSystem() {
       setLoading(true);
       setIsUsingFallbackData(false);
       try {
-        const response = await fetch('http://localhost:5000/api/menu');
+        const response = await fetch(`${API_BASE_URL}/api/menu`);
         
         if (response.ok) {
           const data = await response.json();
@@ -383,7 +383,7 @@ function PosSystem() {
     console.log('📤 Sending order to backend:', orderData);
 
     try {
-      const response = await fetch('http://localhost:5000/api/orders', {
+      const response = await fetch(`${API_BASE_URL}/api/orders`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

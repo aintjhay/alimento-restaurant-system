@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../../config/api';
 
 const ReviewModal = ({ itemId, itemName, orderId, onClose, onSuccess }) => {
   const [rating, setRating] = useState(5);
@@ -10,7 +11,7 @@ const ReviewModal = ({ itemId, itemName, orderId, onClose, onSuccess }) => {
 
   const userId = localStorage.getItem('userId');
   const userName = localStorage.getItem('userName');
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = `${API_BASE_URL}/api`;
 
   const handleSubmit = async (e) => {
     e.preventDefault();

@@ -3,6 +3,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import { Line, Bar, Pie, Doughnut } from 'react-chartjs-2';
 import axios from 'axios';
 import { format, subDays } from 'date-fns';
+import API_BASE_URL from '../../config/api';
 import './ReusableCharts.css';
 
 // Register ChartJS components
@@ -191,7 +192,7 @@ export const SalesOverviewChart = () => {
         }
 
         // Mock data - replace with real API call
-        const response = await axios.get('http://localhost:5000/api/orders', {
+        const response = await axios.get(`${API_BASE_URL}/api/orders`, {
           params: { limit: 100 }
         });
 

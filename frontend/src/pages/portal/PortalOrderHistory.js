@@ -8,6 +8,7 @@ import realtimeService from '../../services/realtimeService';
 import { ordersAPI } from '../../services/api';
 import UtensilsIcon from '../../components/icons/UtensilsIcon';
 import './Portal.css';
+import API_BASE_URL from '../../config/api';
 
 const PortalOrderHistory = () => {
   const navigate = useNavigate();
@@ -110,7 +111,7 @@ const PortalOrderHistory = () => {
     try {
       console.log('🔄 Fetching orders for user:', userId);
       // Fetch orders from backend API for the logged-in user
-      const response = await fetch(`http://localhost:5000/api/orders/user/${userId}`);
+      const response = await fetch(`${API_BASE_URL}/api/orders/user/${userId}`);
       const data = await response.json();
       
       console.log('📦 Backend response:', data);

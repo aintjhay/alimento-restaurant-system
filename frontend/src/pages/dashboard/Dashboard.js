@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
+import API_BASE_URL from '../../config/api';
 import ForecastChart from '../../components/admin/ForecastChart';
 import RecentOrders from '../../components/dashboard/RecentOrders';
 import { 
@@ -58,7 +59,7 @@ function Dashboard() {
             setRefreshing(true);
             
             // Fetch all orders from backend
-            const ordersResponse = await fetch('http://localhost:5000/api/orders?limit=200');
+            const ordersResponse = await fetch(`${API_BASE_URL}/api/orders?limit=200`);
             const ordersData = await ordersResponse.json();
             
             console.log('Dashboard API Response:', ordersData);
@@ -224,7 +225,7 @@ function Dashboard() {
     const handleUpdateOrderStatus = async (orderId, newStatus) => {
         setUpdatingOrderId(orderId);
         try {
-            const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -258,7 +259,7 @@ function Dashboard() {
     const handleUpdatePaymentStatus = async (orderId, newStatus) => {
         setUpdatingPaymentId(orderId);
         try {
-            const response = await fetch(`http://localhost:5000/api/orders/${orderId}/status`, {
+            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

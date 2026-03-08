@@ -11,6 +11,7 @@ import UserIcon from '../../components/icons/UserIcon';
 import HomeIcon from '../../components/icons/HomeIcon';
 import TrashIcon from '../../components/icons/TrashIcon';
 import './Portal.css';
+import API_BASE_URL from '../../config/api';
 
 const PortalUserProfile = () => {
   const navigate = useNavigate();
@@ -43,7 +44,7 @@ const PortalUserProfile = () => {
     isDefault: false
   });
 
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = `${API_BASE_URL}/api`;
 
   // Fetch user data on mount
   useEffect(() => {

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
+import API_BASE_URL from '../../config/api';
 
 const RatingDisplay = ({ itemId, showReviews = false }) => {
   const [stats, setStats] = useState({
@@ -10,7 +11,7 @@ const RatingDisplay = ({ itemId, showReviews = false }) => {
   const [loading, setLoading] = useState(true);
   const [showAllReviews, setShowAllReviews] = useState(false);
 
-  const API_BASE = 'http://localhost:5000/api';
+  const API_BASE = `${API_BASE_URL}/api`;
 
   useEffect(() => {
     fetchRatingStats();

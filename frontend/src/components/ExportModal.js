@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { downloadFromAPI } from '../../services/exportService';
 import './ExportModal.css';
+import API_BASE_URL from '../../config/api';
 
 const ExportModal = ({ isOpen, onClose, type = 'orders' }) => {
   const [exporting, setExporting] = useState(false);
@@ -16,7 +17,7 @@ const ExportModal = ({ isOpen, onClose, type = 'orders' }) => {
       setError(null);
       setSuccess(false);
 
-      let endpoint = `http://localhost:5000/api/${type}/export/${exportFormat}`;
+      let endpoint = `${API_BASE_URL}/api/${type}/export/${exportFormat}`;
       let filename = `${type}-export-${new Date().toISOString().split('T')[0]}.${exportFormat === 'pdf' ? 'pdf' : 'csv'}`;
 
       // Add query parameters based on filters

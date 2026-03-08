@@ -3,17 +3,28 @@ const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/a
 // Helper function to fetch with timeout
 const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
   const controller = new AbortController();
-  const timeoutId = setTimeout(() => controller.abort(), timeout);
+  let timeoutId;
+  let isAborted = false;
   
   try {
+    timeoutId = setTimeout(() => {
+      isAborted = true;
+      controller.abort();
+    }, timeout);
+    
     const response = await fetch(url, {
       ...options,
       signal: controller.signal
     });
+    
     clearTimeout(timeoutId);
     return response;
   } catch (error) {
     clearTimeout(timeoutId);
+    if (isAborted) {
+      console.warn(`⏱️ Fetch timeout after ${timeout}ms for ${url}`);
+      throw new Error(`Request timeout after ${timeout}ms`);
+    }
     throw error;
   }
 };
@@ -22,14 +33,31 @@ const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
 export const menuAPI = {
     getAll: async () => {
         try {
-            // Use longer timeout (45 seconds) for initial menu load - backend may be cold starting
-            const response = await fetchWithTimeout(`${API_URL}/menu`, {}, 45000);
-            if (!response.ok) throw new Error('Failed to fetch menu');
+            console.log(`🔗 Fetching menu from: ${API_URL}/menu`);
+            // Use longer timeout (60 seconds) for initial menu load - backend may be cold starting
+            const response = await fetchWithTimeout(`${API_URL}/menu`, {}, 60000);
+            
+            if (!response.ok) {
+                throw new Error(`API returned ${response.status}: ${response.statusText}`);
+            }
+            
             const data = await response.json();
-            return data.data || data; // Handle both formats
+            console.log(`✅ Menu API response:`, data);
+            
+            // Handle both array and wrapper formats
+            if (Array.isArray(data)) {
+                return data;
+            } else if (data && data.data && Array.isArray(data.data)) {
+                return data.data;
+            } else if (Array.isArray(data)) {
+                return data;
+            } else {
+                console.warn('⚠️ Menu response is not in expected format:', typeof data);
+                return [];
+            }
         } catch (error) {
-            console.error('Menu API error:', error);
-            return []; // Return empty array on error
+            console.error('❌ Menu API error:', error.message, error);
+            return [];
         }
     },
     

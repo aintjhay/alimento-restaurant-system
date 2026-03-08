@@ -67,7 +67,7 @@ router.post('/', async (req, res) => {
 // PUT - Update user profile
 router.put('/:userId', async (req, res) => {
   try {
-    const { firstName, lastName, phone, preferences, profileImage } = req.body;
+    const { firstName, lastName, phone, profileImage } = req.body;
     
     const user = await User.findById(req.params.userId);
     if (!user) {
@@ -82,9 +82,6 @@ router.put('/:userId', async (req, res) => {
     if (lastName) user.lastName = lastName;
     if (phone) user.phone = phone;
     if (profileImage) user.profileImage = profileImage;
-    if (preferences) {
-      user.preferences = { ...user.preferences, ...preferences };
-    }
     
     await user.save();
     

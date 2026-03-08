@@ -124,8 +124,7 @@ const login = async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      profileImage: user.profileImage,
-      preferences: user.preferences
+      profileImage: user.profileImage
     };
 
     res.json({
@@ -166,7 +165,6 @@ const getCurrentUser = async (req, res) => {
       lastName: user.lastName,
       phone: user.phone,
       profileImage: user.profileImage,
-      preferences: user.preferences,
       addresses: user.addresses,
       totalOrdersCount: user.totalOrdersCount,
       loyaltyPoints: user.loyaltyPoints

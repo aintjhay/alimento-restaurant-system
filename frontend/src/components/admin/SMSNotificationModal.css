@@ -1,0 +1,307 @@
+/* SMS Notification Modal Styles */
+
+.sms-notification-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  animation: fadeIn 0.2s ease;
+}
+
+.sms-notification-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.15);
+  max-width: 500px;
+  width: 90%;
+  max-height: 90vh;
+  overflow-y: auto;
+  animation: slideUp 0.3s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes slideUp {
+  from {
+    transform: translateY(20px);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+/* Modal Header */
+.sms-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e0e0e0;
+  background: linear-gradient(135deg, #2f6f6a 0%, #3d8b7f 100%);
+  color: white;
+}
+
+.sms-modal-header h2 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.sms-close-btn {
+  background: rgba(255, 255, 255, 0.3);
+  border: none;
+  color: white;
+  font-size: 1.5rem;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s;
+}
+
+.sms-close-btn:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* Modal Content */
+.sms-modal-content {
+  padding: 1.5rem;
+}
+
+/* Order Info Section */
+.sms-order-info {
+  background: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  align-items: center;
+}
+
+.info-label {
+  font-weight: 600;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.info-value {
+  color: #1f2937;
+  font-weight: 500;
+}
+
+/* Section Styling */
+.sms-section {
+  margin-bottom: 1.5rem;
+}
+
+.sms-label {
+  display: block;
+  font-weight: 600;
+  color: #1f2937;
+  margin-bottom: 0.75rem;
+  font-size: 0.95rem;
+}
+
+/* Notification Type Buttons */
+.notification-type-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.type-btn {
+  padding: 0.75rem 0.5rem;
+  background: #f0f0f0;
+  border: 2px solid #ddd;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #666;
+  transition: all 0.2s;
+  text-align: center;
+  line-height: 1.4;
+}
+
+.type-btn:hover {
+  border-color: #2f6f6a;
+  background: #f5f5f5;
+}
+
+.type-btn.active {
+  background: #2f6f6a;
+  border-color: #2f6f6a;
+  color: white;
+  box-shadow: 0 4px 12px rgba(47, 111, 106, 0.3);
+}
+
+/* Input Styling */
+.sms-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-family: inherit;
+  box-sizing: border-box;
+}
+
+.sms-input:focus {
+  outline: none;
+  border-color: #2f6f6a;
+  box-shadow: 0 0 0 3px rgba(47, 111, 106, 0.1);
+}
+
+.sms-input:disabled {
+  background: #f5f5f5;
+  color: #999;
+  cursor: not-allowed;
+}
+
+/* Message Preview */
+.sms-preview {
+  background: #f5f9f7;
+  border: 2px solid #2f6f6a;
+  border-radius: 8px;
+  padding: 1rem;
+  color: #1f2937;
+  line-height: 1.6;
+  font-size: 0.95rem;
+  min-height: 60px;
+  display: flex;
+  align-items: center;
+}
+
+.sms-char-count {
+  display: block;
+  margin-top: 0.5rem;
+  color: #999;
+  font-size: 0.85rem;
+}
+
+/* Status Messages */
+.sms-message {
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  font-size: 0.95rem;
+  text-align: center;
+  font-weight: 500;
+}
+
+.sms-message-success {
+  background: #d4edda;
+  border: 1px solid #c3e6cb;
+  color: #155724;
+}
+
+.sms-message-error {
+  background: #f8d7da;
+  border: 1px solid #f5c6cb;
+  color: #721c24;
+}
+
+/* Modal Actions */
+.sms-modal-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e0e0e0;
+}
+
+.sms-btn-primary,
+.sms-btn-secondary {
+  flex: 1;
+  padding: 0.875rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.sms-btn-primary {
+  background: linear-gradient(135deg, #2f6f6a 0%, #3d8b7f 100%);
+  color: white;
+  box-shadow: 0 4px 12px rgba(47, 111, 106, 0.3);
+}
+
+.sms-btn-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(47, 111, 106, 0.4);
+}
+
+.sms-btn-primary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.sms-btn-secondary {
+  background: #f0f0f0;
+  color: #1f2937;
+  border: 1px solid #ddd;
+}
+
+.sms-btn-secondary:hover:not(:disabled) {
+  background: #e8e8e8;
+}
+
+.sms-btn-secondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Responsive Design */
+@media (max-width: 600px) {
+  .sms-notification-modal {
+    width: 95%;
+    max-height: 95vh;
+  }
+
+  .sms-modal-header {
+    padding: 1rem;
+  }
+
+  .sms-modal-header h2 {
+    font-size: 1.1rem;
+  }
+
+  .sms-modal-content {
+    padding: 1rem;
+  }
+
+  .notification-type-buttons {
+    grid-template-columns: 1fr;
+  }
+
+  .sms-modal-actions {
+    flex-direction: column;
+  }
+}

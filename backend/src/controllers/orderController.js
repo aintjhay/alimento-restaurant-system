@@ -19,7 +19,10 @@ exports.createOrder = async (req, res) => {
         const order = new Order(orderData);
         await order.save();
         
-        res.status(201).json(order);
+        res.status(201).json({
+            success: true,
+            order: order
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

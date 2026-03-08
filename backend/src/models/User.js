@@ -53,19 +53,6 @@ const userSchema = new mongoose.Schema({
   
   // Profile
   profileImage: String,
-  preferences: {
-    dietary: {
-      vegetarian: { type: Boolean, default: false },
-      vegan: { type: Boolean, default: false },
-      glutenFree: { type: Boolean, default: false }
-    },
-    spicy: {
-      type: String,
-      enum: ['Not spicy', 'Mild', 'Medium', 'Hot', 'Very Hot'],
-      default: 'Mild'
-    },
-    allergens: [String] // e.g., ['peanuts', 'shellfish']
-  },
   
   // Addresses
   addresses: [addressSchema],

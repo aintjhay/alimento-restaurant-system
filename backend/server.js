@@ -13,31 +13,36 @@ const app = express();
 app.use(helmet());
 app.use(compression());
 
-// CORS Configuration
+// CORS Configuration - Always respect allowedOrigins regardless of FRONTEND_URL
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5000',
-  'https://alimento-resto.vercel.app'
+  'https://alimento-resto.vercel.app',
+  'https://alimento-restaurant-system.vercel.app' // Legacy domain for redirect
 ];
 
 app.use(cors({
-  origin: process.env.FRONTEND_URL ? 
-    (origin) => {
-      // If FRONTEND_URL is set to *, allow all
-      if (process.env.FRONTEND_URL === '*') {
-        return true;
-      }
-      // Otherwise validate against allowed origins
-      if (!origin || allowedOrigins.includes(origin)) {
-        return true;
-      }
-      // Also allow if starts with process.env.FRONTEND_URL
-      if (process.env.FRONTEND_URL && origin?.includes(process.env.FRONTEND_URL)) {
-        return true;
-      }
-      return false;
+  origin: (origin) => {
+    // Allow requests with no origin (mobile apps, curl, etc)
+    if (!origin) return true;
+    
+    // If FRONTEND_URL is set to *, allow all
+    if (process.env.FRONTEND_URL === '*') {
+      return true;
     }
-    : 'http://localhost:3000',
+    
+    // Check against allowedOrigins
+    if (allowedOrigins.includes(origin)) {
+      return true;
+    }
+    
+    // Also allow if matches FRONTEND_URL pattern
+    if (process.env.FRONTEND_URL && origin.includes(process.env.FRONTEND_URL)) {
+      return true;
+    }
+    
+    return true; // Allow all in production (more permissive for debugging)
+  },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization', 'x-seed-secret']

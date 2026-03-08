@@ -176,7 +176,7 @@ async function seed() {
     console.log(`   • Menu Items: ${seedMenuItems.length}`);
     console.log(`   • Sample Orders: ${seedOrders.length}`);
     console.log(`   • Forecast Predictions: ${predictions.length}`);
-    console.log(`   • Database: ${connection.db.getName()}`);
+    console.log(`   • Database: alimento`);
     console.log('='.repeat(50));
     
     process.exit(0);

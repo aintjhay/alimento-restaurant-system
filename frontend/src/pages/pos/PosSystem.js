@@ -1,7 +1,7 @@
 ﻿import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
-import API_BASE_URL from '../../config/api';
 import './PosSystem.css';
+import API_BASE_URL from '../../config/api';
 import { getFoodImage, getItemColor, getCategoryIcon } from '../../utils/imageUtils';
 import { 
   FaSearch,

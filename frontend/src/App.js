@@ -25,6 +25,7 @@ function App() {
           <Routes>
             {/* Public Routes */}
             <Route path="/login" element={<Login />} />
+            <Route path="/" element={<PortalHome />} />
             <Route path="/portal" element={<PortalHome />} />
             <Route path="/portal/login" element={<PortalLoginRegister />} />
             <Route path="/portal/checkout" element={<PortalCheckout />} />
@@ -34,12 +35,11 @@ function App() {
             <Route path="/portal/profile" element={<PortalUserProfile />} />
             
             {/* Protected Routes */}
-            <Route path="/" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/dashboard" element={isAuthenticated ? <Dashboard /> : <Navigate to="/login" />} />
             <Route path="/pos" element={isAuthenticated ? <PosSystem /> : <Navigate to="/login" />} />
             
             {/* Catch-all */}
-            <Route path="*" element={<Navigate to={isAuthenticated ? "/dashboard" : "/login"} />} />
+            <Route path="*" element={<Navigate to="/" />} />
           </Routes>
         </div>
       </Router>

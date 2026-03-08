@@ -103,6 +103,30 @@ app.get('/health', (req, res) => {
   });
 });
 
+// One-time seed endpoint (protected by secret key)
+app.post('/api/seed', async (req, res) => {
+  const secret = req.headers['x-seed-secret'];
+  if (secret !== process.env.SEED_SECRET) {
+    return res.status(403).json({ error: 'Forbidden' });
+  }
+  try {
+    const MenuItem = require('./src/models/MenuItem');
+    const completeMenu = require('./src/data/completeMenu');
+    await MenuItem.deleteMany({});
+    const items = completeMenu.map(item => ({
+      ...item,
+      modifiers: item.modifiers || [],
+      addons: item.addons || [],
+      isAvailable: true,
+      preparationTime: item.preparationTime || 15
+    }));
+    const inserted = await MenuItem.insertMany(items);
+    res.json({ success: true, message: `Seeded ${inserted.length} menu items` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({ 

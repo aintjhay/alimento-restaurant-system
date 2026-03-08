@@ -17,8 +17,7 @@ app.use(compression());
 const allowedOrigins = [
   'http://localhost:3000',
   'http://localhost:5000',
-  'https://alimento.vercel.app',
-  'https://alimento-restaurant-system.vercel.app' // Keep old URL for backwards compatibility
+  'https://alimento-resto.vercel.app'
 ];
 
 app.use(cors({

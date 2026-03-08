@@ -11,7 +11,7 @@ const dataCollectionService = require('./dataCollectionService');
 const PYTHON_SCRIPT_PATH = path.join(__dirname, 'prophet_forecast.py');
 
 /**
- * Generate forecast using Prophet
+ * Generate forecast using Prophet (with Mock fallback)
  * @param {number} forecastDays - Number of days to forecast (default: 7)
  * @param {number} historicalDays - Number of days of history to use (default: 90)
  * @returns {Promise<Object>} Forecast data with predictions
@@ -26,15 +26,24 @@ async function generateForecast(forecastDays = 7, historicalDays = 90) {
     
     console.log(`[Forecast] Data statistics:`, dataStats);
 
-    // Step 2: Run Prophet via Python
-    const forecast = await runProphetForecast(historicalData, forecastDays);
+    // Step 2: Try to run Prophet via Python, fallback to mock if unavailable
+    let forecast = null;
+    let modelUsed = 'Prophet (Facebook)';
+    
+    try {
+      forecast = await runProphetForecast(historicalData, forecastDays);
+    } catch (pythonError) {
+      console.warn('[Forecast] Python Prophet unavailable, using mock forecast:', pythonError.message);
+      modelUsed = 'Mock Forecast (Python Unavailable)';
+      forecast = generateMockForecast(historicalData, forecastDays, dataStats);
+    }
 
     // Step 3: Enhance forecast with metadata
     const enhancedForecast = {
       status: 'success',
       generatedAt: new Date().toISOString(),
       modelMetadata: {
-        algorithmUsed: 'Prophet (Facebook)',
+        algorithmUsed: modelUsed,
         historicalDataPoints: historicalData.length,
         forecastDays,
         dataStatistics: dataStats,
@@ -137,9 +146,53 @@ function runProphetForecast(historicalData, forecastDays) {
 }
 
 /**
- * Generate actionable insights from forecast
+ * Generate mock forecast when Python Prophet is unavailable
+ * Creates a simple trend-based forecast based on historical data
  */
-function generateInsights(forecast, dataStats) {
+function generateMockForecast(historicalData, forecastDays, dataStats) {
+  try {
+    console.log('[Forecast] Generating mock forecast as fallback');
+    
+    const avgOrders = parseFloat(dataStats.avgOrdersPerDay) || 10;
+    const stdDev = parseFloat(dataStats.stdDeviation) || avgOrders * 0.3;
+    const forecast = [];
+    
+    // Simple trend: slightly increase from average with some variance
+    for (let i = 0; i < forecastDays; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() + i + 1);
+      
+      // Add some realistic variance
+      const variance = (Math.random() - 0.5) * stdDev * 2;
+      const trend = i * 0.5; // Slight upward trend
+      const predicted = Math.max(0, avgOrders + variance + trend);
+      
+      forecast.push({
+        ds: date.toISOString().split('T')[0],
+        yhat: predicted,
+        yhat_lower: Math.max(0, predicted - stdDev),
+        yhat_upper: predicted + stdDev
+      });
+    }
+    
+    return forecast;
+  } catch (error) {
+    console.error('[Forecast] Error generating mock forecast:', error);
+    // Return minimal forecast
+    return Array.from({ length: forecastDays }, (_, i) => {
+      const date = new Date();
+      date.setDate(date.getDate() + i + 1);
+      return {
+        ds: date.toISOString().split('T')[0],
+        yhat: 10,
+        yhat_lower: 5,
+        yhat_upper: 15
+      };
+    });
+  }
+}
+
+/**
   try {
     if (!forecast || !Array.isArray(forecast)) {
       return [];

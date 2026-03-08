@@ -58,8 +58,15 @@ function Dashboard() {
         try {
             setRefreshing(true);
             
-            // Fetch all orders from backend
-            const ordersResponse = await fetch(`${API_BASE_URL}/api/orders?limit=200`);
+            // Fetch all orders from backend with timeout
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
+            const ordersResponse = await fetch(`${API_BASE_URL}/api/orders?limit=200`, {
+                signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            
             const ordersData = await ordersResponse.json();
             
             console.log('Dashboard API Response:', ordersData);
@@ -221,72 +228,130 @@ function Dashboard() {
         }
     };
 
-    // Update order status
+    // Update order status with timeout and retry logic
     const handleUpdateOrderStatus = async (orderId, newStatus) => {
         setUpdatingOrderId(orderId);
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ status: newStatus })
-            });
+        const maxRetries = 2;
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`[Order Status Update] Attempt ${attempt}/${maxRetries} for Order ${orderId} -> ${newStatus}`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
+                const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ status: newStatus }),
+                    signal: controller.signal
+                });
 
-            const result = await response.json();
+                clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                throw new Error(result.message || result.error || `Failed to update order: ${response.statusText}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || result.error || `Failed to update order: ${response.statusText}`);
+                }
+
+                if (result.success || result.status === newStatus) {
+                    // Update the local state
+                    setOrders(orders.map(order => 
+                        order._id === orderId ? { ...order, status: newStatus } : order
+                    ));
+                    console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
+                    setUpdatingOrderId(null);
+                    return; // Success, exit function
+                } else {
+                    throw new Error(result.message || 'Status update unsuccessful');
+                }
+            } catch (error) {
+                lastError = error;
+                console.error(`❌ Attempt ${attempt} failed:`, error.message);
+                
+                // If this wasn't the last attempt and error is timeout/network, retry
+                if (attempt < maxRetries && (error.name === 'AbortError' || error.message.includes('Failed to fetch'))) {
+                    console.log(`Retrying in 1 second...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    continue; // Try again
+                }
+                
+                // Don't retry other errors
+                break;
             }
-
-            if (result.success) {
-                // Update the local state
-                setOrders(orders.map(order => 
-                    order._id === orderId ? { ...order, status: newStatus } : order
-                ));
-                console.log(`✅ Order ${orderId} status updated to ${newStatus}`);
-            } else {
-                throw new Error(result.message || 'Status update unsuccessful');
-            }
-        } catch (error) {
-            console.error('❌ Error updating order status:', error);
-            alert(`Failed to update order status: ${error.message}`);
-        } finally {
-            setUpdatingOrderId(null);
         }
+        
+        // If we get here, all retries failed
+        console.error('❌ Error updating order status after retries:', lastError);
+        const errorMsg = lastError?.message || 'Failed to update order status';
+        alert(`${errorMsg}\n\nNote: The backend may be starting up. Please try again in a moment.`);
+        setUpdatingOrderId(null);
     };
 
     const handleUpdatePaymentStatus = async (orderId, newStatus) => {
         setUpdatingPaymentId(orderId);
-        try {
-            const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
-                method: 'PATCH',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ paymentStatus: newStatus })
-            });
+        const maxRetries = 2;
+        let lastError = null;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+                console.log(`[Payment Status Update] Attempt ${attempt}/${maxRetries} for Order ${orderId}`);
+                
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+                
+                const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+                    method: 'PATCH',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ paymentStatus: newStatus }),
+                    signal: controller.signal
+                });
 
-            const result = await response.json();
+                clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                throw new Error(result.message || result.error || `Failed to update payment status: ${response.statusText}`);
+                const result = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(result.message || result.error || `Failed to update payment status: ${response.statusText}`);
+                }
+
+                if (result.success || result.paymentStatus === newStatus) {
+                    setOrders(orders.map(order =>
+                        order._id === orderId ? { ...order, paymentStatus: newStatus } : order
+                    ));
+                    console.log(`✅ Order ${orderId} payment status updated to ${newStatus}`);
+                    setUpdatingPaymentId(null);
+                    return; // Success, exit function
+                } else {
+                    throw new Error(result.message || 'Payment status update unsuccessful');
+                }
+            } catch (error) {
+                lastError = error;
+                console.error(`❌ Attempt ${attempt} failed:`, error.message);
+                
+                // If this wasn't the last attempt and error is timeout/network, retry
+                if (attempt < maxRetries && (error.name === 'AbortError' || error.message.includes('Failed to fetch'))) {
+                    console.log(`Retrying in 1 second...`);
+                    await new Promise(resolve => setTimeout(resolve, 1000));
+                    continue; // Try again
+                }
+                
+                // Don't retry other errors
+                break;
             }
-
-            if (result.success) {
-                setOrders(orders.map(order =>
-                    order._id === orderId ? { ...order, paymentStatus: newStatus } : order
-                ));
-                console.log(`✅ Order ${orderId} payment status updated to ${newStatus}`);
-            } else {
-                throw new Error(result.message || 'Payment status update unsuccessful');
-            }
-        } catch (error) {
-            console.error('❌ Error updating payment status:', error);
-            alert(`Failed to update payment status: ${error.message}`);
-        } finally {
-            setUpdatingPaymentId(null);
         }
+        
+        // If we get here, all retries failed
+        console.error('❌ Error updating payment status after retries:', lastError);
+        const errorMsg = lastError?.message || 'Failed to update payment status';
+        alert(`${errorMsg}\n\nNote: The backend may be starting up. Please try again in a moment.`);
+        setUpdatingPaymentId(null);
     };
 
     // Calculate recent orders (last 5)

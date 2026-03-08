@@ -47,18 +47,27 @@ const ForecastChart = ({ days = 7 }) => {
       setLoading(true);
       setError(null);
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+
       const response = await axios.get(`${API_BASE_URL}/api/forecast`, {
         params: {
           days,
           historical: 90
-        }
+        },
+        signal: controller.signal
       });
 
+      clearTimeout(timeoutId);
       console.log('Forecast data received:', response.data);
       setForecast(response.data);
     } catch (err) {
       console.error('Error fetching forecast:', err);
-      setError(err.response?.data?.error || 'Failed to load forecast');
+      if (err.name === 'AbortError') {
+        setError('Forecast request timed out. The backend may be starting up. Please refresh to retry.');
+      } else {
+        setError(err.response?.data?.error || 'Failed to load forecast. Please try again.');
+      }
     } finally {
       setLoading(false);
     }

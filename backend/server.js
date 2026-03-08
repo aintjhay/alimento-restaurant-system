@@ -14,11 +14,33 @@ app.use(helmet());
 app.use(compression());
 
 // CORS Configuration
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:5000',
+  'https://alimento-restaurant-system.vercel.app'
+];
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  origin: process.env.FRONTEND_URL ? 
+    (origin) => {
+      // If FRONTEND_URL is set to *, allow all
+      if (process.env.FRONTEND_URL === '*') {
+        return true;
+      }
+      // Otherwise validate against allowed origins
+      if (!origin || allowedOrigins.includes(origin)) {
+        return true;
+      }
+      // Also allow if starts with process.env.FRONTEND_URL
+      if (process.env.FRONTEND_URL && origin?.includes(process.env.FRONTEND_URL)) {
+        return true;
+      }
+      return false;
+    }
+    : 'http://localhost:3000',
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization']
+  allowedHeaders: ['Content-Type', 'Authorization', 'x-seed-secret']
 }));
 
 // Body Parser Middleware - Increased limit for image uploads

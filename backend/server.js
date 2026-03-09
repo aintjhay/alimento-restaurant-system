@@ -175,6 +175,45 @@ app.post('/api/seed', async (req, res) => {
   }
 });
 
+// Force reseed endpoint - useful for fixing database issues
+app.post('/api/force-reseed', async (req, res) => {
+  try {
+    const MenuItem = require('./src/models/MenuItem');
+    const completeMenu = require('./src/data/completeMenu');
+    
+    console.log('🗑️ Clearing existing menu items...');
+    await MenuItem.deleteMany({});
+    
+    const items = completeMenu.map(item => ({
+      ...item,
+      modifiers: item.modifiers || [],
+      addons: item.addons || [],
+      isAvailable: true,
+      preparationTime: item.preparationTime || 15
+    }));
+    
+    console.log(`📥 Inserting ${items.length} menu items with images...`);
+    const inserted = await MenuItem.insertMany(items);
+    
+    // Verify a few items have images
+    const withImages = await MenuItem.find({ image: { $exists: true, $ne: '' } }).countDocuments();
+    const total = await MenuItem.countDocuments();
+    
+    console.log(`✅ Reseed complete: ${total} items (${withImages} with images)`);
+    res.json({ 
+      success: true, 
+      message: `Reseeded ${inserted.length} menu items`,
+      stats: {
+        total: total,
+        itemsWithImages: withImages
+      }
+    });
+  } catch (err) {
+    console.error('❌ Reseed error:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 // 404 Handler
 app.use((req, res) => {
   res.status(404).json({ 

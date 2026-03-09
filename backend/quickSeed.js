@@ -25,12 +25,12 @@ const completeMenu = [
   { name: "SEAFOOD PASTA", description: "Premium pasta with fresh seafood", price: 220, category: "Pasta", image: "", preparationTime: 20, tags: ["seafood", "premium"], displayOrder: 17 },
 
   // SANDWICHES - 4 items (with Cajun Fries add-on)
-  { name: "THICK CUT BACON", description: "Bacon sandwich", price: 180, category: "Sandwiches", image: "ThickCutBacon.JPG", preparationTime: 12, tags: ["bacon", "popular"], displayOrder: 18,
+  { name: "THICK CUT BACON", description: "Bacon sandwich", price: 180, category: "Sandwiches", image: "ThickCutBacon.jpg", preparationTime: 12, tags: ["bacon", "popular"], displayOrder: 18,
     addons: [
       { name: "Cajun Fries", price: 50 }
     ]
   },
-  { name: "CRISPY CHIX", description: "Crispy chicken sandwich with choice of sauce", price: 170, category: "Sandwiches", image: "CrispyChix.JPG", preparationTime: 15, tags: ["chicken", "popular"], displayOrder: 19,
+  { name: "CRISPY CHIX", description: "Crispy chicken sandwich with choice of sauce", price: 170, category: "Sandwiches", image: "CrispyChix.jpg", preparationTime: 15, tags: ["chicken", "popular"], displayOrder: 19,
     modifiers: [
       { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }] }
     ],
@@ -38,12 +38,12 @@ const completeMenu = [
       { name: "Cajun Fries", price: 50 }
     ]
   },
-  { name: "CHORI CHEESEBURGER", description: "Chorizo burger with melted cheese", price: 180, category: "Sandwiches", image: "Choricheeseburger.JPG", preparationTime: 15, tags: ["chorizo", "burger"], displayOrder: 20,
+  { name: "CHORI CHEESEBURGER", description: "Chorizo burger with melted cheese", price: 180, category: "Sandwiches", image: "Choricheeseburger.jpg", preparationTime: 15, tags: ["chorizo", "burger"], displayOrder: 20,
     addons: [
       { name: "Cajun Fries", price: 50 }
     ]
   },
-  { name: "BBQ CHEESEBURGER", description: "BBQ burger with cheese", price: 190, category: "Sandwiches", image: "", preparationTime: 15, tags: ["burger", "bbq"], displayOrder: 21,
+  { name: "BBQ CHEESEBURGER", description: "BBQ burger with cheese", price: 190, category: "Sandwiches", image: "Choricheeseburger2.jpg", preparationTime: 15, tags: ["burger", "bbq"], displayOrder: 21,
     addons: [
       { name: "Cajun Fries", price: 50 }
     ]
@@ -51,7 +51,7 @@ const completeMenu = [
 
   // SIDES - 3 items
   { name: "NACHORIZO", description: "Nachos with chorizo", price: 190, category: "Sides", image: "Nachorizo.jpg", preparationTime: 10, tags: ["chorizo", "snack"], displayOrder: 22 },
-  { name: "CAJUN FRIES", description: "Cajun fries", price: 130, category: "Sides", image: "", preparationTime: 8, tags: ["fries", "snack"], displayOrder: 23 },
+  { name: "CAJUN FRIES", description: "Cajun fries", price: 130, category: "Sides", image: "placeholder.jpg", preparationTime: 8, tags: ["fries", "snack"], displayOrder: 23 },
   { name: "CHICKEN WINGS", description: "Crispy chicken wings", price: 260, category: "Sides", image: "Buffalowings12s.jpg", preparationTime: 20, tags: ["chicken", "popular"], displayOrder: 24,
     modifiers: [
       { name: "Size", required: true, options: [{ name: "8pcs", price: 0 }, { name: "12pcs", price: 90 }] },
@@ -72,28 +72,28 @@ const completeMenu = [
   { name: "BLUEBERRY YOGURT MILKSHAKE", description: "Blueberry yogurt milkshake", price: 120, category: "Yogurt Milkshakes", image: "", preparationTime: 8, tags: ["dessert", "healthy"], displayOrder: 32 },
 
   // COFFEE - 10 items (with double shot and temp modifiers)
-  { name: "AMERICANO", description: "Strong Italian espresso with hot water", price: 60, category: "Coffee", image: "", preparationTime: 5, tags: ["coffee", "strong"],
+  { name: "AMERICANO", description: "Strong Italian espresso with hot water", price: 60, category: "Coffee", image: "Coffee.jpg", preparationTime: 5, tags: ["coffee", "strong"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Hot (₱60)", price: 0 }, { name: "Cold (₱70)", price: 10 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 33
   },
-  { name: "CAFE LATTE", description: "Espresso with steamed milk", price: 90, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "creamy"],
+  { name: "CAFE LATTE", description: "Espresso with steamed milk", price: 90, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "creamy"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Hot (₱90)", price: 0 }, { name: "Cold (₱100)", price: 10 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 34
   },
-  { name: "CAFE MOCHA", description: "Espresso with steamed milk and chocolate", price: 100, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "chocolate"],
+  { name: "CAFE MOCHA", description: "Espresso with steamed milk and chocolate", price: 100, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "chocolate"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 35
   },
-  { name: "VANILLA LATTE", description: "Latte with vanilla flavoring", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vanilla"],
+  { name: "VANILLA LATTE", description: "Latte with vanilla flavoring", price: 105, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "vanilla"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
@@ -107,35 +107,35 @@ const completeMenu = [
     ],
     displayOrder: 37
   },
-  { name: "CARAMEL LATTE", description: "Latte with caramel drizzle", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"],
+  { name: "CARAMEL LATTE", description: "Latte with caramel drizzle", price: 105, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "sweet"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 38
   },
-  { name: "HAZELNUT LATTE", description: "Latte with hazelnut flavor", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "hazelnut"],
+  { name: "HAZELNUT LATTE", description: "Latte with hazelnut flavor", price: 105, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "hazelnut"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 39
   },
-  { name: "SALTED LATTE", description: "Latte with a pinch of salt", price: 105, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "salted"],
+  { name: "SALTED LATTE", description: "Latte with a pinch of salt", price: 105, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "salted"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 40
   },
-  { name: "SALTED CARAMEL LATTE", description: "Perfect balance of sweet and salt", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "sweet"],
+  { name: "SALTED CARAMEL LATTE", description: "Perfect balance of sweet and salt", price: 110, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "sweet"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }
     ],
     displayOrder: 41
   },
-  { name: "COCO-FREE (COCONUT MILK LATTE)", description: "Coconut milk latte for dairy-free", price: 110, category: "Coffee", image: "", preparationTime: 6, tags: ["coffee", "vegan"],
+  { name: "COCO-FREE (COCONUT MILK LATTE)", description: "Coconut milk latte for dairy-free", price: 110, category: "Coffee", image: "Coffee.jpg", preparationTime: 6, tags: ["coffee", "vegan"],
     modifiers: [
       { name: "Temperature", required: true, options: [{ name: "Cold", price: 0 }] },
       { name: "Shot", required: false, options: [{ name: "Single Shot", price: 0 }, { name: "Double Shot", price: 25 }] }

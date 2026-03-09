@@ -2,18 +2,21 @@
 export const getFoodImage = (imageName) => {
   if (!imageName) return '/images/food/placeholder.jpg';
   
+  // Normalize file extension to lowercase (e.g. .JPG → .jpg) for Linux/Vercel compatibility
+  const normalized = imageName.replace(/\.[^./]+$/, ext => ext.toLowerCase());
+
   // If path already includes /images/, return as-is
-  if (imageName.startsWith('/images/')) {
-    return imageName;
+  if (normalized.startsWith('/images/')) {
+    return normalized;
   }
   
   // If path includes food/, just prepend /images/
-  if (imageName.includes('food/')) {
-    return `/images/${imageName}`;
+  if (normalized.includes('food/')) {
+    return `/images/${normalized}`;
   }
   
   // Otherwise construct full path
-  return `/images/food/${imageName}`;
+  return `/images/food/${normalized}`;
 };
 
 export const getCategoryIcon = (category) => {

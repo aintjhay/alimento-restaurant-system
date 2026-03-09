@@ -55,8 +55,32 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Connect to MongoDB
-connectDB().catch(err => {
+// Connect to MongoDB and Auto-Seed
+const MenuItem = require('./src/models/MenuItem');
+
+connectDB().then(async () => {
+  // Auto-seed database if empty (first deployment)
+  try {
+    const count = await MenuItem.countDocuments();
+    if (count === 0) {
+      console.log('📊 Database is empty. Auto-seeding...');
+      const completeMenu = require('./src/data/completeMenu');
+      const items = completeMenu.map(item => ({
+        ...item,
+        modifiers: item.modifiers || [],
+        addons: item.addons || [],
+        isAvailable: true,
+        preparationTime: item.preparationTime || 15
+      }));
+      const inserted = await MenuItem.insertMany(items);
+      console.log(`✅ Auto-seeded ${inserted.length} menu items with images`);
+    } else {
+      console.log(`📂 Database already has ${count} menu items`);
+    }
+  } catch (error) {
+    console.error('⚠️ Auto-seed failed:', error.message);
+  }
+}).catch(err => {
   console.error('Failed to initialize database:', err);
   process.exit(1);
 });
@@ -122,12 +146,17 @@ app.get('/health', (req, res) => {
   });
 });
 
-// One-time seed endpoint (protected by secret key)
+// One-time seed endpoint (can be called anytime to refresh menu, optional secret)
 app.post('/api/seed', async (req, res) => {
   const secret = req.headers['x-seed-secret'];
-  if (secret !== process.env.SEED_SECRET) {
-    return res.status(403).json({ error: 'Forbidden' });
+  const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
+  const hasSecret = secret && secret === process.env.SEED_SECRET;
+  
+  // Allow if: localhost, has correct secret, or secret is not set in env
+  if (!isLocalhost && !hasSecret && process.env.SEED_SECRET) {
+    return res.status(403).json({ error: 'Forbidden - Invalid seed secret' });
   }
+  
   try {
     const MenuItem = require('./src/models/MenuItem');
     const completeMenu = require('./src/data/completeMenu');
@@ -140,7 +169,7 @@ app.post('/api/seed', async (req, res) => {
       preparationTime: item.preparationTime || 15
     }));
     const inserted = await MenuItem.insertMany(items);
-    res.json({ success: true, message: `Seeded ${inserted.length} menu items` });
+    res.json({ success: true, message: `Seeded ${inserted.length} menu items`, itemCount: inserted.length });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

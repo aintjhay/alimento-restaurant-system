@@ -47,10 +47,28 @@ const PortalHome = () => {
         const data = await menuAPI.getAll();
         console.log('✅ Menu data received:', data);
         
+        const mapCorrectImages = (items) => {
+          return items.map(item => {
+            const tempItem = { ...item };
+            if (tempItem.category === 'Sandwiches') {
+              if (tempItem.name === 'THICK CUT BACON') tempItem.image = 'food/ThickCutBacon.jpg';
+              if (tempItem.name === 'CRISPY CHIX') tempItem.image = 'food/CrispyChix.jpg';
+              if (tempItem.name === 'CHORI CHEESEBURGER') tempItem.image = 'food/Choricheeseburger.jpg';
+              if (tempItem.name === 'BBQ CHEESEBURGER') tempItem.image = 'food/Choricheeseburger2.jpg';
+            } else if (tempItem.category === 'Coffee') {
+              if (tempItem.name === 'SALTED LATTE') tempItem.image = 'food/SpanishLatte.jpg';
+              else tempItem.image = '';
+            } else if (tempItem.name === 'CAJUN FRIES') {
+              tempItem.image = '';
+            }
+            return tempItem;
+          });
+        };
+        
         if (Array.isArray(data) && data.length > 0) {
-          setMenuItems(data);
+          setMenuItems(mapCorrectImages(data));
         } else if (data && data.data && Array.isArray(data.data)) {
-          setMenuItems(data.data);
+          setMenuItems(mapCorrectImages(data.data));
         } else {
           console.warn('⚠️ Menu data is empty or invalid');
           setMenuItems([]);

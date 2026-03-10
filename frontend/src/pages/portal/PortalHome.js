@@ -50,15 +50,18 @@ const PortalHome = () => {
         const mapCorrectImages = (items) => {
           return items.map(item => {
             const tempItem = { ...item };
-            if (tempItem.category === 'Sandwiches') {
-              if (tempItem.name === 'THICK CUT BACON') tempItem.image = 'food/ThickCutBacon.jpg';
-              if (tempItem.name === 'CRISPY CHIX') tempItem.image = 'food/CrispyChix.jpg';
-              if (tempItem.name === 'CHORI CHEESEBURGER') tempItem.image = 'food/Choricheeseburger.jpg';
-              if (tempItem.name === 'BBQ CHEESEBURGER') tempItem.image = 'food/Choricheeseburger2.jpg';
-            } else if (tempItem.category === 'Coffee') {
-              if (tempItem.name === 'SALTED LATTE') tempItem.image = 'food/SpanishLatte.jpg';
+            const cat = (tempItem.category || '').trim().toUpperCase();
+            const name = (tempItem.name || '').trim().toUpperCase();
+            
+            if (cat === 'SANDWICHES' || cat === 'SANDWICH') {
+              if (name.includes('THICK CUT BACON')) tempItem.image = 'food/ThickCutBacon.jpg';
+              if (name.includes('CRISPY CHIX')) tempItem.image = 'food/CrispyChix.jpg';
+              if (name.includes('CHORI CHEESEBURGER') && !name.includes('BBQ')) tempItem.image = 'food/Choricheeseburger.jpg';
+              if (name.includes('BBQ CHEESEBURGER')) tempItem.image = 'food/Choricheeseburger2.jpg';
+            } else if (cat === 'COFFEE') {
+              if (name.includes('SALTED LATTE')) tempItem.image = 'food/SpanishLatte.jpg';
               else tempItem.image = '';
-            } else if (tempItem.name === 'CAJUN FRIES') {
+            } else if (name.includes('CAJUN FRIES')) {
               tempItem.image = '';
             }
             return tempItem;

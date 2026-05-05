@@ -672,6 +672,20 @@ function Dashboard() {
                     <span>🍽️</span> Go to POS
                 </button>
                 <button 
+                    onClick={() => window.location.href = '/kitchen'}
+                    className="action-btn"
+                    style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', border: 'none' }}
+                >
+                    <span>🔥</span> Kitchen Display
+                </button>
+                <button 
+                    onClick={() => window.location.href = '/bartender'}
+                    className="action-btn"
+                    style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#fff', border: 'none' }}
+                >
+                    <span>🍸</span> Bartender Display
+                </button>
+                <button 
                     onClick={() => window.location.href = '/menu'}
                     className="action-btn"
                 >

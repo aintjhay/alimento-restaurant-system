@@ -53,6 +53,13 @@ body {
   margin: 0 auto;
   padding: 2.5rem;
   min-height: 100vh;
+  overflow: visible;
+  width: 100%;
+}
+
+/* Ensure nothing clips the quick actions */
+.dashboard-container > * {
+  overflow: visible;
 }
 
 /* Responsive container padding */
@@ -875,6 +882,10 @@ body {
   border: 1px solid var(--gray-200);
   padding: 1.75rem;
   margin-top: 2rem;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  overflow: visible;
 }
 
 .performance-header {
@@ -895,20 +906,30 @@ body {
 
 .performance-stats {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 2rem;
+  align-items: center;
+  justify-items: center;
+  margin-bottom: 1.5rem;
+  width: 100%;
 }
 
 .performance-metric {
   text-align: center;
-  padding: 0.5rem;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-width: 120px;
 }
 
 .metric-value {
-  font-size: 1.5rem;
+  font-size: 1.75rem;
   font-weight: 700;
   color: var(--teal-main);
-  margin-bottom: 0.25rem;
+  margin-bottom: 0.5rem;
+  line-height: 1.2;
 }
 
 .metric-label {
@@ -917,6 +938,7 @@ body {
   text-transform: uppercase;
   letter-spacing: 0.8px;
   font-weight: 600;
+  white-space: nowrap;
 }
 
 /* Quick Actions - Minimal Buttons */
@@ -924,7 +946,13 @@ body {
   display: flex;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-top: 1.5rem;
+  margin-top: 2rem;
+  justify-content: flex-start;
+  align-items: center;
+  width: 100%;
+  max-width: 100%;
+  overflow: visible;
+  padding: 0;
 }
 
 .action-btn {
@@ -932,22 +960,39 @@ body {
   background: white;
   color: var(--teal-main);
   border: 1px solid var(--gray-300);
-  padding: 0.625rem 1.25rem;
+  padding: 0.75rem 2rem;
   border-radius: 6px;
   cursor: pointer;
   font-weight: 600;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
   transition: var(--transition);
-  display: flex;
+  display: inline-flex;
   align-items: center;
-  gap: 0.5rem;
+  gap: 0.75rem;
   justify-content: center;
+  white-space: nowrap;
+  height: auto;
+  min-height: 40px;
+  overflow: visible;
+  text-overflow: clip;
+  flex-shrink: 0;
+  min-width: fit-content;
+}
+
+.action-btn span {
+  display: inline;
+  flex-shrink: 0;
+  font-size: 1.1rem;
 }
 
 .action-btn:hover {
   background: var(--gray-50);
   border-color: var(--teal-main);
   box-shadow: var(--shadow-sm);
+}
+
+.action-btn:active {
+  transform: scale(0.98);
 }
 
 .action-btn.primary {
@@ -1268,5 +1313,49 @@ body {
   
   .status-breakdown-content {
     padding: 1rem;
+  }
+  
+  .performance-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1.5rem;
+  }
+}
+
+@media (max-width: 600px) {
+  .performance-stats {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  
+  .performance-metric {
+    padding: 0.75rem;
+  }
+  
+  .metric-value {
+    font-size: 1.5rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .performance-stats {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .performance-metric {
+    padding: 0.5rem;
+  }
+  
+  .metric-value {
+    font-size: 1.25rem;
+  }
+  
+  .quick-actions {
+    flex-direction: column;
+    width: 100%;
+  }
+  
+  .action-btn {
+    width: 100%;
   }
 }

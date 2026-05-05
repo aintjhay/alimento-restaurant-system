@@ -36,6 +36,19 @@ const orderItemSchema = new mongoose.Schema({
     type: String,
     default: ''
   },
+  category: {
+    type: String,
+    enum: [
+      'Cocktails', 
+      'Pasta', 
+      'Sandwiches', 
+      'Sides', 
+      'Rice Meals', 
+      'Yogurt Milkshakes', 
+      'Coffee', 
+      'Coolers'
+    ]
+  },
   modifiers: [selectedModifierSchema],
   addons: [selectedAddonSchema],
   specialInstructions: String,
@@ -43,7 +56,23 @@ const orderItemSchema = new mongoose.Schema({
     type: Number,
     required: true,
     min: 0
-  }
+  },
+  itemStatus: {
+    type: String,
+    enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled'],
+    default: 'pending'
+  },
+  itemStatusTimeline: [{
+    status: {
+      type: String,
+      enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled']
+    },
+    timestamp: {
+      type: Date,
+      default: Date.now
+    },
+    changedBy: String
+  }]
 });
 
 const orderSchema = new mongoose.Schema({
@@ -59,7 +88,8 @@ const orderSchema = new mongoose.Schema({
   },
   tableNumber: {
     type: String,
-    required: true
+    required: false,
+    sparse: true
   },
   orderType: {
     type: String,

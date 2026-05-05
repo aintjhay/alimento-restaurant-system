@@ -365,6 +365,7 @@ function PosSystem() {
         name: item.name,
         price: item.price,
         quantity: item.quantity,
+        category: item.category || '',
         modifiers: item.modifiers,
         addons: item.addons,
         specialInstructions: item.specialInstructions,

@@ -71,10 +71,10 @@ const OrderCard = ({ order, onPrint, onDetails, onStatusChange }) => {
           <div className="order-number-badge">{order.orderNumber || `#${order._id?.slice(-6) || 'N/A'}`}</div>
           <div className="order-quick-info">
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              {order.tableNumber === 'Delivery' || order.orderType === 'Delivery' ? (
+              {order.orderType === 'Delivery' || !order.tableNumber ? (
                 <>
-                  <span style={{ fontSize: '1.2rem' }}>🍴</span>
-                  <span className="order-table">Delivery</span>
+                  <span style={{ fontSize: '1.2rem' }}>🚚</span>
+                  <span className="order-table">{order.orderType === 'Delivery' ? 'Delivery' : 'Online Order'}</span>
                 </>
               ) : (
                 <span className="order-table">

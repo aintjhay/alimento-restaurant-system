@@ -223,8 +223,76 @@ router.get('/top-items', async (req, res) => {
 router.patch('/:id/status', async (req, res) => {
     try {
         const { id } = req.params;
-        const { status, paymentStatus } = req.body;
+        const { status, paymentStatus, itemIndex } = req.body;
 
+        console.log(`\n📝 PATCH /orders/${id}/status`);
+        console.log(`  itemIndex: ${itemIndex}, status: ${status}, paymentStatus: ${paymentStatus}`);
+
+        // If itemIndex is provided, update only that item's status
+        if (itemIndex !== undefined) {
+            console.log(`  → Updating item at index ${itemIndex}`);
+            const order = await Order.findById(id);
+            if (!order) {
+                console.log(`  ❌ Order not found`);
+                return res.status(404).json({
+                    success: false,
+                    message: 'Order not found'
+                });
+            }
+            
+            console.log(`  Order has ${order.items.length} items`);
+            if (itemIndex < 0 || itemIndex >= order.items.length) {
+                console.log(`  ❌ Invalid item index: ${itemIndex}`);
+                return res.status(400).json({
+                    success: false,
+                    error: 'Invalid item index'
+                });
+            }
+            
+            console.log(`  Current item status: ${order.items[itemIndex].itemStatus}`);
+            // Update individual item status
+            order.items[itemIndex].itemStatus = status;
+            order.items[itemIndex].itemStatusTimeline = order.items[itemIndex].itemStatusTimeline || [];
+            order.items[itemIndex].itemStatusTimeline.push({
+                status: status,
+                timestamp: new Date(),
+                changedBy: req.body.changedBy || 'system'
+            });
+            
+            console.log(`  Updated item status to: ${status}`);
+            
+            // Check if all items are served/completed
+            const allItemsServed = order.items.every(item => 
+                ['served', 'completed'].includes(item.itemStatus)
+            );
+            
+            // Check if all items are ready/served/completed
+            const allItemsReady = order.items.every(item => 
+                ['ready', 'served', 'completed'].includes(item.itemStatus)
+            );
+            
+            // Update order-level status based on items
+            if (allItemsServed) {
+                order.status = 'completed';
+                console.log(`  All items served, updating order status to: completed`);
+            } else if (allItemsReady && !['served', 'completed'].includes(order.status)) {
+                order.status = 'ready';
+                console.log(`  All items ready, updating order status to: ready`);
+            }
+            
+            order.updatedAt = new Date();
+            await order.save();
+            
+            console.log(`  ✅ Item updated successfully`);
+            return res.json({
+                success: true,
+                message: `Item status updated to ${status}`,
+                order: order
+            });
+        }
+
+        // Otherwise update entire order status (legacy behavior)
+        console.log(`  → Updating entire order status`);
         const update = { updatedAt: new Date() };
         if (status) update.status = status;
         if (paymentStatus) {
@@ -241,12 +309,14 @@ router.patch('/:id/status', async (req, res) => {
         );
 
         if (!order) {
+            console.log(`  ❌ Order not found`);
             return res.status(404).json({
                 success: false,
                 message: 'Order not found'
             });
         }
 
+        console.log(`  ✅ Order status updated to: ${status}`);
         res.json({
             success: true,
             message: `Order status updated to ${status}`,

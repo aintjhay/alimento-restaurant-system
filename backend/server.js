@@ -92,6 +92,7 @@ const forecastRoutes = require('./src/routes/forecastRoutes');
 const userRoutes = require('./src/routes/userRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const authRoutes = require('./src/routes/authRoutes');
+const inventoryRoutes = require('./src/routes/inventoryRoutes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
@@ -100,6 +101,7 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/forecast', forecastRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
+app.use('/api/inventory', inventoryRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {

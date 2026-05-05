@@ -181,6 +181,7 @@ const PortalCheckout = () => {
       price: item.basePrice,
       quantity: item.quantity,
       image: item.image || '',
+      category: item.category || '',
       modifiers: item.modifiers || [],
       addons: item.addons || [],
       specialInstructions: item.specialInstructions || '',
@@ -206,7 +207,7 @@ const PortalCheckout = () => {
 
     try {
       const orderPayload = {
-        tableNumber: 'Delivery',
+        tableNumber: null,
         orderType: 'Delivery',
         deliveryType: checkoutType === 'guest' ? 'guest' : 'registered',
         customerName,

@@ -52,14 +52,64 @@ exports.getOrder = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const { status } = req.body;
+        const { status, itemIndex } = req.body;
+        
+        // If itemIndex is provided, update only that item's status
+        if (itemIndex !== undefined) {
+            const order = await Order.findById(req.params.id);
+            if (!order) return res.status(404).json({ error: 'Order not found' });
+            
+            if (itemIndex < 0 || itemIndex >= order.items.length) {
+                return res.status(400).json({ error: 'Invalid item index' });
+            }
+            
+            // Update individual item status
+            order.items[itemIndex].itemStatus = status;
+            order.items[itemIndex].itemStatusTimeline = order.items[itemIndex].itemStatusTimeline || [];
+            order.items[itemIndex].itemStatusTimeline.push({
+                status: status,
+                timestamp: new Date(),
+                changedBy: req.body.changedBy || 'system'
+            });
+            
+            // Check if all items are served/completed
+            const allItemsServed = order.items.every(item => 
+                ['served', 'completed'].includes(item.itemStatus)
+            );
+            
+            // Check if all items are ready/served/completed
+            const allItemsReady = order.items.every(item => 
+                ['ready', 'served', 'completed'].includes(item.itemStatus)
+            );
+            
+            // Update order-level status based on items
+            if (allItemsServed) {
+                order.status = 'completed';
+                order.completedAt = new Date();
+            } else if (allItemsReady && !['served', 'completed'].includes(order.status)) {
+                order.status = 'ready';
+            }
+            
+            order.updatedAt = new Date();
+            await order.save();
+            
+            return res.json({
+                success: true,
+                order: order
+            });
+        }
+        
+        // Otherwise update entire order status (legacy behavior)
         const order = await Order.findByIdAndUpdate(
             req.params.id,
             { status, updatedAt: Date.now() },
             { new: true }
         );
         if (!order) return res.status(404).json({ error: 'Order not found' });
-        res.json(order);
+        res.json({
+            success: true,
+            order: order
+        });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

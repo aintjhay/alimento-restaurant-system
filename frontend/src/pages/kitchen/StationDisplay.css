@@ -1,0 +1,97 @@
+.station-display .kds-header-right {
+  flex-wrap: wrap;
+}
+
+.station-display .kds-header-right button,
+.station-display .kds-table-badge,
+.station-display .kds-item-status-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.station-display .kds-header-right button {
+  min-height: 44px;
+}
+
+.station-display .kds-sound-btn {
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.station-display svg {
+  width: 1.15em;
+  height: 1.15em;
+  flex-shrink: 0;
+  vertical-align: middle;
+}
+
+.station-display .kds-logo-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.station-display .kds-item-status-badge.pending {
+  color: #1565c0;
+  background: #e3f2fd;
+}
+
+.station-display .kds-item-status-badge.preparing {
+  color: #e65100;
+  background: #fff3e0;
+}
+
+.station-display .kds-item-status-badge.ready {
+  color: #2e7d32;
+  background: #e8f5e9;
+}
+
+.station-display .kds-customer-name::before,
+.station-display .kds-item-note::before,
+.station-display .kds-order-notes::before {
+  content: none;
+}
+
+.station-display button:focus-visible {
+  outline: 3px solid #00796b;
+  outline-offset: 3px;
+}
+
+.station-display .kds-connection {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 30px;
+  color: #35635a;
+  background: #eef7f4;
+  font-size: 0.8rem;
+}
+
+.station-display .kds-connection.disconnected {
+  color: #8a3600;
+  background: #fff3e0;
+}
+
+.station-display .kds-mixed-progress {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+}
+
+.station-display .kds-order-card.new-order {
+  outline: 3px solid #00796b;
+  outline-offset: 2px;
+}
+
+.station-display .kds-new-label {
+  display: inline-block;
+  background: #00796b;
+  color: white;
+  border-radius: 4px;
+  padding: 3px 7px;
+  font-size: 0.7rem;
+  vertical-align: middle;
+}

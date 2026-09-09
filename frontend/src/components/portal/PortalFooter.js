@@ -2,7 +2,7 @@ import React from 'react';
 import MapPinIcon from '../icons/MapPinIcon';
 import ClockIcon from '../icons/ClockIcon';
 import PhoneIcon from '../icons/PhoneIcon';
-import { FaFacebook, FaInstagram, FaTiktok } from 'react-icons/fa';
+import { FaFacebook, FaInstagram } from 'react-icons/fa';
 
 const PortalFooter = () => {
   const currentYear = new Date().getFullYear();
@@ -16,8 +16,13 @@ const PortalFooter = () => {
               <MapPinIcon size={24} color="currentColor" />
               <h3>Visit Us</h3>
             </div>
-            <p className="footer-info">123 Food Street, Barangay Name</p>
-            <p className="footer-info">City, Province 0000</p>
+            <address className="footer-info footer-address">
+              GF JYC Building, CL Ledesma Ave.<br />
+              National Highway, San Carlos City
+            </address>
+            <a href="https://www.google.com/maps/search/?api=1&query=Alimento%20GF%20JYC%20Building%20CL%20Ledesma%20Ave%20National%20Highway%20San%20Carlos%20City" target="_blank" rel="noopener noreferrer" className="footer-link">
+              Get directions <span aria-hidden="true">↗</span>
+            </a>
           </div>
 
           <div className="footer-section">
@@ -25,8 +30,8 @@ const PortalFooter = () => {
               <ClockIcon size={24} color="currentColor" />
               <h3>Hours</h3>
             </div>
-            <p className="footer-info">Monday - Sunday</p>
-            <p className="footer-info">10:00 AM - 9:00 PM</p>
+            <p className="footer-info">Monday–Saturday<br />11:00 AM–9:00 PM</p>
+            <p className="footer-info">Sunday · Closed</p>
           </div>
 
           <div className="footer-section">
@@ -34,31 +39,26 @@ const PortalFooter = () => {
               <PhoneIcon size={24} color="currentColor" />
               <h3>Contact</h3>
             </div>
-            <a href="tel:+639171234567" className="footer-link">
-              (+63) 917-123-4567
+            <a href="tel:+639629702060" className="footer-link">
+              0962 970 2060
             </a>
-            <a href="mailto:hello@alimentoresto.com" className="footer-link">
-              hello@alimentoresto.com
+            <a href="mailto:alimento.resto@gmail.com" className="footer-link">
+              alimento.resto@gmail.com
             </a>
           </div>
 
           <div className="footer-section">
             <div className="footer-section-header">
-              <FaInstagram size={20} />
               <h3>Follow Us</h3>
             </div>
             <div className="footer-social-links">
-              <a href="https://facebook.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+              <a href="https://web.facebook.com/profile.php?id=61573922645951" target="_blank" rel="noopener noreferrer" className="footer-social-link">
                 <FaFacebook size={18} />
                 Facebook
               </a>
-              <a href="https://instagram.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
+              <a href="https://www.instagram.com/alimentoresto.ph/" target="_blank" rel="noopener noreferrer" className="footer-social-link">
                 <FaInstagram size={18} />
                 Instagram
-              </a>
-              <a href="https://tiktok.com" target="_blank" rel="noopener noreferrer" className="footer-social-link">
-                <FaTiktok size={18} />
-                TikTok
               </a>
             </div>
           </div>
@@ -70,9 +70,9 @@ const PortalFooter = () => {
           <p className="footer-copyright">
             &copy; {currentYear} Alimento Restaurant. All rights reserved.
           </p>
-          <p className="footer-credit">
-            Food Ordering Portal
-          </p>
+          <button type="button" onClick={() => window.scrollTo({ top: 0, behavior: 'instant' })} className="footer-link footer-back-to-top">
+            Back to top <span aria-hidden="true">↑</span>
+          </button>
         </div>
       </div>
     </footer>

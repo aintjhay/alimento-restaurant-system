@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
@@ -13,11 +13,21 @@ import UserIcon from '../../components/icons/UserIcon';
 import XIcon from '../../components/icons/XIcon';
 import ArrowLeftIcon from '../../components/icons/ArrowLeftIcon';
 import './Portal.css';
+import './PortalLoginRegister.css';
+import { phPhoneInputProps, isValidPhPhone, PH_PHONE_MESSAGE } from '../../utils/phoneUtils';
 
 const PortalLoginRegister = () => {
   const navigate = useNavigate();
-  const { login, register } = useAuth();
-  const [isLogin, setIsLogin] = useState(true);
+  const { login, register, logout } = useAuth();
+  const location = useLocation();
+  const returnTo = location.state?.returnTo === '/portal/checkout' ? '/portal/checkout' : '/portal';
+  const [isLogin, setIsLogin] = useState(new URLSearchParams(location.search).get('mode') !== 'register');
+
+  React.useEffect(() => {
+    setIsLogin(new URLSearchParams(location.search).get('mode') !== 'register');
+    setError('');
+    setSuccess('');
+  }, [location.search]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
@@ -34,16 +44,10 @@ const PortalLoginRegister = () => {
   const [regFirstName, setRegFirstName] = useState('');
   const [regLastName, setRegLastName] = useState('');
   const [regEmail, setRegEmail] = useState('');
+  const [regPhone, setRegPhone] = useState('');
+  const [phoneInvalid, setPhoneInvalid] = useState(false);
   const [regPassword, setRegPassword] = useState('');
   const [regConfirmPassword, setRegConfirmPassword] = useState('');
-
-  // Auto-dismiss errors after 5 seconds
-  React.useEffect(() => {
-    if (error) {
-      const timer = setTimeout(() => setError(''), 5000);
-      return () => clearTimeout(timer);
-    }
-  }, [error]);
 
   const validateEmail = (email) => {
     const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -108,7 +112,7 @@ const PortalLoginRegister = () => {
       setRememberMe(false);
       
       setTimeout(() => {
-        navigate('/portal');
+        navigate(returnTo);
       }, 800);
     } catch (err) {
       setError(err.message || 'Login failed. Please try again.');
@@ -137,6 +141,8 @@ const PortalLoginRegister = () => {
       return;
     }
 
+    if (!isValidPhPhone(regPhone)) { setPhoneInvalid(true); return; }
+
     if (regPassword.length < 6) {
       setError('Password must be at least 6 characters');
       return;
@@ -150,7 +156,7 @@ const PortalLoginRegister = () => {
     setLoading(true);
 
     try {
-      const result = await register(regFirstName, regLastName, regEmail, regPassword);
+      const result = await register(regFirstName, regLastName, regEmail, regPassword, undefined, regPhone);
       
       if (!result.success) {
         setError(result.message);
@@ -164,12 +170,12 @@ const PortalLoginRegister = () => {
       // Clear form on successful registration
       setRegFirstName('');
       setRegLastName('');
-      setRegEmail('');
+      setRegEmail(''); setRegPhone(''); setPhoneInvalid(false);
       setRegPassword('');
       setRegConfirmPassword('');
       
       setTimeout(() => {
-        navigate('/portal');
+        navigate(returnTo);
       }, 800);
     } catch (err) {
       setError(err.message || 'Registration failed. Please try again.');
@@ -179,57 +185,58 @@ const PortalLoginRegister = () => {
   };
 
   const handleGuestContinue = () => {
-    const guestUser = {
-      id: Date.now(),
-      email: `guest_${Date.now()}@alimento.local`,
-      name: 'Guest',
-      type: 'guest'
-    };
-    localStorage.setItem('portalUser', JSON.stringify(guestUser));
+    logout?.();
+    localStorage.removeItem('portalUser');
+    localStorage.removeItem('portalToken');
     localStorage.setItem('portalCheckoutType', 'guest');
-    navigate('/portal');
+    navigate(returnTo);
   };
 
-  const regPasswordStrength = getPasswordStrength(regPassword);
-
   return (
-    <div className="portal-page">
+    <div className="portal-page portal-auth-page">
+      <div className="portal-auth-stage">
       <PortalHeader />
       
       <main className="portal-main">
         <div className="auth-container">
           <div className="auth-card">
             <div className="auth-content">
-              <h2 className="auth-title">
-                {isLogin ? 'Welcome Back' : 'Create Account'}
-              </h2>
+              <h1 className="auth-title">
+                {isLogin ? 'Welcome back' : 'Create your account'}
+              </h1>
               <p className="auth-subtitle">
                 {isLogin
-                  ? 'Login to your account to continue ordering'
-                  : 'Sign up to get started with your first order'}
+                  ? 'Log in to use your saved details and order history.'
+                  : 'Good food is just a few details away.'}
               </p>
 
-              <div className="auth-tabs">
+              <div className="auth-tabs" role="group" aria-label="Account access">
                 <button
                   className={`auth-tab ${isLogin ? 'active' : ''}`}
+                  aria-pressed={isLogin}
+                  disabled={loading}
                   onClick={() => {
                     setIsLogin(true);
+                    navigate('/portal/login', { replace: true, state: location.state });
                     setError('');
                     setSuccess('');
                     // Clear register form when switching to login
                     setRegFirstName('');
                     setRegLastName('');
-                    setRegEmail('');
+                    setRegEmail(''); setRegPhone(''); setPhoneInvalid(false);
                     setRegPassword('');
                     setRegConfirmPassword('');
                   }}
                 >
-                  Login
+                  Log in
                 </button>
                 <button
                   className={`auth-tab ${!isLogin ? 'active' : ''}`}
+                  aria-pressed={!isLogin}
+                  disabled={loading}
                   onClick={() => {
                     setIsLogin(false);
+                    navigate('/portal/login?mode=register', { replace: true, state: location.state });
                     setError('');
                     setSuccess('');
                     // Clear login form when switching to register
@@ -238,18 +245,18 @@ const PortalLoginRegister = () => {
                     setRememberMe(false);
                   }}
                 >
-                  Register
+                  Create account
                 </button>
               </div>
 
               {error && (
-                <div className="auth-alert auth-error">
+                <div className="auth-alert auth-error" role="alert">
                   <span className="alert-icon"><AlertIcon color="#d32f2f" size={20} /></span>
                   <span>{error}</span>
                 </div>
               )}
               {success && (
-                <div className="auth-alert auth-success">
+                <div className="auth-alert auth-success" role="status">
                   <span className="alert-icon"><CheckIcon color="#4caf50" size={20} /></span>
                   <span>{success}</span>
                 </div>
@@ -264,6 +271,8 @@ const PortalLoginRegister = () => {
                       <span className="input-icon"><EmailIcon /></span>
                       <input
                         id="login-email"
+                        autoComplete="email"
+                        required
                         type="email"
                         placeholder="example@email.com"
                         value={loginEmail}
@@ -285,13 +294,15 @@ const PortalLoginRegister = () => {
                         disabled
                         title="Password reset feature coming soon"
                       >
-                        Forgot?
+                        Forgot password? (Coming soon)
                       </button>
                     </div>
                     <div className="input-wrapper">
                       <span className="input-icon"><LockIcon /></span>
                       <input
                         id="login-password"
+                        autoComplete="current-password"
+                        required
                         type={showLoginPassword ? 'text' : 'password'}
                         placeholder="Enter your password"
                         value={loginPassword}
@@ -301,6 +312,8 @@ const PortalLoginRegister = () => {
                       <button
                         type="button"
                         className="toggle-password-btn"
+                        aria-label={showLoginPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showLoginPassword}
                         onClick={() => setShowLoginPassword(!showLoginPassword)}
                         disabled={loading}
                       >
@@ -330,7 +343,7 @@ const PortalLoginRegister = () => {
                         Logging in...
                       </>
                     ) : (
-                      'Login'
+                      'Log in'
                     )}
                   </button>
                 </form>
@@ -344,6 +357,9 @@ const PortalLoginRegister = () => {
                         <span className="input-icon"><UserIcon /></span>
                         <input
                           id="reg-firstname"
+                          minLength={2}
+                        autoComplete="given-name"
+                        required
                           type="text"
                           placeholder="First name"
                           value={regFirstName}
@@ -362,6 +378,9 @@ const PortalLoginRegister = () => {
                         <span className="input-icon"><UserIcon /></span>
                         <input
                           id="reg-lastname"
+                          minLength={2}
+                        autoComplete="family-name"
+                        required
                           type="text"
                           placeholder="Last name"
                           value={regLastName}
@@ -381,6 +400,8 @@ const PortalLoginRegister = () => {
                       <span className="input-icon"><EmailIcon /></span>
                       <input
                         id="reg-email"
+                        autoComplete="email"
+                        required
                         type="email"
                         placeholder="example@email.com"
                         value={regEmail}
@@ -394,11 +415,34 @@ const PortalLoginRegister = () => {
                   </div>
 
                   <div className="form-group">
+                    <label htmlFor="reg-phone">Phone Number *</label>
+                    <div className="input-wrapper">
+                      <input
+                        {...phPhoneInputProps}
+                        id="reg-phone"
+                        value={regPhone}
+                        aria-invalid={phoneInvalid}
+                        aria-describedby={phoneInvalid ? 'reg-phone-error' : undefined}
+                        onChange={e => {
+                          setRegPhone(e.target.value);
+                          if (isValidPhPhone(e.target.value)) setPhoneInvalid(false);
+                        }}
+                        onInvalid={e => { e.preventDefault(); setPhoneInvalid(true); }}
+                        disabled={loading}
+                      />
+                    </div>
+                    {phoneInvalid && <small id="reg-phone-error" className="registration-phone-error" role="alert">{PH_PHONE_MESSAGE}</small>}
+                  </div>
+                  <div className="form-group">
                     <label htmlFor="reg-password">Password</label>
                     <div className="input-wrapper">
                       <span className="input-icon"><LockIcon /></span>
                       <input
                         id="reg-password"
+                        minLength={6}
+                        aria-describedby="reg-password-help"
+                        autoComplete="new-password"
+                        required
                         type={showRegPassword ? 'text' : 'password'}
                         placeholder="At least 6 characters"
                         value={regPassword}
@@ -408,12 +452,15 @@ const PortalLoginRegister = () => {
                       <button
                         type="button"
                         className="toggle-password-btn"
+                        aria-label={showRegPassword ? 'Hide password' : 'Show password'}
+                        aria-pressed={showRegPassword}
                         onClick={() => setShowRegPassword(!showRegPassword)}
                         disabled={loading}
                       >
                         {showRegPassword ? <EyeIcon size={20} /> : <EyeOffIcon size={20} />}
                       </button>
                     </div>
+                    <small id="reg-password-help" className="auth-field-help">Use at least 6 characters.</small>
                     {regPassword && (
                       <div className="password-strength">
                         <div
@@ -439,6 +486,8 @@ const PortalLoginRegister = () => {
                       <span className="input-icon"><LockIcon /></span>
                       <input
                         id="reg-confirm"
+                        autoComplete="new-password"
+                        required
                         type={showRegConfirm ? 'text' : 'password'}
                         placeholder="Confirm your password"
                         value={regConfirmPassword}
@@ -448,6 +497,8 @@ const PortalLoginRegister = () => {
                       <button
                         type="button"
                         className="toggle-password-btn"
+                        aria-label={showRegConfirm ? 'Hide password' : 'Show password'}
+                        aria-pressed={showRegConfirm}
                         onClick={() => setShowRegConfirm(!showRegConfirm)}
                         disabled={loading}
                       >
@@ -477,10 +528,10 @@ const PortalLoginRegister = () => {
                     {loading ? (
                       <>
                         <span className="spinner"></span>
-                        Creating Account...
+                        Creating account...
                       </>
                     ) : (
-                      'Create Account'
+                      'Create account'
                     )}
                   </button>
                 </form>
@@ -496,8 +547,9 @@ const PortalLoginRegister = () => {
                 onClick={handleGuestContinue}
                 disabled={loading}
               >
-                Continue as Guest
+                Continue as guest
               </button>
+              <p className="auth-field-help">No account needed to place an order.</p>
             </div>
           </div>
 
@@ -510,11 +562,12 @@ const PortalLoginRegister = () => {
               <span style={{ marginRight: '6px', display: 'inline-flex', alignItems: 'center' }}>
                 <ArrowLeftIcon size={18} />
               </span>
-              Back to Menu
+              Back to menu
             </button>
           </div>
         </div>
       </main>
+      </div>
 
       <PortalFooter />
     </div>

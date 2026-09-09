@@ -1,0 +1,59 @@
+.tracking-page { background: #f6f8f7; color: #183e3a; }
+.tracking-shell { width: min(760px, calc(100% - 40px)); margin: 0 auto; padding: 32px 0 56px; }
+.tracking-back { display: inline-flex; align-items: center; gap: 8px; min-height: 40px; padding: 0; border: 0; background: none; color: #526d67; font: inherit; font-size: 13px; cursor: pointer; }
+.tracking-heading { margin: 24px 0 28px; }
+.tracking-heading .tracking-eyebrow { margin: 0 0 10px; color: #2f6f6a; font-size: 11px; font-weight: 700; letter-spacing: .14em; }
+.tracking-heading h1 { margin: 0 0 8px; font-size: clamp(28px, 4vw, 36px); font-weight: 700; letter-spacing: -.035em; color: #183e3a; }
+.tracking-heading > p:last-child { margin: 0; color: #687b75; font-size: 14px; line-height: 1.6; }
+.tracking-card { overflow: hidden; background: #fff; border: 1px solid #dfe8e4; border-radius: 20px; box-shadow: 0 8px 30px #183e3a05; }
+.tracking-card-top { display: flex; justify-content: space-between; align-items: center; gap: 16px; padding: 23px 28px; border-bottom: 1px solid #edf1ef; }
+.tracking-label { display: block; margin-bottom: 5px; color: #6b7d77; font-size: 11px; }
+.tracking-card-top strong { font-size: 15px; letter-spacing: .03em; overflow-wrap: anywhere; }
+.tracking-update { display: inline-flex; align-items: center; gap: 7px; padding: 7px 10px; border-radius: 20px; background: #eef6f1; color: #386e54; font-size: 11px; white-space: nowrap; }
+.tracking-update > span { width: 6px; height: 6px; border-radius: 50%; background: #4f8d68; }
+.tracking-update.is-paused { color: #80632d; background: #fbf5e9; }
+.tracking-update.is-paused > span { background: #80632d; }
+.tracking-status { padding: 36px 28px 30px; text-align: center; }
+.tracking-status-icon { width: 72px; height: 72px; display: grid; place-items: center; margin: 0 auto 20px; background: #eaf3ef; border: 8px solid #f5f9f6; border-radius: 50%; color: #2f6f6a; box-sizing: content-box; }
+.tracking-status-icon svg { width: 31px; height: 31px; stroke-width: 1.6; }
+.tracking-status h2 { margin: 0 0 10px; color: #183e3a; font-size: clamp(20px, 3vw, 25px); letter-spacing: -.025em; }
+.tracking-status p { max-width: 430px; margin: 0 auto; font-size: 13px; line-height: 1.8; color: #687b75; }
+.tracking-steps { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); list-style: none; padding: 4px 24px 32px; margin: 0; }
+.tracking-steps li { position: relative; display: flex; flex-direction: column; align-items: center; gap: 9px; text-align: center; font-size: 12px; font-weight: 600; color: #72817b; }
+.tracking-steps li:not(:last-child)::after { content: ''; position: absolute; top: 19px; left: calc(50% + 24px); width: calc(100% - 48px); height: 2px; background: #e5ebe7; }
+.tracking-steps li.is-complete::after { background: #86b4a3; }
+.tracking-step-icon { display: grid; place-items: center; width: 40px; height: 40px; border: 1px solid #e2e9e5; border-radius: 50%; background: #f7f9f8; font-size: 18px; }
+.tracking-steps .is-current, .tracking-steps .is-complete { color: #2f6f6a; }
+.tracking-steps .is-current .tracking-step-icon { color: #fff; background: #2f6f6a; border-color: #2f6f6a; box-shadow: 0 0 0 4px #edf5f0; }
+.tracking-steps .is-complete .tracking-step-icon { color: #2f6f6a; background: #eaf3ee; border-color: #d9e9df; }
+.tracking-steps small { margin-top: -4px; font-size: 10px; font-weight: 400; }
+.tracking-payment { display: flex; align-items: center; gap: 13px; margin-top: 16px; padding: 20px 24px; background: white; border: 1px solid #dfe8e4; border-radius: 14px; }
+.tracking-payment-icon { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 10px; background: #f3f6f4; color: #58766b; font-size: 19px; flex-shrink: 0; }
+.tracking-payment h2, .tracking-save h2 { margin: 0 0 5px; font-size: 13px; font-weight: 600; }
+.tracking-payment p, .tracking-save p { margin: 0; font-size: 12px; line-height: 1.6; color: #687b75; }
+.tracking-payment > strong { margin-left: auto; padding: 7px 10px; border-radius: 7px; background: #f5f3ed; color: #74603b; font-size: 11px; font-weight: 500; text-align: center; }
+.tracking-save { display: flex; justify-content: space-between; align-items: center; gap: 24px; padding: 24px 0 0; }
+.tracking-save button { display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; gap: 8px; min-height: 44px; padding: 12px 17px; background: #2f6f6a; color: white; border: 1px solid #2f6f6a; border-radius: 9px; font: inherit; font-size: 12px; font-weight: 600; cursor: pointer; }
+.tracking-save button:hover { background: #255a56; }
+.tracking-shell button:focus-visible { outline: 3px solid #7fac99; outline-offset: 4px; }
+.tracking-copy-feedback { min-height: 18px; margin: 8px 0 0; text-align: right; font-size: 12px; color: #2f6f6a; }
+.tracking-error { border: 1px solid #ead2c9; border-radius: 12px; padding: 16px; background: #fff5f1; color: #8a4939; font-size: 13px; line-height: 1.6; }
+.tracking-loading { display: flex; align-items: center; gap: 12px; padding: 36px; border: 1px solid #dfe8e4; border-radius: 16px; background: white; color: #526d67; }
+.is-cancelled .tracking-status-icon { background: #f9eae6; border-color: #fdf5f2; color: #a55b48; }
+@media (max-width: 540px) {
+  .tracking-shell { width: calc(100% - 32px); padding-top: 16px; }
+  .tracking-heading { margin-top: 18px; }
+  .tracking-card-top { padding: 18px; gap: 10px; }
+  .tracking-update { font-size: 10px; }
+  .tracking-status { padding: 26px 20px; }
+  .tracking-steps { grid-template-columns: 1fr; gap: 0; padding: 0 24px 24px; }
+  .tracking-steps li { display: grid; grid-template-columns: 40px 1fr; column-gap: 16px; row-gap: 3px; text-align: left; padding: 0 0 20px; }
+  .tracking-steps li:last-child { padding-bottom: 0; }
+  .tracking-step-icon { grid-row: span 2; }
+  .tracking-steps li > span:nth-child(2) { align-self: end; }
+  .tracking-steps small { align-self: start; margin-top: 0; }
+  .tracking-steps li:not(:last-child)::after { top: 44px; left: 19px; width: 2px; height: 12px; }
+  .tracking-payment { padding: 16px; flex-wrap: wrap; }
+  .tracking-save { flex-direction: column; align-items: stretch; gap: 14px; }
+  .tracking-copy-feedback { text-align: center; }
+}

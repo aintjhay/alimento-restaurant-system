@@ -1,18 +1,27 @@
 import React from 'react';
 import XIcon from '../icons/XIcon';
+import TrashIcon from '../icons/TrashIcon';
 import './CartModal.css';
 
 const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
-  const taxAmount = cartSubtotal * 0.12;
   const deliveryFee = 50;
-  const cartTotal = cartSubtotal + taxAmount + deliveryFee;
+  const cartTotal = cartSubtotal + deliveryFee;
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const formatCurrency = (amount) => `₱${amount.toFixed(2)}`;
+  const formatProductName = (name = '') => name
+    .toLocaleLowerCase()
+    .replace(/\b\w/g, letter => letter.toLocaleUpperCase())
+    .replace(/\bBbq\b/g, 'BBQ');
 
   return (
     <div className="cart-modal-overlay" onClick={onClose}>
       <div className="cart-modal" onClick={(e) => e.stopPropagation()}>
         <div className="cart-modal-header">
-          <h2>Order Cart</h2>
+          <div>
+            <h2>Your cart</h2>
+            <p>{cartItemCount} {cartItemCount === 1 ? 'item' : 'items'} in your order</p>
+          </div>
           <button className="cart-modal-close" onClick={onClose}>
             <XIcon size={24} color="#1f2937" />
           </button>
@@ -29,7 +38,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
               {cart.map((item, index) => (
                 <div key={`${item.id}-${index}`} className="cart-modal-item">
                   <div className="cart-modal-item-details">
-                    <h4>{item.name}</h4>
+                    <h4>{formatProductName(item.name)}</h4>
                     {item.modifiers && item.modifiers.length > 0 && (
                       <p className="item-modifiers">
                         {item.modifiers.map(mod => mod.selectedOption).join(', ')}
@@ -40,23 +49,21 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
                         Note: {item.specialInstructions}
                       </p>
                     )}
-                    <p className="item-price">₱{(item.itemPrice * item.quantity).toFixed(0)}</p>
+                    <p className="item-price">{formatCurrency(item.itemPrice * item.quantity)}</p>
                   </div>
-                  <div className="cart-modal-quantity">
-                    <button 
-                      className="qty-btn"
-                      onClick={() => onUpdateQuantity(index, -1)}
-                      title="Decrease quantity"
-                    >
-                      −
-                    </button>
-                    <span className="qty-display">{item.quantity}</span>
-                    <button 
-                      className="qty-btn"
-                      onClick={() => onUpdateQuantity(index, 1)}
-                      title="Increase quantity"
-                    >
-                      +
+                  <div className="cart-modal-actions">
+                    <span className="cart-modal-quantity-label">Quantity</span>
+                    <div className="cart-modal-quantity">
+                      <button className="qty-btn" onClick={() => onUpdateQuantity(index, -1)} aria-label={`Decrease ${item.name} quantity`}>
+                        −
+                      </button>
+                      <span className="qty-display" aria-live="polite">{item.quantity}</span>
+                      <button className="qty-btn" onClick={() => onUpdateQuantity(index, 1)} aria-label={`Increase ${item.name} quantity`}>
+                        +
+                      </button>
+                    </div>
+                    <button className="cart-modal-remove" onClick={() => onUpdateQuantity(index, -item.quantity)} aria-label={`Remove ${item.name} from cart`} title="Remove item">
+                      <TrashIcon size={17} />
                     </button>
                   </div>
                 </div>
@@ -69,23 +76,23 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
           <div className="cart-modal-footer">
             <div className="cart-modal-summary">
               <div className="summary-row">
-                <span>Subtotal:</span>
-                <span>₱{cartSubtotal.toFixed(0)}</span>
+                <span>Subtotal</span>
+                <span>{formatCurrency(cartSubtotal)}</span>
               </div>
               <div className="summary-row">
-                <span>VAT (12%):</span>
-                <span>₱{taxAmount.toFixed(0)}</span>
+                <span>Delivery fee <small>Standard delivery</small></span>
+                <span>{formatCurrency(deliveryFee)}</span>
               </div>
               <div className="summary-row total">
-                <span>Total Amount:</span>
-                <strong>₱{cartTotal.toFixed(0)}</strong>
+                <span>Total</span>
+                <strong>{formatCurrency(cartTotal)}</strong>
               </div>
             </div>
             <button 
               className="cart-modal-checkout"
               onClick={onCheckout}
             >
-              🛒 Submit Order - Table 1
+              Proceed to checkout
             </button>
           </div>
         )}

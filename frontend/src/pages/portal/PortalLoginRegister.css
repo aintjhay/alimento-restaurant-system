@@ -1,0 +1,214 @@
+.portal-auth-page {
+  background: #f7f5ef;
+}
+
+.portal-auth-stage {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  min-height: 100svh;
+  background:
+    radial-gradient(ellipse at 15% 25%, rgba(193, 211, 195, 0.24), transparent 55%),
+    radial-gradient(ellipse at 85% 80%, rgba(233, 218, 194, 0.28), transparent 55%);
+}
+
+.portal-auth-stage > .portal-header {
+  flex-shrink: 0;
+}
+
+.portal-auth-page .portal-main {
+  display: flex;
+  flex: 1;
+  width: 100%;
+  max-width: none;
+  min-height: 0;
+  margin: 0 auto;
+  padding: 0;
+}
+
+.portal-auth-page .auth-container {
+  box-sizing: border-box;
+  width: 100%;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  padding: 32px 20px;
+}
+
+.portal-auth-page .auth-card {
+  box-sizing: border-box;
+  max-width: 460px;
+  padding: 30px 32px;
+  border: 1px solid #e4e7de;
+  border-radius: 20px;
+  box-shadow: 0 16px 48px rgba(33, 65, 56, 0.07), 0 2px 6px rgba(33, 65, 56, 0.03);
+}
+
+.portal-auth-page .auth-content {
+  margin: 0;
+}
+
+.portal-auth-page .auth-title {
+  font-family: 'Cormorant Garamond', Georgia, serif;
+  font-size: clamp(2rem, 5vw, 2.5rem);
+  font-weight: 600;
+  color: #244b43;
+  line-height: 1.1;
+  letter-spacing: -0.025em;
+  margin: 0 0 8px;
+}
+
+.portal-auth-page .auth-subtitle {
+  color: #606862;
+  font-size: 0.9rem;
+  line-height: 1.5;
+}
+
+.portal-auth-page .auth-tabs {
+  margin: 22px 0;
+  gap: 4px;
+  padding: 4px;
+  border-radius: 10px;
+  background: #f0f2ed;
+}
+
+.portal-auth-page .auth-tab {
+  min-height: 40px;
+  padding: 8px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #52605a;
+  font-size: 0.9rem;
+}
+
+.portal-auth-page .auth-tab.active {
+  background: white;
+  color: #245c57;
+  border-color: #e0e5dd;
+  font-weight: 600;
+  box-shadow: 0 1px 4px rgba(33, 65, 56, 0.08);
+}
+
+.portal-auth-page .auth-form {
+  gap: 16px;
+  text-align: left;
+}
+
+.portal-auth-page .form-group {
+  min-width: 0;
+  margin: 0;
+  gap: 6px;
+}
+
+.portal-auth-page .form-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.portal-auth-page .form-group label {
+  text-align: left;
+  margin: 0;
+}
+
+.portal-auth-page .input-wrapper input {
+  min-height: 46px;
+  padding-top: 10px;
+  padding-bottom: 10px;
+  font-size: 16px;
+  border-color: #ccd6ce;
+}
+
+.portal-auth-page .label-row {
+  margin: 0;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+
+.portal-auth-page .forgot-pwd-btn:disabled {
+  color: #646d67;
+  opacity: 1;
+  font-size: 0.75rem;
+}
+
+.portal-auth-page .checkbox-label {
+  margin: 0;
+  min-height: 24px;
+}
+
+.portal-auth-page .auth-submit-btn,
+.portal-auth-page .guest-btn {
+  min-height: 46px;
+  padding: 10px 16px;
+  margin: 0;
+}
+
+.portal-auth-page .auth-submit-btn {
+  background: #2f6f6a;
+  box-shadow: 0 3px 8px rgba(47, 111, 106, 0.14);
+}
+
+.portal-auth-page .auth-submit-btn:hover:not(:disabled) {
+  background: #255c57;
+  transform: none;
+  box-shadow: 0 4px 12px rgba(47, 111, 106, 0.2);
+}
+
+.portal-auth-page .guest-btn {
+  border-color: #dce3dc;
+  color: #315f57;
+  box-shadow: none;
+}
+
+.portal-auth-page .auth-divider {
+  margin: 16px 0;
+}
+
+.portal-auth-page .auth-divider span,
+.portal-auth-page .auth-field-help {
+  color: #626b65;
+}
+
+.portal-auth-page .auth-field-help {
+  font-size: 0.8rem;
+  line-height: 1.5;
+}
+
+.portal-auth-page .auth-footer {
+  margin-top: 16px;
+}
+
+.portal-auth-page .auth-alert {
+  display: flex;
+  align-items: center;
+  text-align: left;
+  margin-bottom: 16px;
+}
+
+.portal-auth-page .toggle-password-btn {
+  right: 4px;
+  width: 44px;
+  height: 44px;
+}
+
+.portal-auth-page button:focus-visible,
+.portal-auth-page input:focus-visible {
+  outline: 2px solid #2f6f6a;
+  outline-offset: 3px;
+}
+
+@media (max-width: 480px) {
+  .portal-auth-page .auth-container {
+    padding: 20px 12px;
+  }
+
+  .portal-auth-page .auth-card {
+    padding: 24px 20px;
+  }
+}
+
+@media (max-width: 360px) {
+  .portal-auth-page .form-row {
+    grid-template-columns: 1fr;
+  }
+}

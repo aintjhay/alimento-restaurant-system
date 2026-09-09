@@ -1,6 +1,14 @@
 const mongoose = require('mongoose');
 
 const inventoryItemSchema = new mongoose.Schema({
+  productId: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'MenuItem',
+    default: null,
+    index: true,
+    unique: true,
+    sparse: true
+  },
   name: {
     type: String,
     required: true,

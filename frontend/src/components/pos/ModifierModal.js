@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { getFoodImage } from '../../utils/imageUtils';
 import './ModifierModal.css';
 
@@ -6,6 +6,14 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   const [selectedModifiers, setSelectedModifiers] = useState({});
   const [selectedAddons, setSelectedAddons] = useState([]);
   const [quantity, setQuantity] = useState(1);
+
+  useEffect(() => {
+    if (isOpen) {
+      setSelectedModifiers({});
+      setSelectedAddons([]);
+      setQuantity(1);
+    }
+  }, [isOpen, item]);
 
   if (!isOpen || !item) return null;
 
@@ -91,18 +99,22 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
   };
 
   return (
-    <div className="modifier-modal-overlay">
-      <div className="modifier-modal">
+    <div className="modifier-modal-overlay" onMouseDown={onClose}>
+      <div className="modifier-modal" onMouseDown={(event) => event.stopPropagation()}>
         <div className="modal-header">
-          <h2>{item.name}</h2>
-          <button className="close-btn" onClick={onClose}>×</button>
+          <h2>{item.name.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase())}</h2>
+          <button type="button" className="close-btn" onClick={onClose} aria-label="Close options">×</button>
         </div>
         
         <div className="modifier-modal-body">
           {/* Item Image */}
           {item.image && (
             <div className="item-image-section">
-              <img src={getFoodImage(item.image)} alt={item.name} className="item-image" />
+              <img
+                src={getFoodImage(item.image)}
+                alt={item.name}
+                className="modal-item-image"
+              />
             </div>
           )}
           
@@ -148,7 +160,9 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
                         />
                         <span className="option-name">{option.name}</span>
                         {option.price > 0 && (
-                          <span className="option-price">+₱{option.price}</span>
+                          <span className="option-price">
+                            {['Temperature', 'Size', 'Quantity'].includes(modifier.name) ? '' : '+'}₱{option.price}
+                          </span>
                         )}
                       </label>
                     ))}
@@ -191,9 +205,9 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
                     .join(', ')}:
                 </span>
                 <span>
-                  ₱{(Object.values(selectedModifiers).find(mod => 
-                    Object.keys(selectedModifiers).some(k => ['Temperature', 'Size', 'Quantity'].includes(k))
-                  )?.extraPrice || item.price).toFixed(2)} × {quantity}
+                  ₱{(Object.entries(selectedModifiers).find(([name]) =>
+                    ['Temperature', 'Size', 'Quantity'].includes(name)
+                  )?.[1].extraPrice || item.price).toFixed(2)} × {quantity}
                 </span>
               </div>
             ) : (

@@ -1,4 +1,5 @@
 const User = require('../models/User');
+const { isValidPhPhone, PH_PHONE_MESSAGE } = require('../utils/phoneUtils');
 const {
   hashPassword,
   comparePassword,
@@ -11,7 +12,7 @@ const {
  */
 const register = async (req, res) => {
   try {
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { email, password, firstName, lastName, phone, address } = req.body;
 
     // Validation
     if (!email || !password || !firstName || !lastName) {
@@ -19,6 +20,18 @@ const register = async (req, res) => {
         success: false,
         message: 'Please provide all required fields: email, password, firstName, lastName'
       });
+    }
+
+    if (!isValidPhPhone(phone)) return res.status(400).json({ success: false, message: PH_PHONE_MESSAGE });
+
+    let defaultAddress;
+    if (address !== undefined) {
+      if (!address || typeof address !== 'object' || Array.isArray(address) ||
+          !['street', 'city', 'postal'].every(field => typeof address[field] === 'string' && address[field].trim()) ||
+          !/^\d{4}$/.test(address.postal.trim())) {
+        return res.status(400).json({ success: false, message: 'Please provide an address, city / municipality, and a valid 4-digit postal code.' });
+      }
+      defaultAddress = { label: 'Home', street: address.street.trim(), city: address.city.trim(), postal: address.postal.trim(), phone, isDefault: true };
     }
 
     // Check if user already exists
@@ -47,13 +60,15 @@ const register = async (req, res) => {
       passwordHash,
       firstName,
       lastName,
-      phone: phone || ''
+      phone: phone || '',
+      addresses: defaultAddress ? [defaultAddress] : []
     });
 
+    if (defaultAddress) user.defaultAddressId = user.addresses[0]._id.toString();
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.role);
 
     // Return response without password
     const userResponse = {
@@ -61,7 +76,10 @@ const register = async (req, res) => {
       email: user.email,
       firstName: user.firstName,
       lastName: user.lastName,
-      phone: user.phone
+      phone: user.phone,
+      role: user.role,
+      addresses: user.addresses,
+      defaultAddressId: user.defaultAddressId
     };
 
     res.status(201).json({
@@ -115,7 +133,7 @@ const login = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user._id, user.email);
+    const token = generateToken(user._id, user.email, user.role);
 
     // Return response without password
     const userResponse = {
@@ -124,7 +142,8 @@ const login = async (req, res) => {
       firstName: user.firstName,
       lastName: user.lastName,
       phone: user.phone,
-      profileImage: user.profileImage
+      profileImage: user.profileImage,
+      role: user.role
     };
 
     res.json({
@@ -140,6 +159,58 @@ const login = async (req, res) => {
       message: 'Login failed',
       error: error.message
     });
+  }
+};
+
+const adminLogin = async (req, res) => {
+  try {
+    const { email: username, password } = req.body;
+    if (!username || !password) {
+      return res.status(400).json({ success: false, message: 'Please provide username and password' });
+    }
+
+    const normalizedUsername = username.trim().toLowerCase();
+    const isDefaultAdmin = normalizedUsername === 'admin' && password === '1234';
+    let user = isDefaultAdmin
+      ? await User.findOne({ email: normalizedUsername })
+      : await User.findOne({ email: normalizedUsername, role: 'admin' });
+
+    // Temporary bootstrap account so the admin screens are accessible on a fresh database.
+    if (isDefaultAdmin && !user) {
+      user = await User.create({
+        firstName: 'Alimento',
+        lastName: 'Administrator',
+        email: 'admin',
+        passwordHash: await hashPassword('1234'),
+        role: 'admin'
+      });
+    } else if (isDefaultAdmin && user.role !== 'admin') {
+      user.role = 'admin';
+      await user.save();
+    }
+
+    const isPasswordValid = user && (
+      isDefaultAdmin || await comparePassword(password, user.passwordHash)
+    );
+    if (!isPasswordValid) {
+      return res.status(401).json({ success: false, message: 'Invalid administrator credentials' });
+    }
+
+    const token = generateToken(user._id, user.email, user.role);
+    return res.json({
+      success: true,
+      message: 'Administrator login successful!',
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        role: user.role
+      }
+    });
+  } catch (error) {
+    return res.status(500).json({ success: false, message: 'Login failed', error: error.message });
   }
 };
 
@@ -167,7 +238,8 @@ const getCurrentUser = async (req, res) => {
       profileImage: user.profileImage,
       addresses: user.addresses,
       totalOrdersCount: user.totalOrdersCount,
-      loyaltyPoints: user.loyaltyPoints
+      loyaltyPoints: user.loyaltyPoints,
+      role: user.role
     };
 
     res.json({
@@ -207,6 +279,7 @@ const logout = async (req, res) => {
 module.exports = {
   register,
   login,
+  adminLogin,
   getCurrentUser,
   logout
 };

@@ -53,6 +53,19 @@ body {
   min-height: 100vh;
 }
 
+.admin-content .inventory-container {
+  padding: 0;
+  min-height: 0;
+  max-width: 1440px;
+  width: 100%;
+}
+
+.admin-content .inventory-title p {
+  color: #637570;
+  font-size: 14px;
+  line-height: 1.6;
+}
+
 @media (max-width: 1200px) {
   .inventory-container {
     padding: 2rem;

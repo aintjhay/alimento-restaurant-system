@@ -1,101 +1,66 @@
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
-// Helper function to fetch with timeout
 const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
-  const controller = new AbortController();
-  let timeoutId;
-  let isAborted = false;
-  
-  try {
-    timeoutId = setTimeout(() => {
-      isAborted = true;
-      controller.abort();
-    }, timeout);
-    
-    const response = await fetch(url, {
-      ...options,
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-    return response;
-  } catch (error) {
-    clearTimeout(timeoutId);
-    if (isAborted) {
-      console.warn(`⏱️ Fetch timeout after ${timeout}ms for ${url}`);
-      throw new Error(`Request timeout after ${timeout}ms`);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+        return await fetch(url, { ...options, signal: controller.signal });
+    } catch (error) {
+        if (error.name === 'AbortError') throw new Error(`Request timeout after ${timeout}ms`);
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
     }
-    throw error;
-  }
 };
 
-// Menu API calls
+const parseResponse = async (response) => {
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.message || data.error || `Request failed (${response.status})`);
+    return data;
+};
+
+const authHeaders = () => {
+    const token = localStorage.getItem('adminToken');
+    return token ? { Authorization: `Bearer ${token}` } : {};
+};
+
 export const menuAPI = {
-    getAll: async () => {
-        try {
-            console.log(`🔗 Fetching menu from: ${API_URL}/menu`);
-            // Use longer timeout (60 seconds) for initial menu load - backend may be cold starting
-            const response = await fetchWithTimeout(`${API_URL}/menu`, {}, 60000);
-            
-            if (!response.ok) {
-                throw new Error(`API returned ${response.status}: ${response.statusText}`);
-            }
-            
-            const data = await response.json();
-            console.log(`✅ Menu API response:`, data);
-            
-            // Handle both array and wrapper formats
-            if (Array.isArray(data)) {
-                return data;
-            } else if (data && data.data && Array.isArray(data.data)) {
-                return data.data;
-            } else if (Array.isArray(data)) {
-                return data;
-            } else {
-                console.warn('⚠️ Menu response is not in expected format:', typeof data);
-                return [];
-            }
-        } catch (error) {
-            console.error('❌ Menu API error:', error.message, error);
-            return [];
-        }
+    getPage: async ({ page = 1, category = 'All', search = '', available } = {}) => {
+        const params = new URLSearchParams({ page: String(page) });
+        if (category && category !== 'All') params.set('category', category);
+        if (search.trim()) params.set('search', search.trim());
+        if (available) params.set('available', available);
+        const response = await fetchWithTimeout(`${API_URL}/menu?${params}`, {}, 60000);
+        const data = await parseResponse(response);
+        return {
+            items: Array.isArray(data.data) ? data.data : [],
+            pagination: data.pagination || { page: 1, pageSize: 8, totalItems: 0, totalPages: 1 }
+        };
     },
-    
-    create: (itemData) => 
-        fetch(`${API_URL}/menu`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(itemData)
-        }).then(res => res.json()),
-    
-    update: (id, itemData) => 
-        fetch(`${API_URL}/menu/${id}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(itemData)
-        }).then(res => res.json()),
-    
-    delete: (id) => 
-        fetch(`${API_URL}/menu/${id}`, { method: 'DELETE' }).then(res => res.json())
+    getCategories: () => fetch(`${API_URL}/menu/categories/list`).then(parseResponse),
+    create: (itemData) => fetch(`${API_URL}/admin/products`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(itemData)
+    }).then(parseResponse),
+    update: (id, itemData) => fetch(`${API_URL}/admin/products/${id}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json', ...authHeaders() }, body: JSON.stringify(itemData)
+    }).then(parseResponse),
+    delete: (id) => fetch(`${API_URL}/admin/products/${id}`, {
+        method: 'DELETE', headers: authHeaders()
+    }).then(parseResponse)
 };
 
-// Orders API calls - check what endpoints you have
 export const ordersAPI = {
-    // Test if orders endpoint exists
-    getAll: () => fetch(`${API_URL}/orders`).then(res => res.json()),
-    
-    create: (orderData) => 
-        fetch(`${API_URL}/orders`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(orderData)
-        }).then(res => res.json()),
-    
-    // Try common dashboard endpoints
-    getStats: () => fetch(`${API_URL}/dashboard/stats`).then(res => res.json())
-        .catch(() => fetch(`${API_URL}/stats`).then(res => res.json()))
+    getAll: () => fetch(`${API_URL}/orders`).then(parseResponse),
+    create: (orderData) => fetch(`${API_URL}/orders`, {
+        method: 'POST', headers: {
+            'Content-Type': 'application/json',
+            ...(localStorage.getItem('portalToken') ? { Authorization: `Bearer ${localStorage.getItem('portalToken')}` } : {})
+        }, body: JSON.stringify(orderData)
+    }).then(parseResponse),
+    getStats: () => fetch(`${API_URL}/dashboard/stats`).then(parseResponse)
+        .catch(() => fetch(`${API_URL}/stats`).then(parseResponse))
         .catch(() => ({ totalRevenue: 0, totalOrders: 0, activeTables: 0 })),
-    
-    getToday: () => fetch(`${API_URL}/orders/today`).then(res => res.json())
-        .catch(() => [])
+    getToday: () => fetch(`${API_URL}/orders/today`).then(parseResponse).catch(() => [])
 };
+
+export { API_URL, authHeaders, fetchWithTimeout, parseResponse };

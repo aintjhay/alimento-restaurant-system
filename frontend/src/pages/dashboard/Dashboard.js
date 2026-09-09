@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import './Dashboard.css';
 import API_BASE_URL from '../../config/api';
+import { authHeaders } from '../../services/api';
 import ForecastChart from '../../components/admin/ForecastChart';
 import RecentOrders from '../../components/dashboard/RecentOrders';
 import { 
@@ -63,6 +64,7 @@ function Dashboard() {
             const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
             
             const ordersResponse = await fetch(`${API_BASE_URL}/api/orders?limit=200`, {
+                headers: authHeaders(),
                 signal: controller.signal
             });
             clearTimeout(timeoutId);
@@ -245,6 +247,7 @@ function Dashboard() {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...authHeaders()
                     },
                     body: JSON.stringify({ status: newStatus }),
                     signal: controller.signal
@@ -308,6 +311,7 @@ function Dashboard() {
                     method: 'PATCH',
                     headers: {
                         'Content-Type': 'application/json',
+                        ...authHeaders()
                     },
                     body: JSON.stringify({ paymentStatus: newStatus }),
                     signal: controller.signal
@@ -666,33 +670,33 @@ function Dashboard() {
             {/* Quick Actions */}
             <div className="quick-actions">
                 <button 
-                    onClick={() => window.location.href = '/pos'}
+                    onClick={() => window.location.href = '/admin/pos'}
                     className="action-btn primary"
                 >
                     <span>🍽️</span> Go to POS
                 </button>
                 <button 
-                    onClick={() => window.location.href = '/kitchen'}
+                    onClick={() => window.location.href = '/admin/kitchen'}
                     className="action-btn"
                     style={{ background: 'linear-gradient(135deg, #f97316, #ea580c)', color: '#fff', border: 'none' }}
                 >
                     <span>🔥</span> Kitchen Display
                 </button>
                 <button 
-                    onClick={() => window.location.href = '/bartender'}
+                    onClick={() => window.location.href = '/admin/bartender'}
                     className="action-btn"
                     style={{ background: 'linear-gradient(135deg, #8b5cf6, #7c3aed)', color: '#fff', border: 'none' }}
                 >
                     <span>🍸</span> Bartender Display
                 </button>
                 <button 
-                    onClick={() => window.location.href = '/menu'}
+                    onClick={() => window.location.href = '/admin/products'}
                     className="action-btn"
                 >
                     <span>📋</span> View Menu
                 </button>
                 <button 
-                    onClick={() => window.location.href = '/analytics'}
+                    onClick={() => window.location.href = '/admin/sales'}
                     className="action-btn"
                 >
                     <span>📊</span> Analytics

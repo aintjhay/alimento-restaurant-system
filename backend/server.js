@@ -41,14 +41,36 @@ app.use(cors({
 }));
 
 // Body Parser Middleware - Increased limit for image uploads
-app.use(express.json({ limit: '50mb' }));
+app.use(express.json({ limit: '50mb', verify: (req, _res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
+// Give periodic order-status reads their own budget so they cannot block menu or login requests.
+const isOrderStatusRead = req => req.method === 'GET' && /^\/api\/orders\/[a-f0-9]{24}\/?(?:\?|$)/i.test(req.originalUrl);
+const orderStatusLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Order updates are temporarily paused. Please try again shortly.' }
+});
+app.use((req, res, next) => isOrderStatusRead(req) ? orderStatusLimiter(req, res, next) : next());
+
 // Rate Limiting
+// Dashboard and kitchen polling must not exhaust the budget for admin changes.
+const readLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 3600,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many refresh requests. Please try again shortly.' }
+});
+app.use('/api/', (req, res, next) =>
+  req.method === 'GET' && !isOrderStatusRead(req) ? readLimiter(req, res, next) : next());
 const limiter = rateLimit({
+  skip: req => req.method === 'GET',
   windowMs: parseInt(process.env.RATE_LIMIT_WINDOW_MS) || 15 * 60 * 1000,
   max: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS) || 100,
-  message: 'Too many requests from this IP, please try again later.',
+  message: { message: 'Too many requests. Please try again later.' },
   standardHeaders: true,
   legacyHeaders: false,
 });
@@ -93,6 +115,8 @@ const userRoutes = require('./src/routes/userRoutes');
 const reviewRoutes = require('./src/routes/reviewRoutes');
 const authRoutes = require('./src/routes/authRoutes');
 const inventoryRoutes = require('./src/routes/inventoryRoutes');
+const adminRoutes = require('./src/routes/adminRoutes');
+const paymentRoutes = require('./src/routes/paymentRoutes');
 
 // Use Routes
 app.use('/api/auth', authRoutes);
@@ -101,7 +125,9 @@ app.use('/api/orders', orderRoutes);
 app.use('/api/forecast', forecastRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
-app.use('/api/inventory', inventoryRoutes);
+app.use('/api/admin', adminRoutes);
+app.use('/api/admin/inventory', require('./src/middleware/authMiddleware').authMiddleware, require('./src/middleware/authMiddleware').requireRole('admin'), inventoryRoutes);
+app.use('/api/payments', paymentRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
@@ -116,7 +142,7 @@ app.get('/', (req, res) => {
         categories: 'GET /api/menu/categories/list',
         byCategory: 'GET /api/menu/category/:category',
         singleItem: 'GET /api/menu/:id',
-        completeData: 'GET /api/menu/complete'
+        paginated: 'GET /api/menu?page=1'
       },
       orders: {
         create: 'POST /api/orders',

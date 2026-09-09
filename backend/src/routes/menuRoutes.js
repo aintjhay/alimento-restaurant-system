@@ -1,26 +1,16 @@
 const express = require('express');
 const router = express.Router();
 const MenuItem = require('../models/MenuItem');
+const ProductCategory = require('../models/ProductCategory');
 
 // ==================== FIXED ROUTE ORDER ====================
 // Specific routes must come BEFORE parameterized routes
 
-// GET complete menu items (for debugging)
-router.get('/complete', async (req, res) => {
-    try {
-        const items = await MenuItem.find()
-            .sort({ displayOrder: 1, category: 1, name: 1 });
-        res.json(items);
-    } catch (error) {
-        console.error('Error fetching complete menu:', error);
-        res.status(500).json({ error: error.message });
-    }
-});
-
 // GET categories list
 router.get('/categories/list', async (req, res) => {
     try {
-        const categories = await MenuItem.distinct('category');
+        const managed = await ProductCategory.find({ isActive: true }).sort({ displayOrder: 1, name: 1 }).select('name').lean();
+        const categories = managed.length ? managed.map(category => category.name) : await MenuItem.distinct('category');
         res.json(categories);
     } catch (error) {
         res.status(500).json({ error: error.message });
@@ -41,11 +31,32 @@ router.get('/category/:category', async (req, res) => {
     }
 });
 
-// GET all menu items (MAIN ENDPOINT - for POS)
+// GET a paginated product list. The page size is intentionally fixed at 8.
 router.get('/', async (req, res) => {
     try {
-        const items = await MenuItem.find()
-            .sort({ displayOrder: 1, category: 1, name: 1 });
+        const pageSize = 8;
+        const requestedPage = Number.parseInt(req.query.page, 10);
+        const page = Number.isFinite(requestedPage) && requestedPage > 0 ? requestedPage : 1;
+        const query = {};
+
+        if (req.query.available !== 'all') query.isAvailable = true;
+        if (req.query.category && req.query.category !== 'All') query.category = req.query.category;
+        if (req.query.search?.trim()) {
+            const escaped = req.query.search.trim().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query.$or = [
+                { name: { $regex: escaped, $options: 'i' } },
+                { description: { $regex: escaped, $options: 'i' } }
+            ];
+        }
+
+        const totalItems = await MenuItem.countDocuments(query);
+        const totalPages = Math.max(1, Math.ceil(totalItems / pageSize));
+        const safePage = Math.min(page, totalPages);
+        const items = await MenuItem.find(query)
+            .sort({ displayOrder: 1, category: 1, name: 1 })
+            .skip((safePage - 1) * pageSize)
+            .limit(pageSize)
+            .lean();
         
         // Transform for compatibility with existing frontend
         const transformedItems = items.map(item => ({
@@ -64,7 +75,18 @@ router.get('/', async (req, res) => {
         }));
         
         console.log(`📊 Sent ${transformedItems.length} menu items to frontend`);
-        res.json(transformedItems);
+        res.json({
+            success: true,
+            data: transformedItems,
+            pagination: {
+                page: safePage,
+                pageSize,
+                totalItems,
+                totalPages,
+                hasPreviousPage: safePage > 1,
+                hasNextPage: safePage < totalPages
+            }
+        });
     } catch (error) {
         console.error('Error fetching menu items:', error);
         res.status(500).json({ error: error.message });

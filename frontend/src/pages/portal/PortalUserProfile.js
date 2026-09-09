@@ -1,27 +1,46 @@
-import React, { useState, useEffect } from 'react';
+import { phPhoneInputProps, isValidPhPhone, PH_PHONE_MESSAGE } from '../../utils/phoneUtils';
+import React, { useState, useEffect, useRef } from 'react';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import PortalHeader from '../../components/portal/PortalHeader';
+import AccountSidebar from '../../components/portal/AccountSidebar';
 import PortalFooter from '../../components/portal/PortalFooter';
 import EditProfileModal from '../../components/portal/EditProfileModal';
 import PencilIcon from '../../components/icons/PencilIcon';
 import MapPinIcon from '../../components/icons/MapPinIcon';
 import UserIcon from '../../components/icons/UserIcon';
 import HomeIcon from '../../components/icons/HomeIcon';
+import { LuX, LuHouse, LuBriefcaseBusiness, LuMapPin } from 'react-icons/lu';
 import TrashIcon from '../../components/icons/TrashIcon';
 import './Portal.css';
+import './PortalUserProfile.css';
 import API_BASE_URL from '../../config/api';
 
 const PortalUserProfile = () => {
   const navigate = useNavigate();
-  const { user: authUser, token, isAuthenticated, logout, fetchCurrentUser } = useAuth();
+  const addressDialogRef = useRef(null);
+  const { user: authUser, token, isAuthenticated, fetchCurrentUser } = useAuth();
   
   const [user, setUser] = useState(null);
   const [isEditing, setIsEditing] = useState(false);
   const [isLoadingSave, setIsLoadingSave] = useState(false);
   const [addresses, setAddresses] = useState([]);
   const [showAddAddress, setShowAddAddress] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState(null);
+  const [savingAddress, setSavingAddress] = useState(false);
+
+  useEffect(() => {
+    if (!showAddAddress) return;
+    const dialog = addressDialogRef.current;
+    const previousOverflow = document.body.style.overflow;
+    dialog.showModal();
+    document.body.style.overflow = 'hidden';
+    return () => {
+      dialog.close();
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [showAddAddress]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [successMessage, setSuccessMessage] = useState('');
@@ -76,6 +95,7 @@ const PortalUserProfile = () => {
 
   const handleProfileUpdate = async (e) => {
     e.preventDefault();
+    if (!isValidPhPhone(formData.phone)) { setError(PH_PHONE_MESSAGE); return; }
     setIsLoadingSave(true);
     try {
       const response = await axios.put(`${API_BASE}/users/${authUser.id}`, {
@@ -91,6 +111,7 @@ const PortalUserProfile = () => {
       if (response.data.success) {
         setUser(response.data.user);
         setIsEditing(false);
+        await fetchCurrentUser();
         showSuccess('Profile updated successfully!');
       }
     } catch (err) {
@@ -110,8 +131,11 @@ const PortalUserProfile = () => {
 
   const handleAddAddress = async (e) => {
     e.preventDefault();
+    if (savingAddress) return;
+    if (!isValidPhPhone(newAddress.phone)) { setError(PH_PHONE_MESSAGE); return; }
+    setSavingAddress(true);
     try {
-      const response = await axios.post(`${API_BASE}/users/${authUser.id}/addresses`, newAddress, {
+      const response = await axios[editingAddressId ? 'put' : 'post'](`${API_BASE}/users/${authUser.id}/addresses${editingAddressId ? `/${editingAddressId}` : ''}`, newAddress, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -130,11 +154,14 @@ const PortalUserProfile = () => {
         setShowAddAddress(false);
         // Refresh auth context so checkout gets updated addresses
         await fetchCurrentUser();
-        showSuccess('Address added successfully!');
+        showSuccess(editingAddressId ? 'Address updated successfully!' : 'Address added successfully!');
+        setEditingAddressId(null);
       }
     } catch (err) {
-      setError('Error adding address: ' + (err.response?.data?.message || err.message));
+      setError('Error saving address: ' + (err.response?.data?.message || err.message));
       setTimeout(() => setError(null), 4000);
+    } finally {
+      setSavingAddress(false);
     }
   };
 
@@ -159,6 +186,12 @@ const PortalUserProfile = () => {
     }
   };
 
+  const openAddressForm = (address) => {
+    setEditingAddressId(address?._id || null);
+    setNewAddress({ label: address?.label || 'Home', street: address?.street || '', city: address?.city || '', postal: address?.postal || '', phone: address?.phone || '', isDefault: address?.isDefault || false });
+    setShowAddAddress(true);
+  };
+
   if (loading) {
     return (
       <div className="portal-container" style={{ padding: '40px 20px', textAlign: 'center' }}>
@@ -167,7 +200,7 @@ const PortalUserProfile = () => {
     );
   }
 
-  if (error) {
+  if (error && !user) {
     return (
       <div className="portal-container" style={{ padding: '40px 20px', color: 'red' }}>
         <p>{error}</p>
@@ -176,16 +209,15 @@ const PortalUserProfile = () => {
   }
 
   return (
-    <div className="portal-page">
+    <div className="portal-page profile-page">
       <PortalHeader />
       
       <main className="portal-main">
         <div className="portal-container profile-container" style={{ animation: 'fadeIn 0.5s ease-in' }}>
-          <div className="profile-header">
-            <h1>My Profile</h1>
-            <p className="profile-email">{user?.email}</p>
-          </div>
-
+          <div className="account-page-heading"><p>YOUR ACCOUNT</p><h1>My profile</h1><span>Manage your details and the places we deliver to.</span></div>
+          <div className="account-layout">
+          <AccountSidebar user={user} active="profile" />
+          <div className="account-content">
           {successMessage && (
             <div style={{ background: '#d1fae5', color: '#065f46', padding: '0.75rem 1.25rem', borderRadius: '8px', marginBottom: '1rem', fontWeight: '500', fontSize: '0.95rem' }}>
               ✓ {successMessage}
@@ -197,34 +229,35 @@ const PortalUserProfile = () => {
             </div>
           )}
 
-          {/* Personal Information Section */}
+          <div className="profile-cards">
+          {/* Personal information Section */}
           <div className="profile-section profile-section-personal">
             <div className="section-header">
               <div className="section-title">
                 <span className="section-icon"><UserIcon size={22} color="#2f6f6a" /></span>
-                <h2>Personal Information</h2>
+                <div><h2>Personal information</h2><p className="account-section-description">Your contact details for orders and deliveries.</p></div>
               </div>
               {!isEditing && (
                 <button 
                   className="btn-edit-profile"
                   onClick={() => setIsEditing(true)}
                 >
-                  <PencilIcon size={15} color="white" /> Edit
+                  <PencilIcon size={15} color="currentColor" /> Edit details
                 </button>
               )}
             </div>
 
             <div className="profile-info">
               <div className="info-row">
-                <span className="label">Name:</span>
+                <span className="label">Name</span>
                 <span className="value">{user?.firstName} {user?.lastName}</span>
               </div>
               <div className="info-row">
-                <span className="label">Email:</span>
+                <span className="label">Email</span>
                 <span className="value">{user?.email}</span>
               </div>
               <div className="info-row">
-                <span className="label">Phone:</span>
+                <span className="label">Phone</span>
                 <span className="value">
                   {user?.phone
                     ? user.phone
@@ -235,7 +268,7 @@ const PortalUserProfile = () => {
                           onClick={() => setIsEditing(true)}
                           style={{ marginLeft: '0.6rem', background: 'none', border: 'none', color: '#2f6f6a', fontWeight: '600', fontSize: '0.85rem', cursor: 'pointer', padding: 0, textDecoration: 'underline', textUnderlineOffset: '2px' }}
                         >
-                          + Add
+                          Add phone number
                         </button>
                       </>
                     )
@@ -260,77 +293,81 @@ const PortalUserProfile = () => {
             <div className="section-header">
               <div className="section-title">
                 <span className="section-icon"><MapPinIcon size={22} color="#2f6f6a" /></span>
-                <h2>Saved Delivery Addresses</h2>
+                <div><h2>Delivery addresses <span className="account-address-count">{addresses.length}</span></h2><p className="account-section-description">Keep your favorite delivery locations in one place.</p></div>
               </div>
-              {!showAddAddress && (
+              {!showAddAddress && addresses.length > 0 && (
                 <button 
                   className="btn-add-address"
-                  onClick={() => setShowAddAddress(true)}
+                  onClick={() => openAddressForm()}
                 >
-                  + Add Address
+                  + Add address
                 </button>
               )}
             </div>
 
             {showAddAddress && (
-              <form onSubmit={handleAddAddress} className="address-form add-address-form">
-                <div className="form-row">
-                  <div className="form-group">
-                    <label>Label</label>
-                    <select
-                      value={newAddress.label}
-                      onChange={(e) => setNewAddress({ ...newAddress, label: e.target.value })}
-                    >
-                      <option>Home</option>
-                      <option>Work</option>
-                      <option>Other</option>
-                    </select>
-                  </div>
-                  <div className="form-group">
-                    <label>Phone</label>
-                    <input
-                      type="tel"
-                      value={newAddress.phone}
-                      onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })}
-                      placeholder="Phone number"
-                    />
-                  </div>
+              <dialog ref={addressDialogRef} className="profile-address-dialog" aria-labelledby="address-dialog-title" onCancel={(event) => { event.preventDefault(); if (!savingAddress) setShowAddAddress(false); }}>
+                <div className="profile-dialog-header">
+                  <div className="address-dialog-intro"><span className="address-dialog-icon"><LuMapPin aria-hidden="true" /></span><div><h2 id="address-dialog-title">{editingAddressId ? 'Edit address' : 'Add delivery address'}</h2><p>A saved address makes your next checkout easier.</p></div></div>
+                  <button type="button" aria-label="Close address form" disabled={savingAddress} onClick={() => setShowAddAddress(false)}><LuX aria-hidden="true" /></button>
                 </div>
-
+                {error && <p role="alert" className="error-message">{error}</p>}
+              <form onSubmit={handleAddAddress} className="address-form add-address-form">
+                <fieldset className="address-label-options" disabled={savingAddress}>
+                  <legend>Save address as</legend>
+                  <div>{[['Home', LuHouse], ['Work', LuBriefcaseBusiness], ['Other', LuMapPin]].map(([label, Icon]) => (
+                    <label key={label} className={newAddress.label === label ? 'is-selected' : ''}>
+                      <input type="radio" name="address-label" value={label} checked={newAddress.label === label} onChange={() => setNewAddress({ ...newAddress, label })} />
+                      <Icon aria-hidden="true" /><span>{label}</span>
+                    </label>
+                  ))}</div>
+                </fieldset>
+                <p className="address-required-note">Fields marked * are required.</p>
                 <div className="form-group">
-                  <label>Street Address *</label>
+                  <label htmlFor="address-street">House / unit, street & barangay *</label>
                   <input
                     type="text"
-                    value={newAddress.street}
+                    id="address-street"
+                      value={newAddress.street}
                     onChange={(e) => setNewAddress({ ...newAddress, street: e.target.value })}
-                    placeholder="Street address"
+                    placeholder="e.g. Unit 2, 15 Mabini St., Brgy. San Jose"
+                    autoComplete="street-address"
                     required
                   />
                 </div>
 
                 <div className="form-row">
                   <div className="form-group">
-                    <label>City *</label>
+                    <label htmlFor="address-city">City *</label>
                     <input
                       type="text"
+                      id="address-city"
                       value={newAddress.city}
                       onChange={(e) => setNewAddress({ ...newAddress, city: e.target.value })}
-                      placeholder="City"
+                      placeholder="e.g. Manila"
+                      autoComplete="address-level2"
                       required
                     />
                   </div>
                   <div className="form-group">
-                    <label>Postal Code *</label>
+                    <label htmlFor="address-postal">Postal code *</label>
                     <input
                       type="text"
+                      id="address-postal"
                       value={newAddress.postal}
                       onChange={(e) => setNewAddress({ ...newAddress, postal: e.target.value })}
-                      placeholder="Postal code"
+                      placeholder="e.g. 1000"
+                      autoComplete="postal-code"
                       required
                     />
                   </div>
                 </div>
 
+                <div className="form-group address-contact-field">
+                  <label htmlFor="address-phone">Contact number *</label>
+                  <input {...phPhoneInputProps} id="address-phone" value={newAddress.phone} onChange={(e) => setNewAddress({ ...newAddress, phone: e.target.value })} aria-describedby="address-phone-help" />
+                  <small id="address-phone-help">Use an 11-digit mobile number so we can contact you about delivery.</small>
+                </div>
                 <div className="form-group checkbox-group">
                   <label>
                     <input
@@ -338,31 +375,34 @@ const PortalUserProfile = () => {
                       checked={newAddress.isDefault}
                       onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
                     />
-                    <span>Set as default address</span>
+                    <span>Use as my default address<small>Automatically selected at checkout.</small></span>
                   </label>
                 </div>
 
                 <div className="form-actions">
-                  <button type="submit" className="btn-primary">
-                    Add Address
+                  <button type="submit" className="btn-primary" disabled={savingAddress}>
+                    {savingAddress ? 'Saving...' : 'Save address'}
                   </button>
                   <button
                     type="button"
                     className="btn-secondary"
+                    disabled={savingAddress}
                     onClick={() => setShowAddAddress(false)}
                   >
                     Cancel
                   </button>
                 </div>
               </form>
+              </dialog>
             )}
 
             <div className="addresses-list">
               {addresses.length === 0 ? (
                 <div className="empty-state">
-                  <div className="empty-icon"><HomeIcon size={48} color="#d1d5db" /></div>
+                  <div className="empty-icon"><HomeIcon size={28} color="#2f6f6a" /></div>
                   <p className="empty-title">No saved addresses yet</p>
-                  <p className="empty-text">Add your first delivery address to get started</p>
+                  <p className="empty-text">Save an address for faster checkout.</p>
+                  <button className="btn-add-address" onClick={() => openAddressForm()}>+ Add address</button>
                 </div>
               ) : (
                 addresses.map((address) => (
@@ -373,7 +413,7 @@ const PortalUserProfile = () => {
                     <div className="address-body">
                       <div className="address-header">
                         <h3>{address.label}</h3>
-                        {address.isDefault && <span className="badge-default">DEFAULT</span>}
+                        {address.isDefault && <span className="badge-default">Default address</span>}
                       </div>
                       <div className="address-content">
                         <p>{address.street}</p>
@@ -381,13 +421,16 @@ const PortalUserProfile = () => {
                         {address.phone && <p>{address.phone}</p>}
                       </div>
                     </div>
+                    <div className="profile-address-actions">
+                    <button type="button" onClick={() => openAddressForm(address)} className="profile-address-edit"><PencilIcon size={16} color="currentColor" /> Edit</button>
                     <button
                       className="btn-delete-address"
                       onClick={() => setConfirmDeleteId(address._id)}
                       title="Delete address"
                     >
-                      <TrashIcon size={16} color="currentColor" />
+                      <TrashIcon size={16} color="currentColor" /> Remove
                     </button>
+                    </div>
                     {confirmDeleteId === address._id && (
                       <div style={{ marginTop: '0.75rem', padding: '0.75rem', background: '#fff7ed', border: '1px solid #fdba74', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
                         <p style={{ margin: 0, fontSize: '0.9rem', color: '#92400e', fontWeight: '500' }}>Remove this address?</p>
@@ -411,6 +454,9 @@ const PortalUserProfile = () => {
                 ))
               )}
             </div>
+          </div>
+          </div>
+          </div>
           </div>
         </div>
       </main>

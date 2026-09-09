@@ -1,6 +1,16 @@
 // Image utility functions
 export const getFoodImage = (imageName) => {
   if (!imageName) return '/images/food/placeholder.jpg';
+  if (/^data:image\/(jpeg|png|webp);base64,/i.test(imageName) || /^https?:\/\//i.test(imageName)) return imageName;
+
+  // Preserve compatibility with older Chicken Wings filenames stored in MongoDB.
+  const fileName = imageName.replace(/\\/g, '/').split('/').pop();
+  const imageAliases = {
+    'buffalowings12s(2).jpg': 'BuffaloWings12s_2.jpg',
+    'buffalowings12s_2.jpg': 'BuffaloWings12s_2.jpg'
+  };
+  const aliasedFileName = imageAliases[fileName.toLowerCase()];
+  if (aliasedFileName) return `/images/food/${aliasedFileName}`;
   
   // Normalize file extension to lowercase (e.g. .JPG → .jpg) for Linux/Vercel compatibility
   const normalized = imageName.replace(/\.[^./]+$/, ext => ext.toLowerCase());
@@ -35,14 +45,14 @@ export const getCategoryIcon = (category) => {
 
 export const getItemColor = (category) => {
   const colors = {
-    'Cocktails': '#4DB6AC', // Teal
-    'Pasta': '#FF9800',     // Orange
-    'Sandwiches': '#795548', // Brown
-    'Sides': '#8BC34A',     // Green
-    'Rice Meals': '#FF5722', // Deep Orange
-    'Yogurt Milkshakes': '#E91E63', // Pink
-    'Coffee': '#795548',    // Brown
-    'Coolers': '#2196F3'    // Blue
+    'Rice Meals': '#D97706',
+    'Pasta': '#C2413B',
+    'Sandwiches': '#B7791F',
+    'Sides': '#E09F3E',
+    'Cocktails': '#7C5CFC',
+    'Coolers': '#3686A0',
+    'Coffee': '#795548',
+    'Yogurt Milkshakes': '#C94F7C'
   };
-  return colors[category] || '#607D8B';
+  return colors[category] || '#52736E';
 };

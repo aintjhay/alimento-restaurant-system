@@ -50,6 +50,12 @@ const userSchema = new mongoose.Schema({
   
   // Authentication
   passwordHash: String,
+  role: {
+    type: String,
+    enum: ['customer', 'staff', 'admin'],
+    default: 'customer',
+    index: true
+  },
   
   // Profile
   profileImage: String,

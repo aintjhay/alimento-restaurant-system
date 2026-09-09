@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { isValidPhPhone, PH_PHONE_MESSAGE } = require('../utils/phoneUtils');
+
+router.use((req, res, next) => {
+  if (['POST', 'PUT'].includes(req.method) && (req.method === 'POST' || req.path.includes('/addresses') || req.body.phone !== undefined) && !isValidPhPhone(req.body.phone)) {
+    return res.status(400).json({ success: false, message: PH_PHONE_MESSAGE });
+  }
+  next();
+});
 
 // GET - Get user profile
 router.get('/:userId', async (req, res) => {

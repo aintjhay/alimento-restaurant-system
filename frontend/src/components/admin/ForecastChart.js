@@ -48,7 +48,7 @@ const ForecastChart = ({ days = 7 }) => {
       setError(null);
 
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 20000); // 20 second timeout
+      const timeoutId = setTimeout(() => controller.abort(), 40000);
 
       const response = await axios.get(`${API_BASE_URL}/api/forecast`, {
         params: {
@@ -60,13 +60,13 @@ const ForecastChart = ({ days = 7 }) => {
 
       clearTimeout(timeoutId);
       console.log('Forecast data received:', response.data);
-      setForecast(response.data);
+      setForecast({ ...response.data, forecast: (response.data.forecast || []).map(day => ({ ...day, trend: Number(day.trend) || 0, weekly: Number(day.weekly) || 0 })) });
     } catch (err) {
       console.error('Error fetching forecast:', err);
       if (err.name === 'AbortError') {
         setError('Forecast request timed out. The backend may be starting up. Please refresh to retry.');
       } else {
-        setError(err.response?.data?.error || 'Failed to load forecast. Please try again.');
+        setError('Forecast temporarily unavailable. Please try again.');
       }
     } finally {
       setLoading(false);
@@ -110,8 +110,9 @@ const ForecastChart = ({ days = 7 }) => {
       <div className="forecast-container">
         <div className="forecast-error">
           <AlertIcon size={28} color="#ff9800" />
-          <h3>Error Generating Forecast</h3>
-          <p>{forecast?.error || 'Unknown error'}</p>
+          <h3>Forecast temporarily unavailable</h3>
+          <p>Please try again in a moment.</p>
+          <button onClick={handleRefresh} className="btn-retry">Retry</button>
         </div>
       </div>
     );
@@ -144,6 +145,9 @@ const ForecastChart = ({ days = 7 }) => {
         </button>
       </div>
 
+      {forecast.modelMetadata?.algorithmUsed?.includes('Mock') && (
+        <p className="forecast-info">Preview estimates: the forecasting model is unavailable. These simulated values should not be used for purchasing or staffing decisions.</p>
+      )}
       {/* Top Insight Card */}
       {forecast.insights && forecast.insights.length > 0 && (
         <div className="forecast-section">

@@ -34,17 +34,9 @@ const menuItemSchema = new mongoose.Schema({
   category: { 
     type: String, 
     required: true,
-    enum: [
-      'Cocktails', 
-      'Pasta', 
-      'Sandwiches', 
-      'Sides', 
-      'Rice Meals', 
-      'Yogurt Milkshakes', 
-      'Coffee', 
-      'Coolers'
-    ]
+    trim: true
   },
+  categoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'ProductCategory', default: null },
   image: { 
     type: String, 
     default: '' 

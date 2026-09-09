@@ -3,6 +3,7 @@ const router = express.Router();
 const {
   register,
   login,
+  adminLogin,
   getCurrentUser,
   logout
 } = require('../controllers/authController');
@@ -17,6 +18,7 @@ router.post('/register', register);
 
 // Login user
 router.post('/login', login);
+router.post('/admin/login', adminLogin);
 
 // Logout user
 router.post('/logout', logout);

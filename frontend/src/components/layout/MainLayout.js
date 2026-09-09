@@ -28,9 +28,10 @@ const MainLayout = ({ children }) => {
   const navigate = useNavigate();
 
   const menuItems = [
-    { path: '/', icon: <FiHome />, label: 'Dashboard', roles: ['admin', 'staff'] },
-    { path: '/pos', icon: <FiShoppingCart />, label: 'POS System', roles: ['admin', 'staff'] },
-    { path: '/admin/menu', icon: <FiPackage />, label: 'Menu Management', roles: ['admin'] },
+    { path: '/admin/dashboard', icon: <FiHome />, label: 'Dashboard', roles: ['admin', 'staff'] },
+    { path: '/admin/pos', icon: <FiShoppingCart />, label: 'POS System', roles: ['admin', 'staff'] },
+    { path: '/admin/products', icon: <FiPackage />, label: 'Product Management', roles: ['admin'] },
+    { path: '/admin/categories', icon: <FiPackage />, label: 'Categories', roles: ['admin'] },
     { path: '/admin/orders', icon: <FiUsers />, label: 'Order Management', roles: ['admin'] },
     { path: '/admin/inventory', icon: <FiPackage />, label: 'Inventory', roles: ['admin'] },
     { path: '/admin/forecasting', icon: <FiBarChart2 />, label: 'ML Forecasting', roles: ['admin'] },
@@ -39,7 +40,7 @@ const MainLayout = ({ children }) => {
 
   const handleLogout = () => {
     // Implement logout logic
-    navigate('/login');
+    navigate('/admin/login');
   };
 
   return (

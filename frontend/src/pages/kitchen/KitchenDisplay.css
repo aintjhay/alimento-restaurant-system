@@ -1034,6 +1034,54 @@
 .kds-container::-webkit-scrollbar-thumb:hover { background: rgba(0, 121, 107, 0.4); }
 
 /* ===== ITEM-LEVEL STATUS & ACTIONS ===== */
+.kds-status-board {
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(320px, 1fr);
+  gap: 16px;
+  padding: 20px 24px;
+  overflow-x: auto;
+  align-items: start;
+}
+
+.kds-status-column {
+  min-width: 0;
+  background: #f0f3f3;
+  border: 1px solid #dce5e3;
+  border-top: 4px solid #78909c;
+  border-radius: 12px;
+  min-height: 55vh;
+}
+
+.kds-status-column.column-pending { border-top-color: #2196f3; }
+.kds-status-column.column-preparing { border-top-color: #ff9800; }
+.kds-status-column.column-ready { border-top-color: #4caf50; }
+.kds-column-heading { padding: 16px; }
+.kds-column-heading h2 { margin: 0; font-size: 1.1rem; color: #263f3a; }
+.kds-column-heading p { margin: 6px 0 0; color: #616d69; font-size: 0.8rem; }
+.kds-column-tickets { display: grid; gap: 12px; padding: 0 10px 12px; }
+.kds-column-empty { padding: 28px 12px; text-align: center; color: #616d69; font-size: 0.875rem; }
+.kds-status-board .kds-card-header { gap: 8px; align-items: flex-start; }
+.kds-status-board .kds-order-info { min-width: 0; }
+.kds-status-board .kds-card-timer { flex-shrink: 0; }
+.kds-status-board .kds-item { flex-wrap: wrap; }
+.kds-status-board .kds-item-name { overflow-wrap: anywhere; }
+.kds-status-board .kds-item-actions { width: 100%; padding-left: 38px; box-sizing: border-box; }
+.kds-status-board .kds-action-btn { min-height: 44px; }
+.kds-status-board .kds-order-card.status-completed,
+.kds-status-board .kds-order-card.status-served { opacity: 1; }
+.kds-filters { flex-wrap: wrap; }
+.kds-header { flex-wrap: wrap; gap: 12px; }
+
+@media (max-width: 600px) {
+  .kds-status-board { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); padding: 12px; }
+  .kds-status-column { min-height: 160px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .kds-status-board .kds-order-card { animation: none; }
+}
+
 .kds-item-status-badge {
   font-size: 0.7rem;
   color: #757575;

@@ -37,17 +37,7 @@ const orderItemSchema = new mongoose.Schema({
     default: ''
   },
   category: {
-    type: String,
-    enum: [
-      'Cocktails', 
-      'Pasta', 
-      'Sandwiches', 
-      'Sides', 
-      'Rice Meals', 
-      'Yogurt Milkshakes', 
-      'Coffee', 
-      'Coolers'
-    ]
+    type: String
   },
   modifiers: [selectedModifierSchema],
   addons: [selectedAddonSchema],
@@ -76,6 +66,8 @@ const orderItemSchema = new mongoose.Schema({
 });
 
 const orderSchema = new mongoose.Schema({
+  trackingTokenHash: { type: String, select: false, index: true },
+  deliveryType: { type: String, enum: ['guest', 'registered'] },
   userId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'User',
@@ -135,7 +127,7 @@ const orderSchema = new mongoose.Schema({
   },
   paymentMethod: {
     type: String,
-    enum: ['cash', 'card', 'gcash', 'maya', 'bank_transfer', 'others'],
+    enum: ['cash', 'card', 'gcash', 'qrph', 'maya', 'bank_transfer', 'others'],
     default: 'cash'
   },
   paymentProof: String,
@@ -146,6 +138,12 @@ const orderSchema = new mongoose.Schema({
   servedAt: Date,
   completedAt: Date,
   estimatedCompletionTime: Date, // Estimated when order will be ready
+  stockDeductedAt: Date,
+  stockDeductions: [{
+    inventoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' },
+    productId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem' },
+    quantity: { type: Number, min: 0 }
+  }],
   statusTimeline: [{
     status: {
       type: String,

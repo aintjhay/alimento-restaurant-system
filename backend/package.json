@@ -5,8 +5,11 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node server-dev.js",
+    "dev": "nodemon server.js",
+    "dev:memory": "node server-dev.js",
     "seed": "node seedDatabase.js",
+    "migrate:admin": "node migrateAdminRoles.js",
+    "migrate:categories": "node migrateProductCategories.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],

@@ -1,18 +1,35 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { menuAPI } from '../../services/api';
-import { getCategoryIcon, getFoodImage, getItemColor } from '../../utils/imageUtils';
+import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
 import CartModal from '../../components/portal/CartModal';
-import UtensilsIcon from '../../components/icons/UtensilsIcon';
-import { FaSearch, FaTimes } from 'react-icons/fa';
+import CartIcon from '../../components/icons/CartIcon';
+import TrashIcon from '../../components/icons/TrashIcon';
+import forkSpoonFallback from '../../assets/images/fork-spoon-fallback.png';
+import { FaSearch, FaSlidersH, FaTimes } from 'react-icons/fa';
+import { LuLayoutGrid, LuSoup, LuUtensils, LuSandwich, LuCookingPot, LuWine, LuCupSoda, LuCoffee, LuIceCreamBowl } from 'react-icons/lu';
 import './Portal.css';
 
 const CART_KEY = 'portalCart';
+const CATEGORY_ICONS = { All: LuLayoutGrid, 'Rice Meals': LuSoup, Pasta: LuUtensils, Sandwiches: LuSandwich, Sides: LuCookingPot, Cocktails: LuWine, Coolers: LuCupSoda, Coffee: LuCoffee, 'Yogurt Milkshakes': LuIceCreamBowl };
 
 const PortalHome = () => {
   const navigate = useNavigate();
+  const pageRef = useRef(null);
+  const [hasLoadedMenu, setHasLoadedMenu] = useState(false);
+
+  useEffect(() => {
+    const page = pageRef.current;
+    const header = page?.querySelector(".portal-header");
+    if (!header) return;
+    const observer = new ResizeObserver(() => {
+      page.style.setProperty("--portal-header-height", `${header.getBoundingClientRect().height}px`);
+    });
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, [hasLoadedMenu]);
   const [menuItems, setMenuItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -23,6 +40,16 @@ const PortalHome = () => {
   const [selectedAddons, setSelectedAddons] = useState({});
   const [specialInstructions, setSpecialInstructions] = useState('');
   const [showCartModal, setShowCartModal] = useState(false);
+  useEffect(() => {
+    if (!modalItem) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => { document.body.style.overflow = previousOverflow; };
+  }, [modalItem]);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [categoryOptions, setCategoryOptions] = useState([]);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pagination, setPagination] = useState({ page: 1, pageSize: 8, totalItems: 0, totalPages: 1 });
 
   useEffect(() => {
     const savedCart = localStorage.getItem(CART_KEY);
@@ -40,38 +67,23 @@ const PortalHome = () => {
   }, [cart]);
 
   useEffect(() => {
+    menuAPI.getCategories().then(setCategoryOptions).catch(() => setCategoryOptions([]));
+  }, []);
+
+  useEffect(() => {
     const fetchMenu = async () => {
       setLoading(true);
       try {
         console.log('🔄 Fetching menu from API...');
-        const data = await menuAPI.getAll();
+        const data = await menuAPI.getPage({ page: currentPage, category: activeCategory, search: searchTerm });
         console.log('✅ Menu data received:', data);
         
-        const mapCorrectImages = (items) => {
-          return items.map(item => {
-            const tempItem = { ...item };
-            const cat = (tempItem.category || '').trim().toUpperCase();
-            const name = (tempItem.name || '').trim().toUpperCase();
-            
-            if (cat === 'SANDWICHES' || cat === 'SANDWICH') {
-              if (name.includes('THICK CUT BACON')) tempItem.image = 'food/ThickCutBacon.jpg';
-              if (name.includes('CRISPY CHIX')) tempItem.image = 'food/CrispyChix.jpg';
-              if (name.includes('CHORI CHEESEBURGER') && !name.includes('BBQ')) tempItem.image = 'food/Choricheeseburger.jpg';
-              if (name.includes('BBQ CHEESEBURGER')) tempItem.image = 'food/Choricheeseburger2.jpg';
-            } else if (cat === 'COFFEE') {
-              if (name.includes('SALTED LATTE')) tempItem.image = 'food/SpanishLatte.jpg';
-              else tempItem.image = '';
-            } else if (name.includes('CAJUN FRIES')) {
-              tempItem.image = '';
-            }
-            return tempItem;
-          });
-        };
-        
-        if (Array.isArray(data) && data.length > 0) {
-          setMenuItems(mapCorrectImages(data));
+        if (Array.isArray(data.items)) {
+          setMenuItems(data.items);
+          setPagination(data.pagination);
+          if (data.pagination.page !== currentPage) setCurrentPage(data.pagination.page);
         } else if (data && data.data && Array.isArray(data.data)) {
-          setMenuItems(mapCorrectImages(data.data));
+          setMenuItems(data.data);
         } else {
           console.warn('⚠️ Menu data is empty or invalid');
           setMenuItems([]);
@@ -81,30 +93,30 @@ const PortalHome = () => {
         setMenuItems([]);
       } finally {
         setLoading(false);
+        setHasLoadedMenu(true);
       }
     };
 
-    fetchMenu();
-  }, []);
+    const timeoutId = setTimeout(fetchMenu, searchTerm ? 300 : 0);
+    return () => clearTimeout(timeoutId);
+  }, [activeCategory, currentPage, searchTerm]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [activeCategory, searchTerm]);
 
   const categories = useMemo(() => {
     const ORDER = ['Rice Meals', 'Pasta', 'Sandwiches', 'Sides', 'Cocktails', 'Coolers', 'Coffee', 'Yogurt Milkshakes'];
-    const unique = new Set(menuItems.map(item => item.category));
+    const unique = new Set(categoryOptions);
     const sorted = ORDER.filter(c => unique.has(c));
     // Append any unlisted categories at the end
     unique.forEach(c => { if (!ORDER.includes(c)) sorted.push(c); });
     return ['All', ...sorted];
-  }, [menuItems]);
+  }, [categoryOptions]);
 
   const filteredItems = useMemo(() => {
     const ORDER = ['Rice Meals', 'Pasta', 'Sandwiches', 'Sides', 'Cocktails', 'Coolers', 'Coffee', 'Yogurt Milkshakes'];
-    const filtered = menuItems.filter(item => {
-      const matchesCategory = activeCategory === 'All' || item.category === activeCategory;
-      const matchesSearch = !searchTerm.trim() ||
-        item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
-      return matchesCategory && matchesSearch;
-    });
+    const filtered = [...menuItems];
     if (activeCategory === 'All') {
       filtered.sort((a, b) => {
         const ai = ORDER.indexOf(a.category);
@@ -113,13 +125,15 @@ const PortalHome = () => {
       });
     }
     return filtered;
-  }, [menuItems, activeCategory, searchTerm]);
+  }, [menuItems, activeCategory]);
 
   const openModal = (item) => {
     const initialModifiers = {};
     (item.modifiers || []).forEach(mod => {
       if (mod.required && mod.options && mod.options.length > 0) {
-        initialModifiers[mod.name] = mod.options[0];
+        initialModifiers[mod.name] = (mod.name === 'Temperature'
+          ? mod.options.find(option => option.price === item.price)
+          : null) || mod.options[0];
       }
     });
 
@@ -192,10 +206,19 @@ const PortalHome = () => {
     setCart(updated);
   };
 
+  const removeCartItem = (index) => {
+    setCart(currentCart => currentCart.filter((_, itemIndex) => itemIndex !== index));
+  };
+
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
-  const taxAmount = cartSubtotal * 0.12;
   const deliveryFee = 50;
-  const cartTotal = cartSubtotal + taxAmount + deliveryFee;
+  const cartTotal = cartSubtotal + deliveryFee;
+  const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const formatCurrency = (amount) => `₱${amount.toFixed(2)}`;
+  const formatProductName = (name = '') => name
+    .toLocaleLowerCase()
+    .replace(/\b\w/g, letter => letter.toLocaleUpperCase())
+    .replace(/\bBbq\b/g, 'BBQ');
 
   // Get recommended items (featured or most popular)
   const recommendedItems = useMemo(() => {
@@ -205,7 +228,8 @@ const PortalHome = () => {
   }, [menuItems]);
 
   const handleCheckout = () => {
-    if (cart.length === 0) return;
+    if (cart.length === 0 || isCheckingOut) return;
+    setIsCheckingOut(true);
     localStorage.setItem(CART_KEY, JSON.stringify(cart));
     
     // Go directly to checkout (skip choice page for better UX)
@@ -221,7 +245,10 @@ const PortalHome = () => {
       return {
         modifierName: mod.name,
         selectedOption: selected.name,
-        extraPrice: selected.price || 0
+        // Temperature options are full prices; orders store adjustments to the base.
+        extraPrice: mod.name === 'Temperature'
+          ? (selected.price ?? modalItem.price) - modalItem.price
+          : selected.price || 0
       };
     }).filter(Boolean);
 
@@ -233,10 +260,10 @@ const PortalHome = () => {
     closeModal();
   };
 
-  if (loading) {
+  if (loading && !hasLoadedMenu) {
     return (
-      <div className="portal-page">
-        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
+      <div className="portal-page" ref={pageRef}>
+        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cartItemCount} />
         <div className="portal-loading" style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div>
             <p>Loading menu...</p>
@@ -247,10 +274,10 @@ const PortalHome = () => {
     );
   }
 
-  if (!menuItems.length && !loading) {
+  if (!menuItems.length && !loading && activeCategory === 'All' && !searchTerm.trim()) {
     return (
-      <div className="portal-page">
-        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
+      <div className="portal-page" ref={pageRef}>
+        <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cartItemCount} />
         <div className="portal-loading" style={{ minHeight: '600px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
           <div style={{ textAlign: 'center', maxWidth: '400px' }}>
             <p style={{ fontSize: '1.1rem', fontWeight: '600', marginBottom: '1rem' }}>Menu is currently unavailable</p>
@@ -281,14 +308,14 @@ const PortalHome = () => {
   }
 
   return (
-    <div className="portal-page">
-      <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cart.length} />
+    <div className="portal-page" ref={pageRef}>
+      <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cartItemCount} />
       
       <header className="portal-hero">
         <div className="portal-hero-content">
           <p className="portal-kicker">Alimento Resto</p>
-          <h1>Order online for delivery</h1>
-          <p className="portal-subtitle">Choose from our bestsellers and pay via GCash. We will verify and prepare right away.</p>
+          <h1>Your Alimento favorites, delivered.</h1>
+          <p className="portal-subtitle">Browse the menu and pay with GCash.</p>
           <div className="portal-search">
             <FaSearch className="search-icon" />
             <input
@@ -311,17 +338,22 @@ const PortalHome = () => {
       </header>
 
       <div className="portal-category-bar">
-        <div className="category-bar-inner">
-          {categories.map(category => (
+        <div className="category-bar-inner" role="group" aria-label="Filter menu by category">
+          {categories.map(category => {
+            const Icon = CATEGORY_ICONS[category] || LuUtensils;
+            return (
             <button
               key={category}
+              type="button"
+              aria-pressed={activeCategory === category}
               className={`category-chip ${activeCategory === category ? 'active' : ''}`}
               onClick={() => setActiveCategory(category)}
             >
-              <span className="chip-icon">{category === 'All' ? '▦' : getCategoryIcon(category)}</span>
-              {category}
+              <span className="chip-icon"><Icon aria-hidden="true" focusable="false" /></span>
+              {category === 'Yogurt Milkshakes' ? 'Yogurt Shakes' : category}
             </button>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -343,7 +375,7 @@ const PortalHome = () => {
                   >
                     {!item.image && (
                       <span className="image-fallback">
-                        <UtensilsIcon size={48} color="rgba(47,111,106,0.45)" />
+                        <img src={forkSpoonFallback} alt="" className="fallback-utensils" />
                       </span>
                     )}
                     {item.featured && <div className="featured-badge">⭐ Featured</div>}
@@ -363,7 +395,8 @@ const PortalHome = () => {
       )}
 
       <div className="portal-content">
-        <main className="portal-menu">
+        <main className="portal-menu" aria-busy={loading}>
+          {loading && <p role="status">Loading menu...</p>}
           <div className="menu-grid">
             {filteredItems.map(item => (
               <div key={item._id || item.name} className="menu-card">
@@ -378,12 +411,13 @@ const PortalHome = () => {
                 >
                   {!item.image && (
                     <span className="image-fallback">
-                      <UtensilsIcon size={56} color="rgba(47,111,106,0.45)" />
+                      <img src={forkSpoonFallback} alt="" className="fallback-utensils" />
                     </span>
                   )}
                   {(item.modifiers && item.modifiers.length > 0) && (
                     <div className="menu-modifier-badge">
-                      ⚙️ Options
+                      <FaSlidersH aria-hidden="true" />
+                      <span>Customize</span>
                     </div>
                   )}
                 </div>
@@ -401,54 +435,86 @@ const PortalHome = () => {
               </div>
             ))}
           </div>
+          {pagination.totalPages > 1 && (
+            <nav className="product-pagination" aria-label="Product pages">
+              <button
+                type="button"
+                disabled={!pagination.hasPreviousPage || loading}
+                onClick={() => setCurrentPage(page => Math.max(1, page - 1))}
+              >
+                Previous
+              </button>
+              <span>Page {pagination.page} of {pagination.totalPages}</span>
+              <button
+                type="button"
+                disabled={!pagination.hasNextPage || loading}
+                onClick={() => setCurrentPage(page => page + 1)}
+              >
+                Next
+              </button>
+            </nav>
+          )}
         </main>
 
         <aside className="portal-cart">
           <div className="cart-header">
             <h2>Your order</h2>
-            <span>{cart.length} items</span>
+            <span>{cartItemCount} {cartItemCount === 1 ? 'item' : 'items'}</span>
           </div>
           {cart.length === 0 ? (
-            <div className="cart-empty">Add items to start your order.</div>
+            <div className="cart-empty">
+              <span className="cart-empty-icon" aria-hidden="true"><CartIcon size={28} /></span>
+              <strong>Your cart is empty</strong>
+              <span>Add an item from the menu to get started.</span>
+            </div>
           ) : (
             <div className="cart-list">
               {cart.map((item, index) => (
                 <div key={`${item.id}-${index}`} className="cart-item">
                   <div className="cart-item-content">
                     <div className="cart-item-left">
-                      <h4>{item.name}</h4>
-                      <p className="cart-item-price">₱{(item.itemPrice * item.quantity).toFixed(0)}</p>
+                      <h4>{formatProductName(item.name)}</h4>
+                      <p className="cart-item-price">{formatCurrency(item.itemPrice * item.quantity)}</p>
                     </div>
-                    <div className="cart-qty">
-                      <button onClick={() => updateQuantity(index, -1)}>−</button>
-                      <span>{item.quantity}</span>
-                      <button onClick={() => updateQuantity(index, 1)}>+</button>
+                    <div className="cart-item-actions">
+                      <div className="cart-quantity-group">
+                        <span className="cart-quantity-label">Quantity</span>
+                        <div className="cart-qty" aria-label={`Quantity for ${item.name}`}>
+                          <button onClick={() => updateQuantity(index, -1)} aria-label={`Decrease ${item.name} quantity`}>−</button>
+                          <span key={item.quantity} className="cart-quantity-value" aria-live="polite">{item.quantity}</span>
+                          <button onClick={() => updateQuantity(index, 1)} aria-label={`Increase ${item.name} quantity`}>+</button>
+                        </div>
+                      </div>
+                      <button
+                        className="cart-remove-btn"
+                        onClick={() => removeCartItem(index)}
+                        aria-label={`Remove ${item.name} from order`}
+                        title="Remove item"
+                      >
+                        <TrashIcon size={18} />
+                      </button>
                     </div>
                   </div>
                 </div>
               ))}
               <div className="cart-summary">
                 <span>Subtotal</span>
-                <strong>₱{cartSubtotal.toFixed(0)}</strong>
+                <strong>{formatCurrency(cartSubtotal)}</strong>
               </div>
               <div className="cart-breakdown">
                 <div className="breakdown-row">
-                  <span>Tax (12%)</span>
-                  <span>₱{taxAmount.toFixed(0)}</span>
-                </div>
-                <div className="breakdown-row">
-                  <span>Delivery Fee</span>
-                  <span>₱{deliveryFee.toFixed(0)}</span>
+                  <span className="delivery-label">Delivery fee <small>Standard delivery</small></span>
+                  <span>{formatCurrency(deliveryFee)}</span>
                 </div>
                 <div className="breakdown-row total">
                   <span>Total</span>
-                  <span>₱{cartTotal.toFixed(0)}</span>
+                  <span>{formatCurrency(cartTotal)}</span>
                 </div>
               </div>
             </div>
           )}
-          <button className="checkout-btn" onClick={handleCheckout} disabled={cart.length === 0}>
-            Proceed to checkout
+          <button className="checkout-btn" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
+            {isCheckingOut ? 'Opening checkout…' : 'Proceed to checkout'}
           </button>
         </aside>
       </div>
@@ -478,7 +544,7 @@ const PortalHome = () => {
                         })}
                       />
                       <span>{option.name}</span>
-                    {option.price > 0 && <span className="option-price">+₱{option.price}</span>}
+                    {option.price > 0 && <span className="option-price">{mod.name === 'Temperature' ? '' : '+'}₱{option.price}</span>}
                     </label>
                   ))}
                 </div>

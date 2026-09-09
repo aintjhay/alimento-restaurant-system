@@ -1,14 +1,17 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
+import AccountSidebar from '../../components/portal/AccountSidebar';
+import { LuReceiptText, LuArrowUpRight } from 'react-icons/lu';
 import PortalFooter from '../../components/portal/PortalFooter';
 import PortalOrderCard from '../../components/portal/PortalOrderCard';
 import OrderStatusNotification from '../../components/portal/OrderStatusNotification';
 import realtimeService from '../../services/realtimeService';
-import { ordersAPI } from '../../services/api';
-import UtensilsIcon from '../../components/icons/UtensilsIcon';
+import { API_URL } from '../../services/api';
 import './Portal.css';
-import API_BASE_URL from '../../config/api';
+import './PortalUserProfile.css';
+import './PortalOrderHistory.css';
+import { mergeOrderUpdate } from '../../utils/orderUtils';
 
 const PortalOrderHistory = () => {
   const navigate = useNavigate();
@@ -21,12 +24,13 @@ const PortalOrderHistory = () => {
   useEffect(() => {
     const portalUser = localStorage.getItem('portalUser');
     if (!portalUser) {
-      navigate('/portal/login');
+      navigate('/portal/track');
       return;
     }
 
     try {
       const userData = JSON.parse(portalUser);
+      if (userData.type === 'guest') { navigate('/portal/track'); return; }
       setUser(userData);
       // Check for both _id and id (backend may return either)
       const userId = userData._id || userData.id;
@@ -51,40 +55,25 @@ const PortalOrderHistory = () => {
     };
   }, [navigate]);
 
-  // Watch for order status changes and show notifications
-  useEffect(() => {
-    orders.forEach(order => {
-      if (order.status !== 'completed' && order.status !== 'cancelled') {
-        realtimeService.startPolling(
-          order._id || order.id,
-          (updatedOrder) => {
-            // Check if status changed
-            const oldOrder = orders.find(o => (o._id || o.id) === (updatedOrder._id || updatedOrder.id));
-            if (oldOrder && oldOrder.status !== updatedOrder.status) {
-              realtimeService.notify(
-                `📦 Order ${updatedOrder.orderNumber || '#' + updatedOrder._id?.slice(-6)} is now ${realtimeService.getStatusText(updatedOrder.status).toLowerCase()}!`,
-                'success'
-              );
-            }
-            
-            // Update order in state
-            setOrders(prevOrders =>
-              prevOrders.map(o =>
-                (o._id || o.id) === (updatedOrder._id || updatedOrder.id) ? updatedOrder : o
-              )
-            );
-          },
-          5000 // Poll every 5 seconds
-        );
-      }
-    });
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
+  const activeOrderIds = JSON.stringify(orders.filter(order => !['completed', 'cancelled', 'served'].includes(order.status)).map(order => order._id || order.id).filter(Boolean).sort());
 
-    return () => {
-      orders.forEach(order => {
-        realtimeService.stopPolling(order._id || order.id);
-      });
-    };
-  }, [orders]);
+  useEffect(() => {
+    const ids = JSON.parse(activeOrderIds);
+    let active = true;
+    ids.forEach(id => realtimeService.startPolling(id, response => {
+      if (!active) return;
+      const updated = response?.data || response?.order || response;
+      if (!(updated?._id || updated?.id)) return;
+      const previous = ordersRef.current.find(order => (order._id || order.id) === id);
+      if (previous && previous.status !== updated.status) {
+        realtimeService.notify(`Order ${updated.orderNumber || id} is now ${realtimeService.getStatusText(updated.status).toLowerCase()}!`, 'success');
+      }
+      setOrders(current => current.map(order => (order._id || order.id) === id ? mergeOrderUpdate(order, updated) : order));
+    }, 10000));
+    return () => { active = false; ids.forEach(id => realtimeService.stopPolling(id)); };
+  }, [activeOrderIds]);
 
   const loadOrderHistoryFromStorage = async () => {
     setLoading(true);
@@ -111,7 +100,7 @@ const PortalOrderHistory = () => {
     try {
       console.log('🔄 Fetching orders for user:', userId);
       // Fetch orders from backend API for the logged-in user
-      const response = await fetch(`${API_BASE_URL}/api/orders/user/${userId}`);
+      const response = await fetch(`${API_URL}/orders/user/${userId}`);
       const data = await response.json();
       
       console.log('📦 Backend response:', data);
@@ -166,43 +155,48 @@ const PortalOrderHistory = () => {
 
   const filteredOrders = orders.filter(order => {
     if (filter === 'all') return true;
-    if (filter === 'active') return ['pending', 'confirmed', 'preparing'].includes(order.status);
+    if (filter === 'active') return ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status);
+    if (filter === 'completed') return ['completed', 'served'].includes(order.status);
     return order.status === filter;
   });
 
   if (!user) {
-    return <div className="portal-page"><PortalHeader /><PortalFooter /></div>;
+    return <div className="portal-page profile-page orders-page"><PortalHeader /><PortalFooter /></div>;
   }
 
   return (
-    <div className="portal-page">
+    <div className="portal-page profile-page orders-page">
       <PortalHeader />
       
       {/* Order Status Notifications */}
       <OrderStatusNotification />
       
       <main className="portal-main">
-        <div className="portal-section">
-          <div className="portal-section-header">
-            <h1>
-              Your Orders
-            </h1>
-            <p>Track and view your order history with real-time updates</p>
+        <div className="portal-section account-orders-shell">
+          <div className="account-page-heading orders-heading">
+            <div><p className="orders-eyebrow">YOUR ACCOUNT</p><h1>Your orders</h1><span>Good food, past and present. Find all your orders here.</span></div>
+            <button className="orders-browse" onClick={() => navigate('/portal')}>Browse menu <LuArrowUpRight aria-hidden="true" /></button>
           </div>
-
+          <div className="account-layout">
+            <AccountSidebar user={user} active="orders" />
+            <div className="account-content orders-content">
+          <div className="orders-panel-heading"><div><h2>Order history</h2><p>View progress, check details, or order your favorites again.</p></div><span>{loading ? 'Loading' : `${orders.length} ${orders.length === 1 ? 'order' : 'orders'}`}</span></div>
           {/* Filter Buttons */}
-          <div className="order-filters">
+          <div className="order-filters" role="group" aria-label="Filter orders">
             {[
               { value: 'all', label: 'All' },
               { value: 'active', label: 'Active' },
-              { value: 'completed', label: 'Completed' }
+              { value: 'completed', label: 'Completed' },
+              { value: 'cancelled', label: 'Cancelled' }
             ].map(item => (
               <button
                 key={item.value}
+                type="button"
+                aria-pressed={filter === item.value}
                 className={`filter-btn ${filter === item.value ? 'active' : ''}`}
                 onClick={() => setFilter(item.value)}
               >
-                {item.label}
+                {item.label} <span className="order-filter-count">{orders.filter(order => item.value === 'all' || (item.value === 'active' ? ['pending', 'confirmed', 'preparing', 'ready'].includes(order.status) : item.value === 'completed' ? ['completed', 'served'].includes(order.status) : order.status === item.value)).length}</span>
               </button>
             ))}
           </div>
@@ -216,13 +210,12 @@ const PortalOrderHistory = () => {
               </div>
             ) : filteredOrders.length === 0 ? (
               <div className="empty-state">
-                <div className="empty-icon"><UtensilsIcon size={52} color="#d1d5db" /></div>
-                <p className="empty-title">No orders found</p>
+                <span className="orders-empty-icon"><LuReceiptText aria-hidden="true" /></span><h2>{filter === 'all' ? 'Your first order starts here' : `No ${filter} orders`}</h2><p>{filter === 'all' ? 'Explore the menu and find your next favorite.' : 'Try another filter to see the rest of your orders.'}</p>
                 <button 
                   className="primary-btn"
                   onClick={() => navigate('/portal')}
                 >
-                  Start Ordering
+                  Browse menu
                 </button>
               </div>
             ) : (
@@ -236,6 +229,8 @@ const PortalOrderHistory = () => {
                 ))}
               </div>
             )}
+          </div>
+            </div>
           </div>
         </div>
       </main>

@@ -1,0 +1,227 @@
+.profile-page .profile-container {
+  max-width: 1120px;
+  padding: 0;
+}
+
+.profile-page .profile-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px;
+  padding-bottom: 0;
+  border: 0;
+}
+
+.profile-avatar {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 64px;
+  flex-shrink: 0;
+  border-radius: 50%;
+  background: #e8f2f0;
+  color: #2f6f6a;
+  font-size: 22px;
+  font-weight: 600;
+}
+
+.profile-page .profile-eyebrow {
+  margin: 0 0 4px;
+  font-size: 13px;
+  color: #657571;
+}
+
+.profile-page .profile-header h1 {
+  margin: 0 0 4px;
+  font-size: 26px;
+  color: #1f2937;
+  overflow-wrap: anywhere;
+}
+
+.profile-page .profile-email { margin: 0; overflow-wrap: anywhere; }
+.profile-cards { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.2fr); gap: 24px; align-items: start; }
+
+.profile-page .profile-section {
+  min-width: 0;
+  margin: 0;
+  padding: 24px;
+  background: white;
+  border: 1px solid #e1e7e5;
+  border-radius: 14px;
+  box-shadow: 0 2px 6px rgba(24, 63, 59, .04);
+}
+
+.profile-page .section-header { flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+.profile-page .section-title { gap: 8px; }
+.profile-page .section-title h2 { font-size: 17px; margin: 0; }
+.profile-page .section-icon { display: grid; place-items: center; width: 36px; height: 36px; flex-shrink: 0; border-radius: 50%; background: #e8f2f0; }
+.profile-page .profile-info { gap: 16px; text-align: left; align-items: stretch; }
+.profile-page .info-row { display: flex; flex-direction: column; align-items: flex-start; text-align: left; gap: 5px; padding: 0; border: 0; background: none; }
+.profile-page .info-row .label { font-size: 13px; font-weight: 500; color: #657571; }
+.profile-page .info-row .value { font-size: 15px; overflow-wrap: anywhere; }
+
+.profile-page .btn-edit-profile,
+.profile-page .btn-add-address { min-height: 40px; padding: 8px 12px; font-size: 13px; border-radius: 8px; background: #2f6f6a; box-shadow: none; }
+.profile-page .btn-edit-profile { background: white; border: 1px solid #bed3cf; color: #2f6f6a; }
+.profile-page .btn-edit-profile:hover { background: #eef6f4; }
+
+.profile-page .profile-address-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 32px);
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 24px;
+  border: 1px solid #e1e7e5;
+  border-radius: 16px;
+  background: white;
+  color: #1f2937;
+  box-shadow: 0 20px 60px rgba(24, 63, 59, .18);
+}
+.profile-address-dialog::backdrop { background: rgba(17, 24, 39, .5); }
+.profile-dialog-header { display: flex; justify-content: space-between; align-items: center; gap: 16px; margin-bottom: 24px; }
+.profile-dialog-header h2 { font-size: 20px; margin: 0; }
+.profile-dialog-header button { width: 40px; height: 40px; border: 1px solid #e1e7e5; border-radius: 8px; background: white; font-size: 24px; cursor: pointer; }
+.profile-page .profile-address-dialog .add-address-form { margin: 0; gap: 18px; }
+.profile-page .profile-address-dialog .form-group { text-align: left; }
+.profile-page .profile-address-dialog .checkbox-group,
+.profile-page .profile-address-dialog .checkbox-group label { justify-content: flex-start; align-items: center; text-align: left; }
+.profile-page .profile-address-dialog .btn-primary { background: #2f6f6a; color: white; box-shadow: none; }
+.profile-page .profile-address-dialog .btn-secondary { background: white; color: #2f6f6a; border: 1px solid #bed3cf; }
+.profile-page .profile-address-dialog .form-actions button { min-height: 44px; border-radius: 8px; }
+.profile-page .profile-address-dialog button:disabled { opacity: .6; cursor: wait; }
+
+.profile-page .addresses-list { margin-top: 0; gap: 12px; }
+.profile-page .empty-state { min-height: 0; padding: 24px 16px; gap: 10px; background: #fafcfb; border: 1px dashed #dce5e2; border-radius: 10px; }
+.profile-page .empty-icon { margin: 0; font-size: 28px; }
+.profile-page .empty-state .empty-title { font-size: 15px; font-weight: 600; color: #1f2937; line-height: 1.4; }
+.profile-page .empty-state .empty-text { font-size: 13px; line-height: 1.5; }
+.profile-page .empty-state .btn-add-address { margin-top: 4px; }
+.profile-page .address-card { flex-wrap: wrap; padding: 16px; gap: 12px; box-shadow: none; transform: none; }
+.profile-page .address-body { flex: 1 1 100%; min-width: 0; overflow-wrap: anywhere; }
+.profile-page .address-header { margin-bottom: 8px; flex-wrap: wrap; }
+.profile-page .address-header h3 { font-size: 15px; }
+.profile-page .address-content p { font-size: 14px; line-height: 1.5; }
+.profile-address-actions { display: flex; gap: 12px; }
+.profile-page .profile-address-edit,
+.profile-page .btn-delete-address { display: inline-flex; align-items: center; gap: 6px; width: auto; height: auto; min-height: 40px; padding: 6px 10px; border: 1px solid #e1e7e5; border-radius: 8px; background: white; font-size: 13px; cursor: pointer; }
+.profile-page .profile-address-edit { color: #2f6f6a; }
+.profile-page .add-address-form { padding: 0; border: 0; background: white; }
+.profile-page button:focus-visible { outline: 2px solid #2f6f6a; outline-offset: 3px; }
+
+.profile-page .profile-address-dialog { width: min(580px, calc(100vw - 32px)); padding: 28px; border-radius: 20px; }
+.profile-address-dialog .profile-dialog-header { align-items: flex-start; gap: 12px; margin-bottom: 26px; }
+.address-dialog-intro { display: flex; align-items: flex-start; gap: 12px; }
+.address-dialog-icon { display: grid; place-items: center; width: 42px; height: 42px; flex-shrink: 0; border-radius: 12px; background: #edf5f1; color: #2f6f6a; font-size: 22px; }
+.profile-address-dialog .profile-dialog-header h2 { color: #183e3a; font-size: 21px; letter-spacing: -.025em; margin: 0 0 6px; }
+.address-dialog-intro p { margin: 0; color: #718079; font-size: 12px; line-height: 1.6; }
+.profile-address-dialog .profile-dialog-header > button { display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0; font-size: 18px; color: #64766d; background: #f7f9f8; border: 0; }
+.profile-page .profile-address-dialog .add-address-form { display: flex; flex-direction: column; gap: 18px; }
+.profile-page .profile-address-dialog .form-group { margin: 0; gap: 8px; }
+.profile-page .profile-address-dialog .form-row { display: grid; grid-template-columns: 1.5fr 1fr; gap: 16px; margin: 0; }
+.profile-page .profile-address-dialog .form-group > label, .address-label-options legend { font-size: 12px; font-weight: 600; color: #40564c; }
+.profile-page .profile-address-dialog .form-group input:not([type="checkbox"]) { width: 100%; min-height: 46px; padding: 12px 14px; border: 1px solid #dbe4df; border-radius: 9px; background: #fff; font: inherit; font-size: 13px; box-sizing: border-box; }
+.profile-page .profile-address-dialog input::placeholder { color: #8a958f; }
+.profile-page .profile-address-dialog input:focus-visible { outline: 2px solid #2f6f6a; outline-offset: 2px; }
+.address-label-options { border: 0; padding: 0; margin: 0; min-width: 0; }
+.address-label-options legend { margin-bottom: 10px; }
+.address-label-options > div { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+.address-label-options label { display: flex; align-items: center; justify-content: center; position: relative; gap: 8px; min-height: 44px; border: 1px solid #dfe6e1; border-radius: 9px; font-size: 13px; color: #62756a; cursor: pointer; }
+.address-label-options label.is-selected { background: #edf5f1; border-color: #2f6f6a; color: #2f6f6a; font-weight: 600; }
+.address-label-options input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.address-label-options label:focus-within { outline: 2px solid #2f6f6a; outline-offset: 3px; }
+.address-label-options svg { width: 16px; height: 16px; }
+.profile-address-dialog .address-required-note { margin: 0 0 -6px; color: #7c8981; font-size: 11px; }
+.profile-address-dialog .address-contact-field small { color: #718079; font-size: 11px; line-height: 1.5; margin: 0; }
+.profile-page .profile-address-dialog .checkbox-group { margin: 2px 0 0; padding: 14px; background: #f6f8f6; border: 1px solid #e8ede9; border-radius: 10px; }
+.profile-page .profile-address-dialog .checkbox-group label { display: flex; gap: 11px; font-size: 12px; color: #40564c; cursor: pointer; }
+.profile-address-dialog .checkbox-group input { width: 17px; height: 17px; margin: 0; flex-shrink: 0; accent-color: #2f6f6a; }
+.profile-address-dialog .checkbox-group small { display: block; margin-top: 3px; color: #718079; font-size: 11px; font-weight: 400; }
+.profile-page .profile-address-dialog .form-actions { display: flex; flex-direction: row-reverse; gap: 10px; margin: 4px 0 0; padding-top: 18px; border-top: 1px solid #edf1ed; }
+.profile-page .profile-address-dialog .form-actions button { padding: 11px 20px; font-size: 13px; font-weight: 600; min-height: 44px; }
+@media (max-width: 480px) {
+  .profile-page .profile-address-dialog { padding: 20px; }
+  .address-dialog-icon { display: none; }
+  .profile-page .profile-address-dialog .form-row { grid-template-columns: 1fr; }
+  .profile-page .profile-address-dialog .form-actions button { flex: 1; }
+}
+
+@media (max-width: 1000px) {
+  .profile-cards { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (max-width: 480px) {
+  .profile-page .profile-section { padding: 18px; }
+  .profile-page .profile-header h1 { font-size: 22px; }
+  .profile-page .form-row { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Account overview */
+.profile-page { background: #f6f8f7; }
+.profile-page .profile-container { max-width: 1100px; }
+.account-page-heading { margin-bottom: 28px; }
+.account-page-heading > p { margin: 0 0 9px; color: #548073; font-size: 10px; font-weight: 700; letter-spacing: .16em; }
+.account-page-heading h1 { margin: 0 0 9px; color: #193e36; font-size: 32px; letter-spacing: -.035em; }
+.account-page-heading > span { color: #728078; font-size: 13px; line-height: 1.7; }
+.account-layout { display: grid; grid-template-columns: 260px minmax(0, 1fr); align-items: start; gap: 28px; }
+.account-identity { background: white; border: 1px solid #e0e7e2; border-radius: 16px; overflow: hidden; }
+.profile-page .account-identity .profile-header { display: flex; flex-direction: column; align-items: flex-start; margin: 0; padding: 28px 24px 24px; gap: 18px; border-bottom: 1px solid #edf1ee; background: linear-gradient(150deg, #eef5f0, #fff 75%); }
+.profile-page .account-identity .profile-avatar { width: 64px; height: 64px; border-radius: 18px; background: #2f6f6a; color: white; font-size: 23px; font-weight: 500; box-shadow: 0 4px 12px #2f6f6a15; }
+.profile-page .account-identity .profile-eyebrow { color: #698277; font-size: 11px; margin-bottom: 6px; }
+.profile-page .account-identity h2 { margin: 0 0 7px; color: #193e36; font-size: 19px; line-height: 1.4; letter-spacing: -.02em; overflow-wrap: anywhere; }
+.profile-page .account-identity .profile-email { color: #6e7d74; font-size: 12px; line-height: 1.5; }
+.account-shortcuts { padding: 22px 14px 14px; }
+.account-shortcut-label { display: block; margin: 0 10px 12px; font-size: 9px; letter-spacing: .14em; font-weight: 700; color: #839087; }
+.account-shortcuts button, .account-current { display: flex; align-items: center; gap: 10px; width: 100%; padding: 13px 12px; min-height: 44px; border: 0; border-radius: 8px; font: inherit; font-size: 12px; text-align: left; }
+.account-shortcuts button { background: white; color: #61756a; cursor: pointer; margin-top: 5px; }
+.account-shortcuts button:hover { background: #f5f8f5; }
+.account-shortcuts button > svg:last-child { margin-left: auto; }
+.account-current { background: #edf5f0; color: #2f6f6a; font-weight: 600; }
+.account-shortcuts button.account-current { background: #edf5f0; color: #2f6f6a; font-weight: 600; }
+.account-shortcuts button:focus-visible { outline: 2px solid #2f6f6a; outline-offset: 2px; }
+.account-current-dot { width: 5px; height: 5px; border-radius: 50%; background: #2f6f6a; margin-left: auto; }
+.account-sidebar-note { margin: 4px 24px 24px; padding-top: 18px; border-top: 1px solid #edf1ee; font-size: 11px; line-height: 1.8; color: #859187; }
+.account-content { min-width: 0; }
+.profile-page .account-content .profile-cards { display: flex; flex-direction: column; gap: 22px; }
+.profile-page .account-content .profile-section { width: 100%; padding: 24px; border-radius: 16px; border-color: #e0e7e2; box-shadow: 0 3px 12px #183e3a03; box-sizing: border-box; }
+.profile-page .account-content .section-header { margin-bottom: 22px; align-items: center; }
+.profile-page .account-content .section-title { align-items: center; gap: 12px; }
+.profile-page .account-content .section-icon { border-radius: 10px; background: #f0f5f1; width: 38px; height: 38px; }
+.profile-page .account-content .section-title h2 { font-size: 15px; color: #253f32; font-weight: 600; }
+.account-section-description { margin: 5px 0 0; color: #7b877e; font-size: 11px; line-height: 1.6; }
+.profile-page .account-content .profile-info { display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.profile-page .account-content .info-row { padding: 15px 0; border-top: 1px solid #edf1ee; }
+.profile-page .account-content .info-row .label { color: #7b877e; font-size: 11px; }
+.profile-page .account-content .info-row .value { font-size: 13px; color: #30483b; font-weight: 500; line-height: 1.6; }
+.profile-page .account-content .btn-edit-profile { display: inline-flex; align-items: center; gap: 7px; font-size: 11px; min-height: 36px; border-color: #dce5df; }
+.account-address-count { display: inline-grid; place-items: center; min-width: 21px; height: 21px; margin-left: 5px; border-radius: 6px; background: #edf3ef; color: #597467; font-size: 10px; vertical-align: middle; }
+.profile-page .account-content .empty-state { padding: 30px 20px; background: #fafcf9; border-color: #dce6de; border-radius: 12px; }
+.profile-page .account-content .empty-icon { display: grid; place-items: center; width: 52px; height: 52px; background: #edf4ed; border-radius: 15px; margin-bottom: 5px; }
+.profile-page .account-content .empty-state .empty-title { font-size: 13px; color: #37513f; }
+.profile-page .account-content .empty-state .empty-text { font-size: 12px; color: #7b877e; }
+.profile-page .account-content .btn-add-address { font-size: 11px; min-height: 38px; padding: 10px 14px; }
+.profile-page .account-content .address-card { padding: 18px; border: 1px solid #e0e7e2; border-radius: 10px; background: white; }
+.profile-page .account-content .address-card.is-default { background: #f8fbf7; border-color: #c8ddce; }
+.profile-page .account-content .address-header h3 { color: #34513e; font-size: 13px; }
+.profile-page .account-content .badge-default { padding: 4px 7px; background: #eaf3e9; color: #55734f; font-size: 9px; border-radius: 5px; font-weight: 500; }
+.profile-page .account-content .address-content p { color: #718071; font-size: 12px; }
+.profile-page .account-content .profile-address-actions { width: 100%; padding-top: 10px; border-top: 1px solid #edf1ee; }
+.profile-page .account-content .profile-address-edit, .profile-page .account-content .btn-delete-address { border: 0; padding: 3px 5px; min-height: 34px; font-size: 11px; }
+.profile-page .account-content .btn-delete-address { margin-left: auto; color: #96665b; }
+@media (max-width: 800px) {
+  .account-layout { grid-template-columns: 1fr; gap: 20px; }
+  .profile-page .account-identity .profile-header { flex-direction: row; align-items: center; padding: 20px; }
+  .account-shortcuts { display: flex; gap: 8px; padding: 12px; }
+  .account-shortcut-label, .account-sidebar-note { display: none; }
+  .account-shortcuts button { margin: 0; }
+}
+@media (max-width: 480px) {
+  .account-page-heading h1 { font-size: 27px; }
+  .profile-page .account-content .profile-section { padding: 18px; }
+  .profile-page .account-content .profile-info { grid-template-columns: 1fr; }
+  .profile-page .account-content .section-header { align-items: flex-start; }
+  .account-section-description { max-width: 220px; }
+}

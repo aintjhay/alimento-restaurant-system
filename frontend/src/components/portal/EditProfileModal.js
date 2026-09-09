@@ -1,3 +1,4 @@
+import { phPhoneInputProps, PH_PHONE_MESSAGE } from '../../utils/phoneUtils';
 import React from 'react';
 import './EditProfileModal.css';
 
@@ -78,11 +79,12 @@ const EditProfileModal = ({
               <label htmlFor="phone">Phone Number</label>
               <input
                 id="phone"
-                type="tel"
+                {...phPhoneInputProps}
                 value={formData.phone}
                 onChange={(e) => onFormChange('phone', e.target.value)}
-                placeholder="Enter your phone number"
+                aria-describedby="profile-phone-help"
               />
+              <small id="profile-phone-help">{PH_PHONE_MESSAGE}</small>
             </div>
           </div>
 

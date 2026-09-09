@@ -1,10 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
+const { randomBytes, createHash } = require('crypto');
+const { isValidPhPhone, PH_PHONE_MESSAGE } = require('../utils/phoneUtils');
+const { deductProductStock } = require('../services/inventoryService');
+const { authMiddleware, optionalAuthMiddleware, requireRole } = require('../middleware/authMiddleware');
+const adminOnly = [authMiddleware, requireRole('admin')];
 
 // POST - Create new order
-router.post('/', async (req, res) => {
+router.post('/', optionalAuthMiddleware, async (req, res) => {
     try {
+        if (req.body.orderType === 'Delivery' && !isValidPhPhone(req.body.customerContact)) {
+            return res.status(400).json({ success: false, message: PH_PHONE_MESSAGE });
+        }
         // Generate orderNumber if not provided
         let orderNumber = req.body.orderNumber;
         if (!orderNumber) {
@@ -16,12 +24,19 @@ router.post('/', async (req, res) => {
         const resolvedPaymentStatus = req.body.paymentStatus ||
             (req.body.paymentMethod === 'gcash' ? 'payment_pending_verification' : 'unpaid');
 
+        const trackingToken = randomBytes(32).toString('hex');
         const orderData = {
             ...req.body,
             orderNumber: orderNumber,
             status: 'pending',
-            paymentStatus: resolvedPaymentStatus
+            paymentStatus: resolvedPaymentStatus,
+            trackingTokenHash: createHash('sha256').update(trackingToken).digest('hex')
         };
+        // Customer identity comes from the verified session, never a browser-generated ID.
+        if (req.body.orderType === 'Delivery') {
+            orderData.userId = req.user?.role === 'customer' ? req.user.userId : undefined;
+            orderData.deliveryType = orderData.userId ? 'registered' : 'guest';
+        }
 
         if (resolvedPaymentStatus === 'payment_verified') {
             orderData.paymentVerifiedAt = new Date();
@@ -39,7 +54,19 @@ router.post('/', async (req, res) => {
         console.log(`  Payload UserId Value: ${req.body.userId || 'UNDEFINED/NULL'}`);
         console.log(`  Order.userId (before save): ${order.userId || 'UNDEFINED/NULL'}`);
         
-        await order.save();
+        await order.validate();
+        const deductions = await deductProductStock(order.items);
+        order.stockDeductions = deductions;
+        order.stockDeductedAt = deductions.length ? new Date() : null;
+        try {
+            await order.save();
+        } catch (saveError) {
+            const Inventory = require('../models/Inventory');
+            await Promise.all(deductions.map(entry => Inventory.updateOne(
+                { _id: entry.inventoryId }, { $inc: { currentStock: entry.quantity } }
+            )));
+            throw saveError;
+        }
         
         console.log(`  Order.userId (after save): ${order.userId || 'UNDEFINED/NULL'}`);
         console.log(`✅ Order created: ${order.orderNumber} for Table ${order.tableNumber}${order.userId ? ` [UserId: ${order.userId}]` : ' [GUEST - NO USERID]'}\n`);
@@ -47,7 +74,7 @@ router.post('/', async (req, res) => {
         res.status(201).json({
             success: true,
             message: 'Order placed successfully!',
-            order: order
+            order: { ...order.toObject(), trackingTokenHash: undefined, trackingToken }
         });
     } catch (error) {
         console.error('❌ Order creation error:', error);
@@ -59,8 +86,25 @@ router.post('/', async (req, res) => {
     }
 });
 
+// A private tracking link exposes status only, without contact or address details.
+router.get('/track/:token', async (req, res) => {
+    if (!/^[a-f0-9]{64}$/.test(req.params.token)) {
+        return res.status(404).json({ success: false, message: 'Tracking link not found' });
+    }
+    try {
+        const order = await Order.findOne({
+            trackingTokenHash: createHash('sha256').update(req.params.token).digest('hex')
+        }).select('orderNumber status paymentStatus paymentMethod estimatedCompletionTime updatedAt').lean();
+        res.set('Cache-Control', 'no-store');
+        if (!order) return res.status(404).json({ success: false, message: 'Tracking link not found' });
+        res.json({ success: true, order });
+    } catch (error) {
+        res.status(500).json({ success: false, message: 'Unable to load order status' });
+    }
+});
+
 // GET - All orders (for dashboard)
-router.get('/', async (req, res) => {
+router.get('/', ...adminOnly, async (req, res) => {
     try {
         const { status, startDate, endDate, limit = 50 } = req.query;
         
@@ -151,7 +195,7 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 // GET - Today's orders and revenue
-router.get('/today', async (req, res) => {
+router.get('/today', ...adminOnly, async (req, res) => {
     try {
         const today = new Date();
         today.setHours(0, 0, 0, 0);
@@ -182,7 +226,7 @@ router.get('/today', async (req, res) => {
 });
 
 // GET - Top selling items
-router.get('/top-items', async (req, res) => {
+router.get('/top-items', ...adminOnly, async (req, res) => {
     try {
         const orders = await Order.find({})
             .select('items')
@@ -219,8 +263,21 @@ router.get('/top-items', async (req, res) => {
     }
 });
 
+// Public, read-only status endpoint used by a customer who has the opaque order id.
+router.get('/:id', async (req, res) => {
+    try {
+        const order = await Order.findById(req.params.id).select(
+            'orderNumber status paymentStatus estimatedCompletionTime statusTimeline items.itemStatus items.itemStatusTimeline updatedAt'
+        ).lean();
+        if (!order) return res.status(404).json({ success: false, message: 'Order not found' });
+        res.json(order);
+    } catch (error) {
+        res.status(400).json({ success: false, message: 'Invalid order id' });
+    }
+});
+
 // PATCH - Update order status
-router.patch('/:id/status', async (req, res) => {
+router.patch('/:id/status', ...adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, paymentStatus, itemIndex } = req.body;
@@ -249,6 +306,7 @@ router.patch('/:id/status', async (req, res) => {
                 });
             }
             
+            const previousOrderStatus = order.status;
             console.log(`  Current item status: ${order.items[itemIndex].itemStatus}`);
             // Update individual item status
             order.items[itemIndex].itemStatus = status;
@@ -278,6 +336,13 @@ router.patch('/:id/status', async (req, res) => {
             } else if (allItemsReady && !['served', 'completed'].includes(order.status)) {
                 order.status = 'ready';
                 console.log(`  All items ready, updating order status to: ready`);
+            } else if (order.items.some(item => item.itemStatus === 'preparing') && order.status === 'pending') {
+                order.status = 'preparing';
+            }
+
+            if (order.status !== previousOrderStatus) {
+                order.statusTimeline.push({ status: order.status, timestamp: new Date(), changedBy: req.body.changedBy || 'kitchen' });
+                if (order.status === 'completed') order.completedAt = new Date();
             }
             
             order.updatedAt = new Date();
@@ -294,7 +359,11 @@ router.patch('/:id/status', async (req, res) => {
         // Otherwise update entire order status (legacy behavior)
         console.log(`  → Updating entire order status`);
         const update = { updatedAt: new Date() };
-        if (status) update.status = status;
+        if (status) {
+            update.status = status;
+            update.$push = { statusTimeline: { status, timestamp: new Date(), changedBy: req.body.changedBy || 'admin' } };
+            if (status === 'completed') update.completedAt = new Date();
+        }
         if (paymentStatus) {
             update.paymentStatus = paymentStatus;
             if (paymentStatus === 'payment_verified') {
@@ -329,7 +398,7 @@ router.patch('/:id/status', async (req, res) => {
 });
 
 // PUT - Update order (alternative endpoint for updating status)
-router.put('/:id', async (req, res) => {
+router.put('/:id', ...adminOnly, async (req, res) => {
     try {
         const { id } = req.params;
         const { status, paymentStatus } = req.body;
@@ -376,7 +445,7 @@ router.put('/:id', async (req, res) => {
 // ==================== EXPORT ROUTES ====================
 
 // GET - Export orders to CSV
-router.get('/export/csv', async (req, res) => {
+router.get('/export/csv', ...adminOnly, async (req, res) => {
     try {
         const { startDate, endDate, status } = req.query;
         
@@ -414,7 +483,7 @@ router.get('/export/csv', async (req, res) => {
 });
 
 // GET - Export orders to PDF
-router.get('/export/pdf', async (req, res) => {
+router.get('/export/pdf', ...adminOnly, async (req, res) => {
     try {
         const { startDate, endDate, status } = req.query;
         
@@ -452,7 +521,7 @@ router.get('/export/pdf', async (req, res) => {
 });
 
 // GET - Export sales summary to CSV
-router.get('/export/summary/csv', async (req, res) => {
+router.get('/export/summary/csv', ...adminOnly, async (req, res) => {
     try {
         const { period = 'day', startDate, endDate } = req.query;
         

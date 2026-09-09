@@ -1,16 +1,18 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate, useLocation } from 'react-router-dom';
 import logo from '../../assets/images/logo/alimentologo.png';
 import UserIcon from '../icons/UserIcon';
 import CartIcon from '../icons/CartIcon';
 import ClipboardIcon from '../icons/ClipboardIcon';
 import LogOutIcon from '../icons/LogOutIcon';
 import ChevronDownIcon from '../icons/ChevronDownIcon';
+import { useAuth } from '../../context/AuthContext';
 
-const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {}) => {
+const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount, onLogin } = {}) => {
   const navigate = useNavigate();
+  const { logout, user: authUser, isAuthenticated } = useAuth();
   const location = useLocation();
-  const [user, setUser] = useState(null);
+  const user = isAuthenticated && authUser?.type !== 'guest' ? authUser : null;
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeNav, setActiveNav] = useState('menu');
   const [cartCount, setCartCount] = useState(propCartCount || 0);
@@ -21,17 +23,6 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
       setCartCount(propCartCount);
     }
   }, [propCartCount]);
-
-  useEffect(() => {
-    const portalUser = localStorage.getItem('portalUser');
-    if (portalUser) {
-      try {
-        setUser(JSON.parse(portalUser));
-      } catch (err) {
-        setUser(null);
-      }
-    }
-  }, [location]);
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -81,9 +72,8 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
   const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
-    localStorage.removeItem('portalUser');
+    logout();
     localStorage.removeItem('portalCheckoutType');
-    setUser(null);
     setShowUserMenu(false);
     navigate('/portal');
   };
@@ -103,13 +93,13 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
     <header className="portal-header">
       <div className="portal-header-container">
         {/* Logo & Brand */}
-        <div className="portal-brand" onClick={() => navigate('/portal')}>
-          <img src={logo} alt="Alimento Resto" className="portal-logo" />
+        <Link className="portal-brand" to="/portal" aria-label="Alimento home">
+          <img src={logo} alt="" className="portal-logo" width="48" height="48" />
           <span className="portal-brand-name">Alimento</span>
-        </div>
+        </Link>
 
         {/* Navigation */}
-        <nav className="portal-nav">
+        <nav className="portal-nav" aria-label="Main navigation">
           <button
             className={`portal-nav-link ${activeNav === 'menu' ? 'active' : ''}`}
             onClick={() => {
@@ -198,15 +188,15 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
             <div className="auth-buttons">
               <button
                 className="header-login-btn"
-                onClick={() => navigate('/portal/login')}
+                onClick={() => onLogin ? onLogin('login') : navigate('/portal/login')}
               >
                 Log in
               </button>
               <button
                 className="header-signup-btn"
-                onClick={() => navigate('/portal/login')}
+                onClick={() => onLogin ? onLogin('register') : navigate('/portal/login?mode=register')}
               >
-                Create Account
+                Create account
               </button>
             </div>
           )}
@@ -216,8 +206,14 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount } = {})
             className="header-cart-btn"
             onClick={onCartClick}
             title="View cart"
+            aria-label={`View cart${cartCount > 0 ? `, ${cartCount} ${cartCount === 1 ? 'item' : 'items'}` : ', empty'}`}
           >
             <CartIcon size={24} color="#2f6f6a" />
+            {cartCount > 0 && (
+              <span key={cartCount} className="cart-badge" aria-label={`${cartCount} ${cartCount === 1 ? 'item' : 'items'} in cart`}>
+                {cartCount > 99 ? '99+' : cartCount}
+              </span>
+            )}
           </button>
         </div>
       </div>

@@ -96,7 +96,8 @@ router.get('/summary/overview', async (req, res) => {
 // Create new inventory item
 router.post('/', async (req, res) => {
   try {
-    const newItem = new Inventory(req.body);
+    const payload = { ...req.body, productId: req.body.productId || null };
+    const newItem = new Inventory(payload);
     const saved = await newItem.save();
     
     res.status(201).json({
@@ -112,9 +113,11 @@ router.post('/', async (req, res) => {
 // Update inventory item
 router.patch('/:id', async (req, res) => {
   try {
+    const payload = { ...req.body };
+    if ('productId' in payload) payload.productId = payload.productId || null;
     const updated = await Inventory.findByIdAndUpdate(
       req.params.id,
-      req.body,
+      payload,
       { new: true, runValidators: true }
     );
 

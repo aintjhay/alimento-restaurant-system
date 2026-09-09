@@ -1,196 +1,70 @@
-import React, { useState } from 'react';
-import realtimeService from '../../services/realtimeService';
-import { PendingIcon, PreparingIcon, ReadyIcon, CompletedIcon } from '../icons/StatusIcons';
-import CheckIcon from '../icons/CheckIcon';
-import XIcon from '../icons/XIcon';
-import RefreshIcon from '../icons/RefreshIcon';
+import React, { useId, useState } from 'react';
+import { LuChevronDown, LuClock, LuCheck, LuX, LuMapPin, LuReceiptText, LuCreditCard } from 'react-icons/lu';
+import { orderItemTotal } from '../../utils/orderUtils';
 import './PortalOrderCard.css';
 
-/**
- * PortalOrderCard - Simple order card display with status and items
- */
+const states = { pending: 'Awaiting confirmation', confirmed: 'Confirmed', preparing: 'Preparing', ready: 'Ready', served: 'Served', completed: 'Completed', cancelled: 'Cancelled' };
+const money = value => value != null && Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value)) : 'Unavailable';
+const dateText = value => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
+const title = value => value.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase()).replace(/\bBbq\b/g, 'BBQ');
+
 const PortalOrderCard = ({ order, onReorder }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
-
-  // Helper functions
-  const formatDate = (dateString) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'Asia/Manila' });
-  };
-
-  const formatTime = (dateString) => {
-    if (!dateString) return '';
-    const date = new Date(dateString);
-    return date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true, timeZone: 'Asia/Manila' });
-  };
-
-  const getStatusIcon = (status) => {
-    const props = { size: 14 };
-    const icons = {
-      'pending':   <PendingIcon {...props} />,
-      'confirmed': <CheckIcon size={14} color="currentColor" />,
-      'preparing': <PreparingIcon {...props} />,
-      'ready':     <ReadyIcon {...props} />,
-      'completed': <CompletedIcon {...props} />,
-      'cancelled': <XIcon size={14} color="currentColor" />,
-    };
-    return icons[status] || null;
-  };
-
-  const getStatusColor = (status) => {
-    return realtimeService.getStatusColor(status);
-  };
-
-  const getStatusText = (status) => {
-    return realtimeService.getStatusText(status);
-  };
-
-  // Calculate items count
-  const itemsCount = order.items?.length || 0;
-  const totalQuantity = order.items?.reduce((sum, item) => sum + (item.quantity || 1), 0) || 0;
-
+  const [expanded, setExpanded] = useState(false);
+  const detailsId = useId();
+  const items = order.items || [];
+  const quantity = items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0);
+  const terminal = ['completed', 'served', 'cancelled'].includes(order.status);
+  const Icon = order.status === 'cancelled' ? LuX : terminal ? LuCheck : LuClock;
+  const payment = { paid: 'Paid', payment_verified: 'Payment verified', refunded: 'Refunded', partially_paid: 'Partially paid', payment_pending_verification: 'Awaiting payment verification' }[order.paymentStatus] || (order.paymentMethod === 'cash' ? 'Pay on delivery' : 'Awaiting payment');
+  const method = { cash: 'Cash on delivery', qrph: 'QR Ph', gcash: 'GCash', card: 'Card', maya: 'Maya', bank_transfer: 'Bank transfer' }[order.paymentMethod] || 'Not available';
   return (
-    <div 
-      className="portal-order-card"
-      style={{ borderLeftColor: getStatusColor(order.status) }}
-    >
-      {/* Card Header - Always Visible */}
-      <div 
-        className="order-card-header"
-        onClick={() => setIsExpanded(!isExpanded)}
-      >
-        <div className="order-card-left">
-          {/* Order Number Badge - Simple */}
-          <div className="order-number-badge">
-            {order.orderNumber || `#${order._id?.slice(-6) || 'N/A'}`}
-          </div>
-
-          {/* Quick Info */}
-          <div className="order-quick-info">
-            <div className="info-row">
-              <span className="info-date">{formatDate(order.createdAt)}</span>
-              <span className="info-separator">•</span>
-              <span className="info-time">{formatTime(order.createdAt)}</span>
-            </div>
-
-            {/* Items Summary */}
-            <div className="items-summary">
-              <span className="items-count">
-                {itemsCount} {itemsCount === 1 ? 'item' : 'items'} ({totalQuantity} qty)
-              </span>
-              <span className="total-amount">₱{order.totalAmount?.toFixed(2) || '0.00'}</span>
-            </div>
-          </div>
-        </div>
-
-        {/* Card Right - Status Badge */}
-        <div className="order-card-right">
-          <div 
-            className="status-badge"
-            style={{ backgroundColor: getStatusColor(order.status) }}
-          >
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: '5px' }}>
-              {getStatusIcon(order.status)} {getStatusText(order.status)}
-            </span>
-          </div>
-
-          <span className="view-details-hint">
-            {isExpanded ? 'Hide details ▲' : 'View details ▼'}
-          </span>
-        </div>
+    <article className="history-card">
+      <div className="history-card-heading">
+        <div className="history-order-identity"><span className="history-order-icon"><LuReceiptText aria-hidden="true" /></span><div><h2>{order.orderNumber || 'Order'}</h2><p>{dateText(order.createdAt)}</p></div></div>
+        <span className={`history-status ${order.status === 'cancelled' ? 'cancelled' : terminal ? 'finished' : ''}`}><Icon aria-hidden="true" />{states[order.status] || 'Status unavailable'}</span>
       </div>
-
-      {/* Expanded Content */}
-      {isExpanded && (
-        <div className="order-card-expanded">
-          {/* Items List */}
-          <div className="order-items-section">
-            <h4>Items ({itemsCount})</h4>
-            <div className="items-list">
-              {order.items?.map((item, idx) => (
-                <div key={idx} className="order-item">
-                  <div className="item-details">
-                    <div className="item-header">
-                      <span className="item-name">{item.name || 'Item'}</span>
-                      <span className="item-qty">x{item.quantity || 1}</span>
-                    </div>
-                    {item.specialInstructions && (
-                      <div className="item-instructions">
-                        📝 {item.specialInstructions}
-                      </div>
-                    )}
-                    {item.modifiers && item.modifiers.length > 0 && (
-                      <div className="item-modifiers">
-                        {item.modifiers.map((mod, i) => (
-                          <span key={i} className="modifier-tag">
-                            {mod.modifierName}: {mod.selectedOption}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                    {item.addons && item.addons.length > 0 && (
-                      <div className="item-addons">
-                        {item.addons.map((addon, i) => (
-                          <span key={i} className="addon-tag">
-                            + {addon.name}
-                          </span>
-                        ))}
-                      </div>
-                    )}
-                  </div>
-                  <div className="item-price">
-                    ₱{(item.itemTotal || item.price * item.quantity).toFixed(2)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* Order Summary */}
-          <div className="order-summary-section">
-            <h4>Order Summary</h4>
-            <div className="summary-lines">
-              <div className="summary-line">
-                <span>Subtotal:</span>
-                <span>₱{(order.subtotal || 0).toFixed(2)}</span>
-              </div>
-              {order.taxAmount > 0 && (
-                <div className="summary-line">
-                  <span>Tax (12%):</span>
-                  <span>₱{(order.taxAmount || 0).toFixed(2)}</span>
-                </div>
+      <div className="history-card-summary"><div><span className="history-summary-label">{quantity} {quantity === 1 ? 'item' : 'items'}{order.orderType ? ` · ${order.orderType}` : ''}</span><p className="history-item-preview">{items.slice(0, 2).map(item => title(item.name || item.menuItemId?.name || 'Item')).join(', ')}{items.length > 2 ? ` +${items.length - 2} more` : ''}</p></div><div className="history-summary-total"><span className="history-summary-label">Order total</span><strong>{money(order.totalAmount)}</strong></div></div>
+      <div className="history-card-bottom"><span className="history-payment-caption"><LuCreditCard aria-hidden="true" />{payment}</span><button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded} aria-controls={detailsId}>{expanded ? 'Hide details' : 'View details'}<LuChevronDown aria-hidden="true" className={expanded ? 'rotated' : ''} /></button></div>
+      {expanded && <div id={detailsId} className="history-details">
+        <section className="history-progress" aria-label="Order progress">
+          <h3>Order progress</h3>
+          {order.status === 'pending' && <p>Waiting for restaurant confirmation.</p>}
+          {order.status === 'cancelled' ? <p>This order was cancelled.</p> : <ol>{['pending', 'preparing', 'ready', 'completed'].map((step, index) => {
+            const current = { pending: 0, confirmed: 0, preparing: 1, ready: 2, served: 3, completed: 3 }[order.status];
+            return <li key={step} className={index <= current ? 'reached' : ''} aria-current={index === current ? 'step' : undefined}><span aria-hidden="true">{index < current ? <LuCheck /> : index + 1}</span>{['Received', 'Preparing', 'Ready', 'Completed'][index]}</li>;
+          })}</ol>}
+          {!terminal && order.status !== 'pending' && order.estimatedCompletionTime && <p>Estimated ready: {dateText(order.estimatedCompletionTime)}</p>}
+        </section>
+        <section className="history-items"><h3>Items</h3>{items.map((item, index) => <div className="history-item" key={item._id || index}><div><strong>{item.quantity || 1} &times; {title(item.name || item.menuItemId?.name || 'Item details unavailable')}</strong>{(item.modifiers || []).map((mod, i) => <small key={i}>{mod.modifierName}: {mod.selectedOption}</small>)}{(item.addons || []).map((addon, i) => <small key={i}>+ {addon.name}</small>)}{item.specialInstructions && <small>Note: {item.specialInstructions}</small>}</div><span>{money(orderItemTotal(item))}</span></div>)}</section>
+        <div className="history-detail-columns">
+          <div className="history-fulfillment">
+            <section aria-label="Delivery">
+              <h3>Delivery</h3>
+              <div className="history-delivery-address"><LuMapPin aria-hidden="true" /><p>{order.customerAddress || 'Address not available'}</p></div>
+              {(order.customerName || order.customerContact) && (
+                <dl className="history-recipient">
+                  {order.customerName && <div><dt>Recipient</dt><dd>{order.customerName}</dd></div>}
+                  {order.customerContact && <div><dt>Contact number</dt><dd>{order.customerContact}</dd></div>}
+                </dl>
               )}
-              {order.deliveryFee > 0 && (
-                <div className="summary-line">
-                  <span>Delivery Fee:</span>
-                  <span>₱{(order.deliveryFee || 0).toFixed(2)}</span>
-                </div>
+            </section>
+            <section aria-label="Payment" className="history-payment">
+              <h3>Payment</h3>
+              <p className="history-payment-method">{method}</p>
+              {order.paymentMethod === 'cash' && order.paymentStatus === 'unpaid' && order.status !== 'cancelled' ? (
+                <p className="history-payment-help">Pay when your order arrives.</p>
+              ) : (
+                <span className={`history-payment-badge ${['paid', 'payment_verified'].includes(order.paymentStatus) ? 'paid' : ''}`}>
+                  {order.paymentMethod === 'cash' && order.paymentStatus === 'unpaid' ? 'Unpaid' : payment}
+                </span>
               )}
-              {order.discount > 0 && (
-                <div className="summary-line discount">
-                  <span>Discount:</span>
-                  <span>-₱{(order.discount || 0).toFixed(2)}</span>
-                </div>
-              )}
-              <div className="summary-line total">
-                <span>Total:</span>
-                <span className="total-amount">₱{(order.totalAmount || 0).toFixed(2)}</span>
-              </div>
-            </div>
+            </section>
           </div>
-
-          {/* Action Buttons */}
-          <div className="order-actions">
-            {order.status === 'completed' && onReorder && (
-              <button className="btn-primary" onClick={() => onReorder(order)}>
-                <RefreshIcon size={15} color="white" /> Order Again
-              </button>
-            )}
-          </div>
+          <section><h3>Order total</h3><dl className="history-totals"><div><dt>Subtotal</dt><dd>{money(order.subtotal)}</dd></div>{Number(order.taxAmount) > 0 && <div><dt>Tax</dt><dd>{money(order.taxAmount)}</dd></div>}{Number(order.deliveryFee) > 0 && <div><dt>Delivery fee</dt><dd>{money(order.deliveryFee)}</dd></div>}{Number(order.discount) > 0 && <div><dt>Discount</dt><dd>-{money(order.discount)}</dd></div>}<div className="history-grand-total"><dt>Total</dt><dd>{money(order.totalAmount)}</dd></div></dl></section>
         </div>
-      )}
-    </div>
+        {order.status === 'completed' && onReorder && <button className="history-reorder" onClick={() => onReorder(order)}>Order again</button>}
+      </div>}
+    </article>
   );
 };
-
 export default PortalOrderCard;

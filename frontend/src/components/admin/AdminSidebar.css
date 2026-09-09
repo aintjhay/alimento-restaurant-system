@@ -1,0 +1,34 @@
+.admin-shell:has(.admin-sidebar){grid-template-columns:240px minmax(0,1fr)}
+.admin-nav.admin-sidebar{box-sizing:border-box;position:sticky;top:0;height:100vh;height:100dvh;align-self:start;padding:26px 16px 16px;gap:24px;overflow-y:auto;flex-direction:column;background:#214f4c}
+.admin-sidebar-brand{display:flex;align-items:center;justify-content:space-between;padding:0 14px}
+.admin-brand-name{display:block;font-size:28px;font-weight:700;letter-spacing:-.8px;line-height:1.3;color:#fff}
+.admin-brand-caption{display:block;font-size:10px;letter-spacing:2px;color:#b8d2cb;margin-top:5px;font-weight:600}
+.admin-sidebar-body{display:flex;flex:1;flex-direction:column;gap:24px}
+.admin-nav-group{margin-bottom:18px}
+.admin-nav-group:last-child{margin-bottom:0}
+.admin-sidebar .admin-group-label{margin:0 12px 8px;color:#b1ccc5;font-size:10px;font-weight:600;letter-spacing:1.3px;text-transform:uppercase}
+.admin-sidebar .admin-nav-group a{display:flex;align-items:center;gap:12px;margin:3px 0;padding:11px 12px;font-size:13px;line-height:1.4;border-radius:9px;min-height:42px;box-sizing:border-box;color:#edf5f1;transition:background .15s}
+.admin-sidebar .admin-nav-group a svg,.admin-sidebar .admin-signout svg{width:17px;height:17px;flex-shrink:0}
+.admin-sidebar .admin-nav-group a:hover{background:#ffffff12}
+.admin-sidebar .admin-nav-group a.active{background:#f4f8f5;color:#214f4c;font-weight:600;box-shadow:0 2px 6px #102e2520}
+.admin-sidebar :focus-visible{outline:2px solid #b8e9d8;outline-offset:3px}
+.admin-account{margin-top:auto;padding-top:16px;border-top:1px solid #ffffff26}
+.admin-account-details{display:flex;gap:10px;align-items:center;padding:0 10px 10px}
+.admin-account-details>div{min-width:0}
+.admin-account-avatar{display:flex;align-items:center;justify-content:center;width:34px;height:34px;flex-shrink:0;border-radius:50%;background:#ffffff14;color:#cfe5dc}
+.admin-account-details strong{display:block;font-size:12px;line-height:1.5;color:#fff;overflow-wrap:anywhere}
+.admin-account-details small{display:block;font-size:11px;color:#b8d2cb;text-transform:capitalize;margin-top:2px}
+.admin-sidebar .admin-signout{display:flex;gap:12px;align-items:center;width:100%;font:inherit;font-size:12px;padding:10px 12px;color:#dbeae4}
+.admin-sidebar .admin-signout:hover{background:#ffffff12}
+.admin-sidebar .admin-menu-toggle{display:none}
+@media(max-width:800px){
+ .admin-shell:has(.admin-sidebar){grid-template-columns:minmax(0,1fr)}
+ .admin-nav.admin-sidebar{position:static;height:auto;padding:16px;gap:0;overflow:visible}
+ .admin-sidebar-brand{padding:0 4px}
+ .admin-brand-name{font-size:23px}
+ .admin-brand-caption{font-size:9px;margin-top:2px}
+ .admin-sidebar .admin-menu-toggle{display:flex;align-items:center;justify-content:center;width:44px;height:44px;font-size:22px;border:1px solid #ffffff30}
+ .admin-sidebar-body{display:none}
+ .admin-sidebar-body.is-open{display:flex;padding-top:24px}
+ .admin-account{margin-top:0}
+}

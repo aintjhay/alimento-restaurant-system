@@ -83,9 +83,12 @@ function runProphetForecast(historicalData, forecastDays) {
         // Use Python from virtual environment if PYTHON_EXE not set
         const isWindows = process.platform === 'win32';
         const venvPath = path.join(__dirname, '../../../.venv');
-        pythonExecutable = isWindows 
+        const venvExecutable = isWindows 
           ? path.join(venvPath, 'Scripts', 'python.exe')
           : path.join(venvPath, 'bin', 'python');
+        pythonExecutable = fs.existsSync(venvExecutable)
+          ? venvExecutable
+          : (isWindows ? 'python' : 'python3');
       }
 
       // Spawn Python process
@@ -100,6 +103,18 @@ function runProphetForecast(historicalData, forecastDays) {
         pythonProcess.kill();
         reject(new Error('Python Prophet forecast timed out after 30 seconds'));
       }, 30000);
+
+      // Spawn failures arrive asynchronously and are not caught by try/catch.
+      pythonProcess.on('error', (error) => {
+        clearTimeout(timeout);
+        reject(new Error(`Failed to launch Python (${pythonExecutable}): ${error.message}`));
+      });
+
+      pythonProcess.stdin.on('error', (error) => {
+        clearTimeout(timeout);
+        pythonProcess.kill();
+        reject(new Error(`Failed to send forecast data to Python: ${error.message}`));
+      });
 
       // Handle stdout
       pythonProcess.stdout.on('data', (data) => {
@@ -192,7 +207,8 @@ function generateMockForecast(historicalData, forecastDays, dataStats) {
   }
 }
 
-/**
+/** Generate operational insights from the forecast. */
+function generateInsights(forecast, dataStats) {
   try {
     if (!forecast || !Array.isArray(forecast)) {
       return [];
@@ -205,7 +221,7 @@ function generateMockForecast(historicalData, forecastDays, dataStats) {
     if (!tomorrow) return insights;
 
     const tomorrowForecast = tomorrow.yhat || 0;
-    const percentChange = ((tomorrowForecast - avgHistorical) / avgHistorical * 100).toFixed(1);
+    const percentChange = avgHistorical > 0 ? ((tomorrowForecast - avgHistorical) / avgHistorical * 100).toFixed(1) : 0;
 
     // Generate insight text
     if (percentChange > 15) {

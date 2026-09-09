@@ -1,12 +1,14 @@
-﻿import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
 import './PosSystem.css';
 import API_BASE_URL from '../../config/api';
-import { getFoodImage, getItemColor, getCategoryIcon } from '../../utils/imageUtils';
+import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import { 
   FaSearch,
-  FaShoppingCart, FaTrash, FaPlus, FaMinus, FaPrint, FaCheck
+  FaTrash, FaPlus, FaMinus, FaCheck
 } from 'react-icons/fa';
+
+import { LuSoup, LuUtensils, LuSandwich, LuCookingPot, LuWine, LuCupSoda, LuCoffee, LuIceCreamBowl } from 'react-icons/lu';
 
 // Import logo
 import logoImg from '../../assets/images/logo/alimentologo.png';
@@ -24,17 +26,19 @@ function PosSystem() {
   const [searchTerm, setSearchTerm] = useState('');
   const [isUsingFallbackData, setIsUsingFallbackData] = useState(false);
   const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [menuPage, setMenuPage] = useState(1);
+  const [menuPagination, setMenuPagination] = useState({ page: 1, totalPages: 1, hasPreviousPage: false, hasNextPage: false });
   
   // Categories
   const categories = [
-    { id: 'Rice Meals', name: 'Rice Meals', icon: getCategoryIcon('Rice Meals') },
-    { id: 'Pasta', name: 'Pasta', icon: getCategoryIcon('Pasta') },
-    { id: 'Sandwiches', name: 'Sandwiches', icon: getCategoryIcon('Sandwiches') },
-    { id: 'Sides', name: 'Sides', icon: getCategoryIcon('Sides') },
-    { id: 'Cocktails', name: 'Cocktails', icon: getCategoryIcon('Cocktails') },
-    { id: 'Coolers', name: 'Coolers', icon: getCategoryIcon('Coolers') },
-    { id: 'Coffee', name: 'Coffee', icon: getCategoryIcon('Coffee') },
-    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: getCategoryIcon('Yogurt Milkshakes') }
+    { id: 'Rice Meals', name: 'Rice Meals', icon: <LuSoup aria-hidden="true" focusable="false" /> },
+    { id: 'Pasta', name: 'Pasta', icon: <LuUtensils aria-hidden="true" focusable="false" /> },
+    { id: 'Sandwiches', name: 'Sandwiches', icon: <LuSandwich aria-hidden="true" focusable="false" /> },
+    { id: 'Sides', name: 'Sides', icon: <LuCookingPot aria-hidden="true" focusable="false" /> },
+    { id: 'Cocktails', name: 'Cocktails', icon: <LuWine aria-hidden="true" focusable="false" /> },
+    { id: 'Coolers', name: 'Coolers', icon: <LuCupSoda aria-hidden="true" focusable="false" /> },
+    { id: 'Coffee', name: 'Coffee', icon: <LuCoffee aria-hidden="true" focusable="false" /> },
+    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: <LuIceCreamBowl aria-hidden="true" focusable="false" /> }
   ];
   
   const [activeCategory, setActiveCategory] = useState('Rice Meals');
@@ -115,13 +119,20 @@ function PosSystem() {
       setLoading(true);
       setIsUsingFallbackData(false);
       try {
-        const response = await fetch(`${API_BASE_URL}/api/menu`);
+        const params = new URLSearchParams({ page: String(menuPage), category: activeCategory });
+        if (searchTerm.trim()) params.set('search', searchTerm.trim());
+        const response = await fetch(`${API_BASE_URL}/api/menu?${params}`);
         
         if (response.ok) {
           const data = await response.json();
-          setMenuItems(data);
-          setFilteredItems(data);
-          console.log('✅ Menu loaded from backend:', data.length, 'items');
+          const items = (Array.isArray(data.data) ? data.data : []).map(item =>
+            (item.name || '').trim().toUpperCase() === 'CHICKEN WINGS'
+              ? { ...item, image: 'food/BuffaloWings12s_2.jpg' }
+              : item
+          );
+          setMenuItems(items);
+          setFilteredItems(items);
+          setMenuPagination(data.pagination || { page: 1, totalPages: 1 });
         } else {
           throw new Error('Backend not responding');
         }
@@ -137,27 +148,18 @@ function PosSystem() {
     };
     
     fetchMenu();
-  }, []);
+  }, [activeCategory, menuPage, searchTerm]);
+
+  useEffect(() => {
+    setMenuPage(1);
+  }, [activeCategory, searchTerm]);
 
   // Filter items based on category and search
   useEffect(() => {
     let filtered = menuItems;
     
-    // Filter by category
-    filtered = filtered.filter(item => item.category === activeCategory);
-    
-    // Filter by search term
-    if (searchTerm.trim() !== '') {
-      const term = searchTerm.toLowerCase();
-      filtered = filtered.filter(item => 
-        item.name.toLowerCase().includes(term) ||
-        item.description.toLowerCase().includes(term) ||
-        item.tags?.some(tag => tag.toLowerCase().includes(term))
-      );
-    }
-    
     setFilteredItems(filtered);
-  }, [activeCategory, searchTerm, menuItems]);
+  }, [menuItems]);
 
   // Handle item click
   const handleItemClick = (item) => {
@@ -326,12 +328,8 @@ function PosSystem() {
     return cart.reduce((sum, item) => sum + (item.price * item.quantity), 0);
   };
 
-  const calculateTax = () => {
-    return calculateSubtotal() * 0.12;
-  };
-
   const calculateTotal = () => {
-    return calculateSubtotal() + calculateTax();
+    return calculateSubtotal();
   };
 
   const calculateTotalItems = () => {
@@ -373,12 +371,12 @@ function PosSystem() {
         itemTotal: item.price * item.quantity
       })),
       subtotal: calculateSubtotal(),
-      taxAmount: calculateTax(),
+      taxAmount: 0,
       totalAmount: calculateTotal(),
       notes,
-      paymentMethod: paymentMethod,
+      paymentMethod: paymentMethod === 'online' ? 'qrph' : 'cash',
       status: 'pending',
-      paymentStatus: 'unpaid'
+      paymentStatus: paymentMethod === 'cash' ? 'paid' : 'payment_pending_verification'
     };
 
     console.log('📤 Sending order to backend:', orderData);
@@ -420,6 +418,8 @@ function PosSystem() {
   };
 
   // Print receipt
+  // Kept as the receipt generator for future use; the POS no longer exposes a print action.
+  // eslint-disable-next-line no-unused-vars
   const handlePrintReceipt = () => {
     if (cart.length === 0) {
       alert('Cannot print receipt: Cart is empty');
@@ -641,10 +641,6 @@ function PosSystem() {
               <span>Subtotal</span>
               <span>₱${calculateSubtotal().toFixed(2)}</span>
             </div>
-            <div class="receipt-summary-row">
-              <span>Tax (12%)</span>
-              <span>₱${calculateTax().toFixed(2)}</span>
-            </div>
             <div class="receipt-summary-row total">
               <span>Total</span>
               <span>₱${calculateTotal().toFixed(2)}</span>
@@ -686,20 +682,7 @@ function PosSystem() {
     return source;
   };
 
-  // Get category color
-  const getCategoryColor = (category) => {
-    const colors = {
-      'Cocktails': '#4DB6AC',
-      'Pasta': '#FF9800',
-      'Sandwiches': '#795548',
-      'Sides': '#8BC34A',
-      'Rice Meals': '#FF5722',
-      'Yogurt Milkshakes': '#E91E63',
-      'Coffee': '#795548',
-      'Coolers': '#2196F3'
-    };
-    return colors[category] || '#607D8B';
-  };
+  const formatItemName = (name = '') => name.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase());
 
   return (
     <div className="pos-container">
@@ -787,15 +770,14 @@ function PosSystem() {
         {/* Left Side - Menu */}
         <div className="menu-section">
           {/* Category Tabs */}
-          <div className="category-tabs">
+          <div className="category-tabs" role="group" aria-label="Filter menu by category">
             {categories.map(category => (
               <button
                 key={category.id}
+                type="button"
+                aria-pressed={activeCategory === category.id}
                 className={`category-tab ${activeCategory === category.id ? 'active' : ''}`}
                 onClick={() => setActiveCategory(category.id)}
-                style={{
-                  borderColor: activeCategory === category.id ? getCategoryColor(category.name) : 'transparent'
-                }}
               >
                 <span className="category-icon">{category.icon}</span>
                 <span className="category-name">{category.name}</span>
@@ -815,7 +797,8 @@ function PosSystem() {
               <p>Try a different search or category</p>
             </div>
           ) : (
-            // Show items in grid for selected category
+            <>
+            {/* Show items in grid for selected category */}
             <div className="menu-items-grid">
               {filteredItems.map(item => (
                 <div 
@@ -827,8 +810,10 @@ function PosSystem() {
                     <div 
                       className="item-image"
                       style={{
-                        backgroundImage: item.image ? `url(${getImageSource(item.image)})` : 'none',
-                        backgroundColor: getCategoryColor(item.category)
+                        backgroundImage: item.image
+                          ? `url(${getImageSource(item.image)})`
+                          : `linear-gradient(135deg, ${getItemColor(item.category)}, #284b47)`,
+                        backgroundColor: getItemColor(item.category)
                       }}
                     >
                       {!item.image && (
@@ -839,14 +824,14 @@ function PosSystem() {
                     </div>
                     <div 
                       className="item-category-badge"
-                      style={{ backgroundColor: getCategoryColor(item.category) }}
+                      style={{ backgroundColor: getItemColor(item.category) }}
                     >
                       {item.category}
                     </div>
                   </div>
                   
                   <div className="item-details">
-                    <h3 className="item-name">{item.name}</h3>
+                    <h3 className="item-name">{formatItemName(item.name)}</h3>
                     <p className="item-description">{item.description}</p>
                     
                     <div className="item-footer">
@@ -889,15 +874,23 @@ function PosSystem() {
                 </div>
               ))}
             </div>
+            {menuPagination.totalPages > 1 && (
+              <div className="pos-pagination">
+                <button disabled={!menuPagination.hasPreviousPage || loading} onClick={() => setMenuPage(page => page - 1)}>Previous</button>
+                <span>Page {menuPagination.page} of {menuPagination.totalPages}</span>
+                <button disabled={!menuPagination.hasNextPage || loading} onClick={() => setMenuPage(page => page + 1)}>Next</button>
+              </div>
+            )}
+            </>
           )}
         </div>
 
         {/* Right Side - Cart */}
         <div className="cart-section">
           <div className="cart-header">
-            <h2>
-              <FaShoppingCart /> Order Cart
-            </h2>
+            <div className="cart-title-block">
+              <h2>Order Cart</h2>
+            </div>
             {cart.length > 0 && (
               <button onClick={clearCart} className="clear-cart-btn">
                 <FaTrash /> Clear All
@@ -908,9 +901,9 @@ function PosSystem() {
           <div className="cart-items-container">
             {cart.length === 0 ? (
               <div className="empty-cart">
-                <div className="empty-cart-icon">🛒</div>
-                <p>Cart is empty</p>
-                <p>Click menu items to add to order</p>
+                <div className="empty-cart-mark" aria-hidden="true">+</div>
+                <strong>Your cart is empty</strong>
+                <p>Select a menu item to start an order</p>
               </div>
             ) : (
               <div className="cart-items-list">
@@ -918,7 +911,7 @@ function PosSystem() {
                   <div key={index} className="cart-item">
                     <div className="cart-item-header">
                       <div className="cart-item-name">
-                        <strong>{item.name}</strong>
+                        <strong>{formatItemName(item.name)}</strong>
                         <span className="cart-item-category">{item.category}</span>
                       </div>
                       <button 
@@ -998,10 +991,6 @@ function PosSystem() {
                   <span>Subtotal:</span>
                   <span>₱{calculateSubtotal().toFixed(2)}</span>
                 </div>
-                <div className="summary-row">
-                  <span>VAT (12%):</span>
-                  <span>₱{calculateTax().toFixed(2)}</span>
-                </div>
                 <div className="summary-row total">
                   <span>Total Amount:</span>
                   <span className="total-amount">₱{calculateTotal().toFixed(2)}</span>
@@ -1025,12 +1014,6 @@ function PosSystem() {
                     GCash
                   </button>
                 </div>
-                <button 
-                  onClick={handlePrintReceipt}
-                  className="print-receipt-btn"
-                >
-                  <FaPrint /> Print Receipt
-                </button>
                 <button 
                   onClick={handlePlaceOrder}
                   className="place-order-btn"

@@ -1,9 +1,14 @@
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './KitchenDisplay.css';
+import './StationDisplay.css';
+import { LuMartini, LuBell, LuBellOff, LuMaximize, LuRefreshCw, LuFlame, LuChartColumn, LuClock, LuUndo2, LuCheck, LuArmchair, LuStickyNote, LuUser, LuTriangleAlert } from 'react-icons/lu';
+import StatusBoard, { getStationStatus } from './StatusBoard';
+import { isKitchenItem } from './stationItems';
+import { ConnectionStatus, MixedOrderProgress, getNewOrderIds, useOrderSound } from './StationUpdates';
 import API_BASE_URL from '../../config/api';
+import { authHeaders } from '../../services/api';
 
-const KITCHEN_CATEGORIES = ['Pasta', 'Sandwiches', 'Sides', 'Rice Meals'];
 
 function KitchenDisplay() {
   const navigate = useNavigate();
@@ -14,7 +19,12 @@ function KitchenDisplay() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [soundEnabled, setSoundEnabled] = useState(true);
   const [updatingOrderId, setUpdatingOrderId] = useState(null);
-  const previousOrderCount = useRef(0);
+  const seenOrderIds = useRef(null);
+  const fetchInProgress = useRef(false);
+  const [lastUpdated, setLastUpdated] = useState(null);
+  const [connectionError, setConnectionError] = useState(false);
+  const [newOrderTimes, setNewOrderTimes] = useState({});
+  const { playNotificationSound, enableSound, soundReady } = useOrderSound();
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -22,14 +32,16 @@ function KitchenDisplay() {
   }, []);
 
   const fetchOrders = useCallback(async () => {
+    if (fetchInProgress.current) return;
+    fetchInProgress.current = true;
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
     try {
       setRefreshing(true);
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
-      const response = await fetch(`${API_BASE_URL}/api/orders?limit=200`, { signal: controller.signal });
-      clearTimeout(timeoutId);
+      const response = await fetch(`${API_BASE_URL}/api/orders?limit=200`, { signal: controller.signal, headers: authHeaders() });
       const data = await response.json();
 
+      if (!response.ok || !data.success || !Array.isArray(data.orders)) throw new Error('Orders unavailable');
       if (data.success) {
         const allOrders = data.orders || [];
         const kitchenOrders = allOrders
@@ -50,20 +62,32 @@ function KitchenDisplay() {
             };
           });
 
-        if (soundEnabled && kitchenOrders.length > previousOrderCount.current && previousOrderCount.current > 0) {
-          playNotificationSound();
+        const incomingIds = getNewOrderIds(seenOrderIds.current, kitchenOrders, 'kitchenItems');
+        seenOrderIds.current = new Set([...(seenOrderIds.current || []), ...kitchenOrders.map(order => order._id)]);
+        if (incomingIds.length) {
+          const now = Date.now();
+          setNewOrderTimes(previous => Object.fromEntries([
+            ...Object.entries(previous).filter(([, time]) => now - time < 30000),
+            ...incomingIds.map(id => [id, now])
+          ]));
+          if (soundEnabled) playNotificationSound();
         }
-        previousOrderCount.current = kitchenOrders.length;
+        setLastUpdated(new Date());
+        setConnectionError(false);
         setOrders(kitchenOrders);
       }
       setLoading(false);
       setRefreshing(false);
     } catch (error) {
       console.error('Kitchen Display fetch error:', error);
+      setConnectionError(true);
       setLoading(false);
       setRefreshing(false);
+    } finally {
+      clearTimeout(timeoutId);
+      fetchInProgress.current = false;
     }
-  }, [soundEnabled]);
+  }, [soundEnabled, playNotificationSound]);
 
   useEffect(() => {
     fetchOrders();
@@ -71,34 +95,7 @@ function KitchenDisplay() {
     return () => clearInterval(interval);
   }, [fetchOrders]);
 
-  const isKitchenItem = (item) => {
-    const itemName = (item.name || '').toLowerCase();
-    const foodKeywords = [
-      'pasta', 'spaghetti', 'carbonara', 'bolognese', 'aglio', 'pesto',
-      'sandwich', 'club', 'grilled', 'panini', 'blt', 'wrap',
-      'rice', 'meal', 'adobo', 'sinigang', 'sisig', 'fried', 'chicken',
-      'fries', 'nachos', 'wings', 'calamari', 'bruschetta', 'salad',
-      'soup', 'garlic bread', 'mozzarella', 'spring rolls', 'side'
-    ];
-    if (item.category && KITCHEN_CATEGORIES.includes(item.category)) return true;
-    return foodKeywords.some(keyword => itemName.includes(keyword));
-  };
 
-  const playNotificationSound = () => {
-    try {
-      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      const oscillator = audioCtx.createOscillator();
-      const gainNode = audioCtx.createGain();
-      oscillator.connect(gainNode);
-      gainNode.connect(audioCtx.destination);
-      oscillator.frequency.value = 880;
-      oscillator.type = 'sine';
-      gainNode.gain.value = 0.3;
-      oscillator.start();
-      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.5);
-      oscillator.stop(audioCtx.currentTime + 0.5);
-    } catch (e) {}
-  };
 
   const handleUpdateStatus = async (orderId, itemIndex, newStatus) => {
     console.log('🔥 Kitchen: Updating item', itemIndex, 'to status', newStatus, 'for order', orderId);
@@ -113,7 +110,7 @@ function KitchenDisplay() {
       
       const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
         body: JSON.stringify(payload)
       });
       
@@ -178,60 +175,51 @@ function KitchenDisplay() {
     else document.exitFullscreen();
   };
 
-  const getFilteredOrders = () => {
-    switch (filter) {
-      case 'pending': return orders.filter(o => o.status === 'pending');
-      case 'preparing': return orders.filter(o => o.status === 'preparing');
-      case 'ready': return orders.filter(o => o.status === 'ready');
-      case 'active': return orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status));
-      case 'completed': return orders.filter(o => o.status === 'completed');
-      default: return orders;
-    }
-  };
-
-  const filteredOrders = getFilteredOrders();
-  const counts = {
-    pending: orders.filter(o => o.status === 'pending').length,
-    preparing: orders.filter(o => o.status === 'preparing').length,
-    ready: orders.filter(o => o.status === 'ready').length,
-    active: orders.filter(o => ['pending', 'preparing', 'ready'].includes(o.status)).length,
-    completed: orders.filter(o => o.status === 'completed').length
-  };
+  const stationOrders = orders.map(order => ({
+    ...order,
+    originalStatus: order.status,
+    status: getStationStatus(order, order.kitchenItems)
+  }));
+  const counts = Object.fromEntries(['pending', 'preparing', 'ready', 'served', 'completed'].map(status =>
+    [status, stationOrders.filter(order => order.status === status).length]
+  ));
+  counts.active = counts.pending + counts.preparing + counts.ready;
 
   const getActionButtons = (order, itemIndex) => {
+    if (['completed', 'cancelled', 'served'].includes(order.originalStatus)) return null;
     const isUpdating = updatingOrderId === order._id;
     const allItems = order.items || order.allItems || [];
-    const itemStatus = (allItems[itemIndex]?.itemStatus) || order.status;
+    const itemStatus = (allItems[itemIndex]?.itemStatus) || order.originalStatus;
     
     switch (itemStatus) {
       case 'pending':
         return (
           <button className="kds-action-btn start-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating}>
-            {isUpdating ? '⏳' : '🔥'} Start Cooking
+            {isUpdating ? <LuClock aria-hidden="true" /> : <LuFlame aria-hidden="true" />} Start Preparing
           </button>
         );
       case 'preparing':
         return (
           <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'pending')} disabled={isUpdating}>↩</button>
+            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'pending')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
             <button className="kds-action-btn ready-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'ready')} disabled={isUpdating}>
-              {isUpdating ? '⏳' : '✅'} Ready to Serve
+              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} Ready to Serve
             </button>
           </>
         );
       case 'ready':
         return (
           <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating}>↩</button>
+            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
             <button className="kds-action-btn served-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'served')} disabled={isUpdating}>
-              {isUpdating ? '⏳' : '🍽️'} Served
+              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} Served
             </button>
           </>
         );
       case 'served':
         return (
           <button className="kds-action-btn completed-btn" disabled>
-            ✅ Served
+            <LuCheck aria-hidden="true" /> Served
           </button>
         );
       default: return null;
@@ -248,12 +236,12 @@ function KitchenDisplay() {
   }
 
   return (
-    <div className="kds-container">
+    <div className="kds-container station-display">
       {/* Header */}
       <header className="kds-header">
         <div className="kds-header-left">
           <div className="kds-logo">
-            <div className="kds-logo-icon">🔥</div>
+            <div className="kds-logo-icon"><LuFlame aria-hidden="true" /></div>
             <div className="kds-logo-text">
               <h1>Kitchen Display</h1>
               <span>Alimento Restaurant</span>
@@ -261,48 +249,37 @@ function KitchenDisplay() {
           </div>
         </div>
 
-        <div className="kds-header-center">
-          <div className="kds-stat">
-            <span className="kds-stat-number pending">{counts.pending}</span>
-            <span className="kds-stat-label">Pending</span>
-          </div>
-          <div className="kds-stat">
-            <span className="kds-stat-number preparing">{counts.preparing}</span>
-            <span className="kds-stat-label">Cooking</span>
-          </div>
-          <div className="kds-stat">
-            <span className="kds-stat-number ready">{counts.ready}</span>
-            <span className="kds-stat-label">Ready</span>
-          </div>
-        </div>
-
         <div className="kds-header-right">
           <div className="kds-clock">{formatClock(currentTime)}</div>
-          <button className={`kds-sound-btn ${soundEnabled ? 'active' : ''}`} onClick={() => setSoundEnabled(!soundEnabled)} title={soundEnabled ? 'Mute notifications' : 'Enable notifications'}>
-            {soundEnabled ? '🔔' : '🔕'}
+          <button className={`kds-sound-btn ${soundEnabled ? 'active' : ''}`} onClick={() => { if (!soundEnabled || !soundReady) { enableSound(); setSoundEnabled(true); } else setSoundEnabled(false); }} aria-label="Order alerts" aria-pressed={soundEnabled && soundReady} title={soundEnabled ? 'Mute order alerts' : 'Enable order alerts'}>
+            {soundEnabled ? <LuBell aria-hidden="true" /> : <LuBellOff aria-hidden="true" />} <span>Order alerts: {soundEnabled ? (soundReady ? 'On' : 'Enable sound') : 'Off'}</span>
           </button>
-          <button className="kds-fullscreen-btn" onClick={toggleFullscreen} title="Toggle fullscreen">⛶</button>
+          <button className="kds-fullscreen-btn" onClick={toggleFullscreen} title="Toggle fullscreen" aria-label="Toggle fullscreen"><LuMaximize aria-hidden="true" /></button>
           <button className={`kds-refresh-btn ${refreshing ? 'refreshing' : ''}`} onClick={fetchOrders} disabled={refreshing}>
-            <span className={refreshing ? 'spin' : ''}>↻</span> Refresh
+            <span className={refreshing ? 'spin' : ''}><LuRefreshCw aria-hidden="true" /></span> Refresh
           </button>
-          <button className="kds-nav-btn bar-btn" onClick={() => navigate('/bartender')}>🍸 Bar Display</button>
-          <button className="kds-nav-btn dashboard-btn" onClick={() => navigate('/dashboard')}>📊 Dashboard</button>
+          <button className="kds-nav-btn bar-btn" onClick={() => navigate('/admin/bartender')}><LuMartini aria-hidden="true" /> Bar Display</button>
+          <button className="kds-nav-btn dashboard-btn" onClick={() => navigate('/admin/dashboard')}><LuChartColumn aria-hidden="true" /> Dashboard</button>
         </div>
       </header>
+
+      <ConnectionStatus lastUpdated={lastUpdated} now={currentTime} error={connectionError} refreshing={refreshing} />
 
       {/* Filter Tabs */}
       <div className="kds-filters">
         {[
           { key: 'active', label: 'Active Orders', count: counts.active },
           { key: 'pending', label: 'Pending', count: counts.pending },
-          { key: 'preparing', label: 'Cooking', count: counts.preparing },
+          { key: 'preparing', label: 'Preparing', count: counts.preparing },
           { key: 'ready', label: 'Ready', count: counts.ready },
+          { key: 'served', label: 'Served', count: counts.served },
           { key: 'completed', label: 'Completed', count: counts.completed },
           { key: 'all', label: 'All Orders', count: orders.length }
         ].map(tab => (
           <button
             key={tab.key}
             className={`kds-filter-btn ${filter === tab.key ? 'active kitchen-active' : ''}`}
+            aria-pressed={filter === tab.key}
             onClick={() => setFilter(tab.key)}
           >
             {tab.label}
@@ -311,39 +288,24 @@ function KitchenDisplay() {
         ))}
       </div>
 
-      {/* Orders Grid */}
-      {filteredOrders.length === 0 ? (
-        <div className="kds-empty-state">
-          <div className="kds-empty-icon">👨‍🍳</div>
-          <h2 className="kds-empty-title">No orders in the kitchen</h2>
-          <p className="kds-empty-subtitle">New orders will appear here automatically</p>
-        </div>
-      ) : (
-        <div className="kds-orders-grid">
-          {filteredOrders
-            .sort((a, b) => {
-              const statusPriority = { pending: 0, preparing: 1, ready: 2, served: 3, completed: 4 };
-              const priorityDiff = (statusPriority[a.status] || 99) - (statusPriority[b.status] || 99);
-              if (priorityDiff !== 0) return priorityDiff;
-              return new Date(a.createdAt) - new Date(b.createdAt);
-            })
-            .map(order => {
-              const urgency = getTimerUrgency(order.createdAt);
+      <StatusBoard orders={stationOrders} filter={filter} preparingLabel="Preparing">
+            {order => {
+              const urgency = ['pending', 'preparing', 'ready'].includes(order.status) ? getTimerUrgency(order.createdAt) : 'normal';
               return (
-                <div key={order._id} className={`kds-order-card status-${order.status} ${urgency === 'urgent' ? 'urgent' : ''}`}>
+                <div key={order._id} className={`kds-order-card status-${order.status} ${urgency === 'urgent' ? 'urgent' : ''} ${currentTime - (newOrderTimes[order._id] || 0) < 30000 ? 'new-order' : ''}`}>
                   <div className="kds-card-header">
                     <div className="kds-order-info">
-                      <div className="kds-order-number">{order.orderNumber || 'N/A'}</div>
+                      <div className="kds-order-number">{order.orderNumber || 'N/A'} {currentTime - (newOrderTimes[order._id] || 0) < 30000 && <span className="kds-new-label">New</span>}</div>
                       <div className="kds-order-meta">
-                        {order.tableNumber && <span className="kds-table-badge">🪑 Table {order.tableNumber}</span>}
+                        {order.tableNumber && <span className="kds-table-badge"><LuArmchair aria-hidden="true" /> Table {order.tableNumber}</span>}
                         <span className={`kds-order-type ${(order.orderType || 'dine-in').toLowerCase().replace(' ', '-')}`}>
                           {order.orderType || 'Dine-in'}
                         </span>
                         <span className={`kds-status-badge ${order.status}`}>
-                          {order.status === 'pending' && '⏳'}
-                          {order.status === 'preparing' && '🔥'}
-                          {order.status === 'ready' && '✅'}
-                          {order.status === 'served' && '🍽️'}
+                          {order.status === 'pending' && <LuClock aria-hidden="true" />}
+                          {order.status === 'preparing' && <LuFlame aria-hidden="true" />}
+                          {order.status === 'ready' && <LuCheck aria-hidden="true" />}
+                          {order.status === 'served' && <LuCheck aria-hidden="true" />}
                           {' '}{order.status}
                         </span>
                       </div>
@@ -354,7 +316,9 @@ function KitchenDisplay() {
                     </div>
                   </div>
 
-                  {order.customerName && <div className="kds-customer-name">{order.customerName}</div>}
+                  {order.customerName && <div className="kds-customer-name"><LuUser aria-hidden="true" /> {order.customerName}</div>}
+
+                  <MixedOrderProgress order={order} />
 
                   <div className="kds-items-count">
                     {order.kitchenItems.length} kitchen item{order.kitchenItems.length !== 1 ? 's' : ''}
@@ -379,13 +343,13 @@ function KitchenDisplay() {
                               <div className="kds-item-modifiers">+ {item.addons.map(a => a.name).join(', ')}</div>
                             )}
                             {item.specialInstructions && (
-                              <div className="kds-item-note">{item.specialInstructions}</div>
+                              <div className="kds-item-note"><LuTriangleAlert aria-hidden="true" /> {item.specialInstructions}</div>
                             )}
-                            <div className="kds-item-status-badge">
-                              {item.itemStatus === 'pending' && '⏳ Pending'}
-                              {item.itemStatus === 'preparing' && '🔥 Cooking'}
-                              {item.itemStatus === 'ready' && '✅ Ready'}
-                              {item.itemStatus === 'served' && '🍽️ Served'}
+                            <div className={`kds-item-status-badge ${item.itemStatus || order.status}`}>
+                              {item.itemStatus === 'pending' && <><LuClock aria-hidden="true" /> Pending</>}
+                              {item.itemStatus === 'preparing' && <><LuFlame aria-hidden="true" /> Preparing</>}
+                              {item.itemStatus === 'ready' && <><LuCheck aria-hidden="true" /> Ready</>}
+                              {item.itemStatus === 'served' && <><LuCheck aria-hidden="true" /> Served</>}
                             </div>
                           </div>
                           <div className="kds-item-actions">
@@ -396,12 +360,11 @@ function KitchenDisplay() {
                     })}
                   </div>
 
-                  {order.notes && <div className="kds-order-notes">{order.notes}</div>}
+                  {order.notes && <div className="kds-order-notes"><LuStickyNote aria-hidden="true" /> {order.notes}</div>}
                 </div>
               );
-            })}
-        </div>
-      )}
+            }}
+      </StatusBoard>
     </div>
   );
 }

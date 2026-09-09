@@ -7,7 +7,7 @@ import './StatusTimeline.css';
  * Shows the order journey: Pending → Confirmed → Preparing → Completed
  */
 const StatusTimeline = ({ statusTimeline, currentStatus }) => {
-  const statusSequence = ['pending', 'confirmed', 'preparing', 'completed'];
+  const statusSequence = ['pending', 'preparing', 'ready', 'completed'];
 
   const formatDate = (dateString) => {
     if (!dateString) return '';

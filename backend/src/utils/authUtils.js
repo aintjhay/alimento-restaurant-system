@@ -22,9 +22,9 @@ const comparePassword = async (password, passwordHash) => {
 /**
  * Generate JWT token
  */
-const generateToken = (userId, email) => {
+const generateToken = (userId, email, role = 'customer') => {
   return jwt.sign(
-    { userId, email },
+    { userId, email, role },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRE }
   );

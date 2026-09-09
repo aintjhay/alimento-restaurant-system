@@ -3251,13 +3251,13 @@
 }
 
 .portal-modal {
-  animation: portalAddToCartBackdropIn 0.2s ease-out;
+  animation: portalAddToCartBackdropIn 0.28s ease-out both;
   backdrop-filter: blur(2px);
 }
 
 .portal-modal .modal-card {
   transform-origin: center;
-  animation: portalAddToCartDialogIn 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  animation: portalAddToCartDialogIn 0.34s cubic-bezier(0.22, 1, 0.36, 1) both;
 }
 
 @keyframes portalAddToCartBackdropIn {
@@ -3268,7 +3268,7 @@
 @keyframes portalAddToCartDialogIn {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: scale(0.98);
   }
   to {
     opacity: 1;

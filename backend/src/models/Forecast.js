@@ -124,7 +124,7 @@ forecastSchema.methods.recordActualData = function(date, actualOrders) {
   const prediction = this.predictions.find(p => p.ds === date);
   if (prediction) {
     prediction.actual = actualOrders;
-    prediction.accuracy = Math.abs((actualOrders - prediction.yhat) / actualOrders) * 100;
+    prediction.accuracy = actualOrders === 0 ? null : Math.abs((actualOrders - prediction.yhat) / actualOrders) * 100;
   }
   return this.save();
 };
@@ -138,12 +138,13 @@ forecastSchema.methods.calculatePerformance = function() {
   }
 
   const mae = completed.reduce((sum, p) => sum + Math.abs(p.actual - p.yhat), 0) / completed.length;
-  const mape = completed.reduce((sum, p) => sum + p.accuracy, 0) / completed.length;
+  const nonzero = completed.filter(p => p.actual > 0);
+  const mape = nonzero.length ? nonzero.reduce((sum, p) => sum + p.accuracy, 0) / nonzero.length : null;
   const rmse = Math.sqrt(completed.reduce((sum, p) => sum + Math.pow(p.actual - p.yhat, 2), 0) / completed.length);
 
   this.performance = {
     mae: parseFloat(mae.toFixed(2)),
-    mape: parseFloat(mape.toFixed(2)),
+    mape: mape === null ? null : parseFloat(mape.toFixed(2)),
     rmse: parseFloat(rmse.toFixed(2)),
     validatedAt: new Date()
   };

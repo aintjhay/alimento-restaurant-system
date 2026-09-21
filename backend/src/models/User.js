@@ -17,7 +17,7 @@ const addressSchema = new mongoose.Schema({
   },
   postal: {
     type: String,
-    required: true
+    default: ''
   },
   phone: String,
   isDefault: {
@@ -49,10 +49,13 @@ const userSchema = new mongoose.Schema({
   phone: String,
   
   // Authentication
-  passwordHash: String,
+  passwordHash: { type: String, select: false },
+  passwordResetTokenHash: { type: String, select: false },
+  passwordResetExpires: { type: Date, select: false },
+  sessionVersion: { type: Number, default: 0, select: false },
   role: {
     type: String,
-    enum: ['customer', 'staff', 'admin'],
+    enum: ['customer', 'staff', 'cashier', 'kitchen', 'admin'],
     default: 'customer',
     index: true
   },
@@ -91,6 +94,9 @@ const userSchema = new mongoose.Schema({
 
 // Update updatedAt before saving
 userSchema.pre('save', function(next) {
+  const preferred = this.addresses.find(address => address.isDefault) || this.addresses[0];
+  this.addresses.forEach(address => { address.isDefault = address === preferred; });
+  this.defaultAddressId = preferred ? String(preferred._id) : null;
   this.updatedAt = new Date();
   next();
 });

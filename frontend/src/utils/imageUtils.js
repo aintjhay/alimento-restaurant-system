@@ -6,6 +6,7 @@ export const getFoodImage = (imageName) => {
   // Preserve compatibility with older Chicken Wings filenames stored in MongoDB.
   const fileName = imageName.replace(/\\/g, '/').split('/').pop();
   const imageAliases = {
+    'buffalowings12(2).jpg': 'BuffaloWings12s_2.jpg',
     'buffalowings12s(2).jpg': 'BuffaloWings12s_2.jpg',
     'buffalowings12s_2.jpg': 'BuffaloWings12s_2.jpg'
   };

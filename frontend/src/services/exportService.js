@@ -41,10 +41,8 @@ export const generateCSV = (data, headers = null) => {
       const value = row[col];
       // Handle special values
       if (value === null || value === undefined) return '';
-      if (typeof value === 'string' && value.includes(',')) {
-        return `"${value.replace(/"/g, '""')}"`;
-      }
-      return value;
+      const text = String(value).replace(/^[=+@\-\t\r]/, "'$&");
+      return `"${text.replace(/"/g, '""')}"`;
     }).join(',')
   );
 

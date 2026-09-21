@@ -4,7 +4,7 @@ const inventoryItemSchema = new mongoose.Schema({
   productId: {
     type: mongoose.Schema.Types.ObjectId,
     ref: 'MenuItem',
-    default: null,
+    default: undefined,
     index: true,
     unique: true,
     sparse: true
@@ -54,6 +54,15 @@ const inventoryItemSchema = new mongoose.Schema({
   supplier: String,
   location: String, // Storage location in kitchen
   expiryDate: Date,
+  batches: [{
+    label: { type: String, trim: true },
+    quantity: { type: Number, required: true, min: 0 },
+    expiryDate: Date,
+    receivedAt: { type: Date, default: Date.now }
+  }],
+  deletedAt: { type: Date, default: null },
+  deletedBy: String,
+  deletionHistory: [{ action: String, at: Date, by: String }],
   lastRestocked: {
     type: Date,
     default: Date.now
@@ -78,6 +87,8 @@ const inventoryItemSchema = new mongoose.Schema({
   }
 });
 
+inventoryItemSchema.set('optimisticConcurrency', true);
+
 // Index for faster queries
 inventoryItemSchema.index({ category: 1, isActive: 1 });
 inventoryItemSchema.index({ currentStock: 1 });
@@ -86,6 +97,11 @@ inventoryItemSchema.index({ minimumThreshold: 1 });
 // Pre-save hook to update timestamp
 inventoryItemSchema.pre('save', function(next) {
   this.updatedAt = new Date();
+  next();
+});
+
+inventoryItemSchema.pre(/^find/, function(next) {
+  if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'deletedAt')) this.where({ deletedAt: null });
   next();
 });
 

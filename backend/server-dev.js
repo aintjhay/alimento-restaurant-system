@@ -1,171 +1,23 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const cors = require('cors');
-const { MongoMemoryServer } = require('mongodb-memory-server');
+// Disposable development database; never connects to the production database.
 require('dotenv').config();
-
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
-
-// Import Routes
-const menuRoutes = require('./src/routes/menuRoutes');
-const orderRoutes = require('./src/routes/orderRoutes');
-const forecastRoutes = require('./src/routes/forecastRoutes');
-const authRoutes = require('./src/routes/authRoutes');
-
-async function startServer() {
-    console.log('🚀 Starting Alimento Restaurant API with IN-MEMORY MongoDB...');
-    
-    // Create in-memory MongoDB instance with increased timeout for Windows
-    const mongoServer = await MongoMemoryServer.create({
-        instance: {
-            port: undefined // Use random available port
-        },
-        binary: {
-            downloadDir: process.env.MMS_DOWNLOAD_DIR || './mongodb-binaries'
-        }
-    });
-    const mongoUri = mongoServer.getUri();
-    
-    console.log('📦 MongoDB Memory Server created');
-    console.log('🔗 Connection URI:', mongoUri);
-    
-    // Connect to in-memory MongoDB
-    try {
-        await mongoose.connect(mongoUri);
-        console.log('✅ Connected to IN-MEMORY MongoDB');
-        
-        // Seed initial data automatically
-        await seedInitialData();
-        
-    } catch (error) {
-        console.error('❌ MongoDB connection error:', error);
-        process.exit(1);
-    }
-    
-    // Use Routes
-    app.use('/api/auth', authRoutes);
-    app.use('/api/menu', menuRoutes);
-    app.use('/api/orders', orderRoutes);
-    app.use('/api/forecast', forecastRoutes);
-    
-    // Basic Route
-    app.get('/', (req, res) => {
-        res.json({ 
-            message: 'Alimento Restaurant API (In-Memory MongoDB)',
-            version: '1.0.0',
-            database: 'In-Memory MongoDB',
-            endpoints: {
-                menu: 'GET /api/menu',
-                orders: 'GET /api/orders',
-                'create-order': 'POST /api/orders'
-            }
-        });
-    });
-    
-    // Health check
-    app.get('/health', (req, res) => {
-        res.json({ 
-            status: 'healthy',
-            database: mongoose.connection.readyState === 1 ? 'connected' : 'disconnected',
-            timestamp: new Date().toISOString()
-        });
-    });
-    
-    // 404 Handler
-    app.use((req, res) => {
-        res.status(404).json({ error: 'Endpoint not found' });
-    });
-    
-    // Error Handler
-    app.use((err, req, res, next) => {
-        console.error('Server error:', err);
-        res.status(500).json({ error: 'Internal server error' });
-    });
-    
-    // Start Server
-    const PORT = process.env.PORT || 5000;
-    app.listen(PORT, () => {
-        console.log(`🎯 Server running on http://localhost:${PORT}`);
-        console.log(`📊 API Documentation: http://localhost:${PORT}/`);
-        console.log(`❤️  Health check: http://localhost:${PORT}/health`);
-        console.log('\n💡 TIP: This uses IN-MEMORY database. Data will reset when server restarts.');
-    });
+const path = require('path');
+const crypto = require('crypto');
+const { MongoMemoryReplSet } = require('mongodb-memory-server');
+async function run() {
+  if (process.env.NODE_ENV === 'production') throw new Error('In-memory mode is development only.');
+  process.env.JWT_SECRET = crypto.randomBytes(48).toString('hex');
+  const database = await MongoMemoryReplSet.create({ binary: { version: '7.0.14', downloadDir: path.join(__dirname, 'mongodb-binaries') }, replSet: { count: 1, storageEngine: 'wiredTiger' } });
+  process.env.MONGODB_URI = database.getUri();
+  const server = await require('./server').start();
+  const Menu = require('./src/models/MenuItem');
+  await Menu.insertMany(require('./src/data/completeMenu'));
+  await require('./src/services/syncProductCategories')();
+  if (process.env.DEV_ADMIN_EMAIL && process.env.DEV_ADMIN_PASSWORD) {
+    const { hashPassword } = require('./src/utils/authUtils');
+    await require('./src/models/User').create({ email: process.env.DEV_ADMIN_EMAIL, passwordHash: await hashPassword(process.env.DEV_ADMIN_PASSWORD), firstName: 'Development', lastName: 'Admin', role: 'admin' });
+  }
+  const close = () => server.close(async () => { await require('mongoose').disconnect(); await database.stop(); process.exit(0); });
+  process.on('SIGINT', close); process.on('SIGTERM', close);
+  console.log('Disposable development database ready. Data is lost on shutdown.');
 }
-
-// Function to seed initial data
-async function seedInitialData() {
-    try {
-        // Dynamically require MenuItem model
-        const MenuItem = require('./src/models/MenuItem');
-        const completeMenu = require('./src/data/completeMenu');
-        
-        // Check if we already have data - use count() if countDocuments doesn't work
-        let count;
-        try {
-            count = await MenuItem.countDocuments();
-        } catch (err) {
-            // Fallback to count() for older mongoose versions
-            count = await MenuItem.count();
-        }
-        
-        if (count === 0) {
-            console.log('🌱 Seeding initial menu data...');
-            
-            // Add default values to complete menu items
-            const menuItemsWithDefaults = completeMenu.map(item => ({
-                ...item,
-                modifiers: item.modifiers || [],
-                addons: item.addons || [],
-                isAvailable: true,
-                preparationTime: item.preparationTime || 15
-            }));
-            
-            await MenuItem.insertMany(menuItemsWithDefaults);
-            console.log(`✅ Seeded ${menuItemsWithDefaults.length} menu items`);
-        } else {
-            console.log(`✅ Database already has ${count} menu items`);
-        }
-    } catch (error) {
-        console.error('❌ Error seeding data:', error.message);
-        // Continue even if seeding fails
-    }
-}
-
-// Handle process termination
-process.on('SIGINT', async () => {
-    console.log('\n🛑 Server shutting down...');
-    await mongoose.disconnect();
-    console.log('✅ MongoDB disconnected');
-    process.exit(0);
-});
-
-// Start the server with increased timeout
-const timeoutMs = parseInt(process.env.STARTUP_TIMEOUT || '60000', 10);
-const startTimeout = setTimeout(() => {
-    console.error('❌ Server startup timeout. Ensure MongoDB Memory Server can be initialized.');
-    process.exit(1);
-}, timeoutMs);
-
-startServer().then(() => {
-    clearTimeout(startTimeout);
-}).catch(err => {
-    clearTimeout(startTimeout);
-    console.error('❌ Failed to start server:', err);
-    process.exit(1);
-});
-
-// Prevent crash from unhandled rejections
-process.on('unhandledRejection', (reason, promise) => {
-    console.error('⚠️ Unhandled Rejection at:', promise, 'reason:', reason);
-});
-
-process.on('uncaughtException', (err) => {
-    console.error('⚠️ Uncaught Exception:', err);
-    // Don't exit immediately for unhandled exceptions during startup
-    setTimeout(() => process.exit(1), 1000);
-});
+run().catch(error => { console.error(error.message); process.exit(1); });

@@ -1,10 +1,13 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { getStore } from '../../services/storeService';
 import MapPinIcon from '../icons/MapPinIcon';
 import ClockIcon from '../icons/ClockIcon';
 import PhoneIcon from '../icons/PhoneIcon';
 import { FaFacebook, FaInstagram } from 'react-icons/fa';
 
 const PortalFooter = () => {
+  const [store, setStore] = useState(null);
+  useEffect(() => { getStore().then(setStore).catch(() => {}); }, []);
   const currentYear = new Date().getFullYear();
 
   return (
@@ -30,8 +33,8 @@ const PortalFooter = () => {
               <ClockIcon size={24} color="currentColor" />
               <h3>Hours</h3>
             </div>
-            <p className="footer-info">Monday–Saturday<br />11:00 AM–9:00 PM</p>
-            <p className="footer-info">Sunday · Closed</p>
+            <p className="footer-info">{store?.openingTime || '11:00'} - {store?.closingTime || '20:00'} (Philippine time)</p>
+            <p className="footer-info">{(store?.closedDays || [0]).map(day => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'][day]).join(', ')}{(store?.closedDays || [0]).length ? ' - Closed' : 'Open daily'}</p>
           </div>
 
           <div className="footer-section">

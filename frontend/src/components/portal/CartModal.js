@@ -3,10 +3,10 @@ import XIcon from '../icons/XIcon';
 import TrashIcon from '../icons/TrashIcon';
 import './CartModal.css';
 
-const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
+const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout, discount = 0, closed = false }) => {
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
   const deliveryFee = 50;
-  const cartTotal = cartSubtotal + deliveryFee;
+  const cartTotal = cartSubtotal - discount + deliveryFee;
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const formatCurrency = (amount) => `₱${amount.toFixed(2)}`;
   const formatProductName = (name = '') => name
@@ -75,6 +75,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
         {cart.length > 0 && (
           <div className="cart-modal-footer">
             <div className="cart-modal-summary">
+              {discount > 0 && <div className="summary-row"><span>Discount</span><span>-{formatCurrency(discount)}</span></div>}
               <div className="summary-row">
                 <span>Subtotal</span>
                 <span>{formatCurrency(cartSubtotal)}</span>
@@ -91,6 +92,7 @@ const CartModal = ({ cart, onClose, onUpdateQuantity, onCheckout }) => {
             <button 
               className="cart-modal-checkout"
               onClick={onCheckout}
+              disabled={closed}
             >
               Proceed to checkout
             </button>

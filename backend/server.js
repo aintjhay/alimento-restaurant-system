@@ -4,22 +4,26 @@ const helmet = require('helmet');
 const compression = require('compression');
 const rateLimit = require('express-rate-limit');
 require('dotenv').config();
+require('./src/config/security').validateSecurity();
 
 const { connectDB } = require('./src/config/mongodb');
 
 const app = express();
+const hops = Number(process.env.TRUST_PROXY_HOPS || 0);
+if (!Number.isInteger(hops) || hops < 0 || hops > 5) throw new Error('TRUST_PROXY_HOPS must be 0 to 5.');
+app.set('trust proxy', hops);
 
 // Security & Performance Middleware
 app.use(helmet());
 app.use(compression());
 
 // CORS Configuration
-const allowedOrigins = [
+const allowedOrigins = (process.env.CORS_ORIGINS || '').split(',').filter(Boolean).concat([
   'http://localhost:3000',
   'http://localhost:5000',
   'https://alimento-resto.vercel.app',
   'https://alimento-restaurant-system.vercel.app'
-];
+]);
 
 app.use(cors({
   origin: function(origin, callback) {
@@ -27,9 +31,9 @@ app.use(cors({
     if (!origin) {
       return callback(null, true);
     }
-    
+
     // Check if origin is in allowedOrigins or allow all in production
-    if (allowedOrigins.includes(origin) || process.env.NODE_ENV === 'production') {
+    if (allowedOrigins.includes(origin)) {
       callback(null, true);
     } else {
       callback(new Error('Not allowed by CORS'));
@@ -37,12 +41,12 @@ app.use(cors({
   },
   credentials: true,
   methods: ['GET', 'POST', 'PATCH', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization', 'x-seed-secret']
+  allowedHeaders: ['Content-Type', 'Authorization', 'Idempotency-Key', 'X-Tracking-Token']
 }));
 
 // Body Parser Middleware - Increased limit for image uploads
-app.use(express.json({ limit: '50mb', verify: (req, _res, buffer) => { req.rawBody = buffer.toString('utf8'); } }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '6mb', verify: (req, _res, buffer) => { if (req.originalUrl === '/api/payments/paymongo/webhook') req.rawBody = buffer.toString('utf8'); } }));
+app.use(express.urlencoded({ limit: '6mb', extended: true }));
 
 // Give periodic order-status reads their own budget so they cannot block menu or login requests.
 const isOrderStatusRead = req => req.method === 'GET' && /^\/api\/orders\/[a-f0-9]{24}\/?(?:\?|$)/i.test(req.originalUrl);
@@ -77,36 +81,6 @@ const limiter = rateLimit({
 
 app.use('/api/', limiter);
 
-// Connect to MongoDB and Auto-Seed
-const MenuItem = require('./src/models/MenuItem');
-
-connectDB().then(async () => {
-  // Auto-seed database if empty (first deployment)
-  try {
-    const count = await MenuItem.countDocuments();
-    if (count === 0) {
-      console.log('📊 Database is empty. Auto-seeding...');
-      const completeMenu = require('./src/data/completeMenu');
-      const items = completeMenu.map(item => ({
-        ...item,
-        modifiers: item.modifiers || [],
-        addons: item.addons || [],
-        isAvailable: true,
-        preparationTime: item.preparationTime || 15
-      }));
-      const inserted = await MenuItem.insertMany(items);
-      console.log(`✅ Auto-seeded ${inserted.length} menu items with images`);
-    } else {
-      console.log(`📂 Database already has ${count} menu items`);
-    }
-  } catch (error) {
-    console.error('⚠️ Auto-seed failed:', error.message);
-  }
-}).catch(err => {
-  console.error('Failed to initialize database:', err);
-  process.exit(1);
-});
-
 // Import Routes
 const menuRoutes = require('./src/routes/menuRoutes');
 const orderRoutes = require('./src/routes/orderRoutes');
@@ -126,12 +100,13 @@ app.use('/api/forecast', forecastRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/reviews', reviewRoutes);
 app.use('/api/admin', adminRoutes);
+app.use('/api/store', require('./src/routes/storeRoutes'));
 app.use('/api/admin/inventory', require('./src/middleware/authMiddleware').authMiddleware, require('./src/middleware/authMiddleware').requireRole('admin'), inventoryRoutes);
 app.use('/api/payments', paymentRoutes);
 
 // Basic route for testing
 app.get('/', (req, res) => {
-  res.json({ 
+  res.json({
     message: 'Alimento Restaurant API',
     version: '1.0.0',
     database: 'MongoDB',
@@ -165,8 +140,8 @@ app.get('/', (req, res) => {
 app.get('/health', (req, res) => {
   const mongoose = require('mongoose');
   const dbStatus = mongoose.connection.readyState === 1 ? 'connected' : 'disconnected';
-  res.json({ 
-    status: 'healthy',
+  res.status(dbStatus === 'connected' ? 200 : 503).json({
+    status: dbStatus === 'connected' ? 'healthy' : 'unavailable',
     database: dbStatus,
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
@@ -174,77 +149,9 @@ app.get('/health', (req, res) => {
   });
 });
 
-// One-time seed endpoint (can be called anytime to refresh menu, optional secret)
-app.post('/api/seed', async (req, res) => {
-  const secret = req.headers['x-seed-secret'];
-  const isLocalhost = req.hostname === 'localhost' || req.hostname === '127.0.0.1';
-  const hasSecret = secret && secret === process.env.SEED_SECRET;
-  
-  // Allow if: localhost, has correct secret, or secret is not set in env
-  if (!isLocalhost && !hasSecret && process.env.SEED_SECRET) {
-    return res.status(403).json({ error: 'Forbidden - Invalid seed secret' });
-  }
-  
-  try {
-    const MenuItem = require('./src/models/MenuItem');
-    const completeMenu = require('./src/data/completeMenu');
-    await MenuItem.deleteMany({});
-    const items = completeMenu.map(item => ({
-      ...item,
-      modifiers: item.modifiers || [],
-      addons: item.addons || [],
-      isAvailable: true,
-      preparationTime: item.preparationTime || 15
-    }));
-    const inserted = await MenuItem.insertMany(items);
-    res.json({ success: true, message: `Seeded ${inserted.length} menu items`, itemCount: inserted.length });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// Force reseed endpoint - useful for fixing database issues
-app.post('/api/force-reseed', async (req, res) => {
-  try {
-    const MenuItem = require('./src/models/MenuItem');
-    const completeMenu = require('./src/data/completeMenu');
-    
-    console.log('🗑️ Clearing existing menu items...');
-    await MenuItem.deleteMany({});
-    
-    const items = completeMenu.map(item => ({
-      ...item,
-      modifiers: item.modifiers || [],
-      addons: item.addons || [],
-      isAvailable: true,
-      preparationTime: item.preparationTime || 15
-    }));
-    
-    console.log(`📥 Inserting ${items.length} menu items with images...`);
-    const inserted = await MenuItem.insertMany(items);
-    
-    // Verify a few items have images
-    const withImages = await MenuItem.find({ image: { $exists: true, $ne: '' } }).countDocuments();
-    const total = await MenuItem.countDocuments();
-    
-    console.log(`✅ Reseed complete: ${total} items (${withImages} with images)`);
-    res.json({ 
-      success: true, 
-      message: `Reseeded ${inserted.length} menu items`,
-      stats: {
-        total: total,
-        itemsWithImages: withImages
-      }
-    });
-  } catch (err) {
-    console.error('❌ Reseed error:', err.message);
-    res.status(500).json({ error: err.message });
-  }
-});
-
 // 404 Handler
 app.use((req, res) => {
-  res.status(404).json({ 
+  res.status(404).json({
     error: 'Endpoint not found',
     path: req.path,
     method: req.method,
@@ -260,27 +167,22 @@ app.use((req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('❌ Server error:', err);
-  res.status(err.status || 500).json({ 
+  res.status(err.status || 500).json({
     error: 'Internal server error',
     message: process.env.NODE_ENV === 'development' ? err.message : 'An error occurred',
     ...(process.env.NODE_ENV === 'development' && { stack: err.stack })
   });
 });
 
-const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => {
-  console.log(`\n${'='.repeat(50)}`);
-  console.log(`🚀 Alimento Restaurant API Started`);
-  console.log(`${'='.repeat(50)}`);
-  console.log(`📡 Port: ${PORT}`);
-  console.log(`🌐 Environment: ${process.env.NODE_ENV || 'development'}`);
-  console.log(`💾 Database: MongoDB`);
-  console.log(`🔒 Security: Helmet + Rate Limiting Enabled`);
-  console.log(`\n📍 Available Endpoints:`);
-  console.log(`   • Root: http://localhost:${PORT}/`);
-  console.log(`   • Health: http://localhost:${PORT}/health`);
-  console.log(`   • Menu: http://localhost:${PORT}/api/menu`);
-  console.log(`   • Orders: http://localhost:${PORT}/api/orders`);
-  console.log(`   • Forecast: http://localhost:${PORT}/api/forecast`);
-  console.log(`${'='.repeat(50)}\n`);
-});
+async function start() {
+  await connectDB();
+  const hello = await require('mongoose').connection.db.admin().command({ hello: 1 });
+  if (!hello.setName && hello.msg !== 'isdbgrid') throw new Error('MongoDB must be a replica set or sharded cluster for order/payment transactions.');
+  await Promise.all(['Order', 'Payment', 'StockMovement', 'Counter', 'CheckoutAttempt', 'Review'].map(name => require('./src/models/' + name).init()));
+  return app.listen(process.env.PORT || 5000, () => console.log('Alimento API ready'));
+}
+if (require.main === module) start().then(server => {
+  const close = () => server.close(() => require('mongoose').disconnect().then(() => process.exit(0)));
+  process.on('SIGTERM', close); process.on('SIGINT', close);
+}).catch(error => { console.error(error.message); process.exit(1); });
+module.exports = { app, start };

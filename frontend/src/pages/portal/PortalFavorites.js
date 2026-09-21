@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
-import HeartIcon from '../../components/icons/HeartIcon';
 import './Portal.css';
 
 const FAVORITES_KEY = 'portalFavorites';

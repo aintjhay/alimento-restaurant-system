@@ -22,3 +22,8 @@ Thumbs.db
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# Isolated integration database binaries and generated build output
+backend/mongodb-binaries/
+frontend/build/
+backup-artifacts/

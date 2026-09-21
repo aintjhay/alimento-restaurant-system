@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Link, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import logo from '../../assets/images/logo/alimentologo.png';
 import UserIcon from '../icons/UserIcon';
 import CartIcon from '../icons/CartIcon';
@@ -11,7 +11,6 @@ import { useAuth } from '../../context/AuthContext';
 const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount, onLogin } = {}) => {
   const navigate = useNavigate();
   const { logout, user: authUser, isAuthenticated } = useAuth();
-  const location = useLocation();
   const user = isAuthenticated && authUser?.type !== 'guest' ? authUser : null;
   const [showUserMenu, setShowUserMenu] = useState(false);
   const [activeNav, setActiveNav] = useState('menu');
@@ -69,7 +68,6 @@ const PortalHeader = ({ onCartClick = () => {}, cartCount: propCartCount, onLogi
     };
   }, []);
 
-  const isActive = (path) => location.pathname === path;
 
   const handleLogout = () => {
     logout();

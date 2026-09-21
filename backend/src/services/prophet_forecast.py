@@ -53,13 +53,14 @@ def run_forecast():
             model.fit(df[['ds', 'y']])
         
         # Create future dataframe
-        future = model.make_future_dataframe(periods=forecast_days)
+        tomorrow = pd.Timestamp.now(tz='Asia/Manila').normalize().tz_localize(None) + pd.Timedelta(days=1)
+        future = pd.DataFrame({'ds': pd.date_range(start=tomorrow, periods=forecast_days)})
         
         # Generate forecast
         forecast = model.predict(future)
         
         # Extract only future dates (not historical)
-        future_forecast = forecast[forecast['ds'] > df['ds'].max()].copy()
+        future_forecast = forecast.copy()
         
         # Format output
         result = []

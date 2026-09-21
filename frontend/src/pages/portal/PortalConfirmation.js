@@ -92,6 +92,7 @@ const PortalConfirmation = () => {
     pending: ['Waiting for confirmation', 'Waiting for the restaurant to confirm your order.'],
     preparing: ['Preparing your order', 'The restaurant is preparing your items.'],
     ready: ['Ready', 'Your order is ready. Check order status for further updates.'],
+    out_for_delivery: ['Out for delivery', 'Your rider is on the way with your order.'],
     served: ['Served', 'Your order has been marked as served.'],
     completed: ['Completed', 'Your order is complete. Thank you for ordering from Alimento.'],
     cancelled: ['Cancelled', 'Your order has been cancelled. Check order details for more information.']
@@ -139,6 +140,7 @@ const PortalConfirmation = () => {
             {items.map((item, index) => <li key={item._id || index}><div><strong>{item.quantity} &times; {item.name?.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase()).replace(/\bBbq\b/g, 'BBQ')}</strong>{(item.modifiers || []).map((mod, i) => <small key={i}>{mod.modifierName}: {mod.selectedOption}</small>)}{(item.addons || []).map((addon, i) => <small key={i}>+ {addon.name}</small>)}</div>{item.itemTotal != null && <span>{currency(item.itemTotal)}</span>}</li>)}
           </ul>
           <dl className="receipt-details">
+            {lastOrder.discount > 0 && <div><dt>Discount</dt><dd>-{currency(lastOrder.discount)}</dd></div>}
             {lastOrder.deliveryFee != null && <div><dt>Delivery fee</dt><dd>{currency(lastOrder.deliveryFee)}</dd></div>}
             <div className="receipt-total"><dt>Total</dt><dd>{lastOrder.totalAmount != null ? currency(lastOrder.totalAmount) : 'Unavailable'}</dd></div>
             <div><dt>Payment method</dt><dd>{paymentMethods[lastOrder.paymentMethod] || 'Not available'}</dd></div>

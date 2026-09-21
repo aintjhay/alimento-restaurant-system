@@ -20,7 +20,7 @@ test('active board retains empty lanes, orders oldest first, and excludes served
   render(<StatusBoard orders={orders} filter="active" preparingLabel="Cooking">
     {order => <article key={order._id}>{order._id}</article>}
   </StatusBoard>);
-  expect(within(screen.getByRole('region', { name: 'Pending' })).getAllByRole('article').map(el => el.textContent)).toEqual(['old', 'new']);
+  expect(within(screen.getByRole('region', { name: 'Received' })).getAllByRole('article').map(el => el.textContent)).toEqual(['old', 'new']);
   expect(screen.getByText('No cooking orders')).toBeTruthy();
   expect(screen.getByText('No ready orders')).toBeTruthy();
   expect(screen.queryByText('served')).toBeNull();
@@ -36,7 +36,7 @@ test('updated tickets move between columns and served history remains accessible
   const { rerender } = render(board('pending'));
   rerender(board('preparing'));
   expect(within(screen.getByRole('region', { name: 'Making' })).getByText('drink')).toBeTruthy();
-  expect(screen.getByText('No pending orders')).toBeTruthy();
+  expect(screen.getByText('No received orders')).toBeTruthy();
   rerender(board('ready'));
   expect(within(screen.getByRole('region', { name: 'Ready' })).getByText('drink')).toBeTruthy();
   rerender(board('served', 'served'));

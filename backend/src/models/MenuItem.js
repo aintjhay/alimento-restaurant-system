@@ -83,6 +83,15 @@ const menuItemSchema = new mongoose.Schema({
   }
 });
 
+menuItemSchema.add({
+  deletedAt: { type: Date, default: null },
+  deletedBy: String,
+  deletionHistory: [{ action: String, at: Date, by: String }]
+});
+menuItemSchema.pre(/^find|^countDocuments/, function(next) {
+  if (!Object.prototype.hasOwnProperty.call(this.getQuery(), 'deletedAt')) this.where({ deletedAt: null });
+  next();
+});
 menuItemSchema.pre('save', function(next) {
   this.updatedAt = new Date();
   next();

@@ -7,9 +7,9 @@ const vm = require('node:vm');
 test('forecast fallback returns predictions and insights when Python is unavailable', async () => {
   const context = {
     require: name => name === './dataCollectionService' ? {
-      collectOrderData: async () => [{ ds: '2026-09-01', y: 2 }],
-      getDataStatistics: () => ({ avgOrdersPerDay: 2, stdDeviation: 1 })
-    } : require(name),
+      collectOrderData: async () => [{ ds: '2026-09-01', y: 2 }, { ds: '2026-09-02', y: 2 }],
+      getDataStatistics: () => ({ avgOrdersPerDay: 2, standardDeviation: 1 })
+    } : name === '../models/StoreSettings' ? { current: async () => ({ closedDays: [] }) } : require(name),
     console, module: { exports: {} }, __dirname, process, setTimeout, clearTimeout
   };
   vm.createContext(context);

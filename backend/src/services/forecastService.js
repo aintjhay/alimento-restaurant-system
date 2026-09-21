@@ -11,7 +11,7 @@ const dataCollectionService = require('./dataCollectionService');
 const PYTHON_SCRIPT_PATH = path.join(__dirname, 'prophet_forecast.py');
 
 /**
- * Generate forecast using Prophet (with Mock fallback)
+ * Generate forecast using Prophet (with seasonal baseline fallback)
  * @param {number} forecastDays - Number of days to forecast (default: 7)
  * @param {number} historicalDays - Number of days of history to use (default: 90)
  * @returns {Promise<Object>} Forecast data with predictions
@@ -22,6 +22,16 @@ async function generateForecast(forecastDays = 7, historicalDays = 90) {
 
     // Step 1: Collect order data
     const historicalData = await dataCollectionService.collectOrderData(historicalDays);
+    if (historicalData.length < 2) {
+      return {
+        status: 'insufficient_data',
+        generatedAt: new Date().toISOString(),
+        forecast: [],
+        insights: [],
+        modelMetadata: { historicalDataPoints: historicalData.length },
+        message: 'Forecasts require at least two completed business days of history.'
+      };
+    }
     const dataStats = dataCollectionService.getDataStatistics(historicalData);
     
     console.log(`[Forecast] Data statistics:`, dataStats);
@@ -33,11 +43,14 @@ async function generateForecast(forecastDays = 7, historicalDays = 90) {
     try {
       forecast = await runProphetForecast(historicalData, forecastDays);
     } catch (pythonError) {
-      console.warn('[Forecast] Python Prophet unavailable, using mock forecast:', pythonError.message);
-      modelUsed = 'Mock Forecast (Python Unavailable)';
-      forecast = generateMockForecast(historicalData, forecastDays, dataStats);
+      console.warn('[Forecast] Python Prophet unavailable, using seasonal baseline:', pythonError.message);
+      modelUsed = 'Seasonal average baseline (Python unavailable)';
+      forecast = generateBaselineForecast(historicalData, forecastDays, dataStats);
     }
 
+    const settings = await require('../models/StoreSettings').current();
+    forecast = forecast.map(day => (settings.closedDays || []).includes(new Date(`${day.ds}T12:00:00Z`).getUTCDay())
+      ? { ...day, yhat: 0, yhat_lower: 0, yhat_upper: 0, scheduledClosed: true } : day);
     // Step 3: Enhance forecast with metadata
     const enhancedForecast = {
       status: 'success',
@@ -49,7 +62,7 @@ async function generateForecast(forecastDays = 7, historicalDays = 90) {
         dataStatistics: dataStats,
         seasonalityEnabled: {
           yearly: false,
-          weekly: true,
+          weekly: historicalData.length >= 14,
           daily: false
         }
       },
@@ -161,50 +174,19 @@ function runProphetForecast(historicalData, forecastDays) {
 }
 
 /**
- * Generate mock forecast when Python Prophet is unavailable
+ * Generate seasonal baseline when Python Prophet is unavailable
  * Creates a simple trend-based forecast based on historical data
  */
-function generateMockForecast(historicalData, forecastDays, dataStats) {
-  try {
-    console.log('[Forecast] Generating mock forecast as fallback');
-    
-    const avgOrders = parseFloat(dataStats.avgOrdersPerDay) || 10;
-    const stdDev = parseFloat(dataStats.stdDeviation) || avgOrders * 0.3;
-    const forecast = [];
-    
-    // Simple trend: slightly increase from average with some variance
-    for (let i = 0; i < forecastDays; i++) {
-      const date = new Date();
-      date.setDate(date.getDate() + i + 1);
-      
-      // Add some realistic variance
-      const variance = (Math.random() - 0.5) * stdDev * 2;
-      const trend = i * 0.5; // Slight upward trend
-      const predicted = Math.max(0, avgOrders + variance + trend);
-      
-      forecast.push({
-        ds: date.toISOString().split('T')[0],
-        yhat: predicted,
-        yhat_lower: Math.max(0, predicted - stdDev),
-        yhat_upper: predicted + stdDev
-      });
-    }
-    
-    return forecast;
-  } catch (error) {
-    console.error('[Forecast] Error generating mock forecast:', error);
-    // Return minimal forecast
-    return Array.from({ length: forecastDays }, (_, i) => {
-      const date = new Date();
-      date.setDate(date.getDate() + i + 1);
-      return {
-        ds: date.toISOString().split('T')[0],
-        yhat: 10,
-        yhat_lower: 5,
-        yhat_upper: 15
-      };
-    });
-  }
+function generateBaselineForecast(historicalData, forecastDays, dataStats) {
+  const avg = Number(dataStats.avgOrdersPerDay) || 0;
+  const spread = Number(dataStats.standardDeviation) || 0;
+  const today = new Date(new Date().getTime() + 8 * 3600000).toISOString().slice(0, 10);
+  return Array.from({ length: forecastDays }, (_, i) => {
+    const date = new Date(`${today}T00:00:00Z`); date.setUTCDate(date.getUTCDate() + i + 1);
+    const matching = historicalData.filter(d => new Date(`${d.ds}T00:00:00Z`).getUTCDay() === date.getUTCDay());
+    const predicted = matching.length >= 2 ? matching.reduce((sum, d) => sum + d.y, 0) / matching.length : avg;
+    return { ds: date.toISOString().slice(0, 10), yhat: predicted, yhat_lower: Math.max(0, predicted - spread), yhat_upper: predicted + spread };
+  });
 }
 
 /** Generate operational insights from the forecast. */
@@ -281,38 +263,19 @@ function generateInsights(forecast, dataStats) {
 /**
  * Calculate forecast accuracy against actual data
  */
-async function calculateAccuracy(forecastDate, actualOrders) {
-  try {
-    // Get last forecast before that date
-    const forecast = await getForecastArchive(forecastDate);
-    
-    if (!forecast) {
-      return { error: 'No forecast found for that date' };
-    }
-
-    const predicted = forecast.yhat;
-    const mape = Math.abs((actualOrders - predicted) / actualOrders) * 100;
-
-    return {
-      forecastDate,
-      predicted: Math.round(predicted),
-      actual: actualOrders,
-      error: Math.round(actualOrders - predicted),
-      mapePercent: mape.toFixed(2)
-    };
-
-  } catch (error) {
-    console.error('[Forecast] Error calculating accuracy:', error);
-    return { error: error.message };
-  }
-}
-
-/**
- * Get archived forecast (placeholder - would fetch from DB)
- */
-function getForecastArchive(date) {
-  // TODO: Implement getting forecast from database
-  return null;
+async function calculateAccuracy(forecastDate) {
+  const { dayKey } = require('./dashboardService');
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(forecastDate || '') || !Number.isFinite(Date.parse(forecastDate)) || dayKey(`${forecastDate}T00:00:00+08:00`) !== forecastDate || forecastDate >= dayKey(new Date())) throw new Error('Choose a completed business day.');
+  const start = new Date(`${forecastDate}T00:00:00+08:00`);
+  const record = await require('../models/Forecast').findOne({ generatedAt: { $lt: start }, 'predictions.ds': forecastDate }).sort({ generatedAt: -1 });
+  if (!record) throw new Error('No forecast issued before that date was found.');
+  const actual = await require('../models/Order').countDocuments({ status: 'completed', createdAt: { $gte: start, $lt: new Date(start.getTime() + 86400000) } });
+  const prediction = record.predictions.find(p => p.ds === forecastDate);
+  prediction.actual = actual;
+  prediction.accuracy = actual === 0 ? null : Math.abs(actual - prediction.yhat) / actual * 100;
+  await record.save();
+  await record.calculatePerformance();
+  return { forecastDate, predicted: prediction.yhat, actual, absoluteError: Math.abs(actual - prediction.yhat), mapePercent: prediction.accuracy };
 }
 
 module.exports = {

@@ -375,7 +375,7 @@ const PortalUserProfile = () => {
                       checked={newAddress.isDefault}
                       onChange={(e) => setNewAddress({ ...newAddress, isDefault: e.target.checked })}
                     />
-                    <span>Use as my default address<small>Automatically selected at checkout.</small></span>
+                    <span>Use this as a default address<small>Automatically selected at checkout. You can change it before ordering.</small></span>
                   </label>
                 </div>
 

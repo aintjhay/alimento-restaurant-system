@@ -10,7 +10,9 @@
     "seed": "node seedDatabase.js",
     "migrate:admin": "node migrateAdminRoles.js",
     "migrate:categories": "node migrateProductCategories.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "node --test",
+    "test:unit": "node --test src/routes/*.test.js src/services/*.test.js",
+    "test:integration": "node --test tests/*.test.js"
   },
   "keywords": [],
   "author": "",
@@ -30,6 +32,7 @@
     "jspdf-autotable": "^3.5.31",
     "mongodb": "^7.1.0",
     "mongoose": "^7.8.8",
+    "nodemailer": "^10.0.10",
     "papaparse": "^5.4.1",
     "xlsx": "^0.18.5"
   },

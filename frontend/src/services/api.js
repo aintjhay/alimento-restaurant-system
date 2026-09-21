@@ -1,3 +1,4 @@
+import { checkoutKey } from './checkoutKey';
 const API_URL = (process.env.REACT_APP_API_URL || 'http://localhost:5000') + '/api';
 
 const fetchWithTimeout = async (url, options = {}, timeout = 30000) => {
@@ -50,17 +51,18 @@ export const menuAPI = {
 };
 
 export const ordersAPI = {
-    getAll: () => fetch(`${API_URL}/orders`).then(parseResponse),
+    getAll: () => fetch(`${API_URL}/orders`, { headers: authHeaders() }).then(parseResponse),
     create: (orderData) => fetch(`${API_URL}/orders`, {
         method: 'POST', headers: {
             'Content-Type': 'application/json',
+            'Idempotency-Key': checkoutKey('portal', orderData),
             ...(localStorage.getItem('portalToken') ? { Authorization: `Bearer ${localStorage.getItem('portalToken')}` } : {})
         }, body: JSON.stringify(orderData)
     }).then(parseResponse),
     getStats: () => fetch(`${API_URL}/dashboard/stats`).then(parseResponse)
         .catch(() => fetch(`${API_URL}/stats`).then(parseResponse))
         .catch(() => ({ totalRevenue: 0, totalOrders: 0, activeTables: 0 })),
-    getToday: () => fetch(`${API_URL}/orders/today`).then(parseResponse).catch(() => [])
+    getToday: () => fetch(`${API_URL}/orders/today`, { headers: authHeaders() }).then(parseResponse).catch(() => [])
 };
 
 export { API_URL, authHeaders, fetchWithTimeout, parseResponse };

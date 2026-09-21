@@ -291,10 +291,10 @@ const PortalLoginRegister = () => {
                       <button
                         type="button"
                         className="forgot-pwd-btn"
-                        disabled
-                        title="Password reset feature coming soon"
+                        disabled={loading}
+                        onClick={() => navigate('/portal/forgot-password')}
                       >
-                        Forgot password? (Coming soon)
+                        Forgot password?
                       </button>
                     </div>
                     <div className="input-wrapper">

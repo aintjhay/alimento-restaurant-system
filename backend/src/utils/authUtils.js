@@ -1,7 +1,7 @@
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 
-const JWT_SECRET = process.env.JWT_SECRET || 'alimento-secret-key-change-in-production';
+const JWT_SECRET = process.env.JWT_SECRET;
 const JWT_EXPIRE = process.env.JWT_EXPIRE || '7d';
 
 /**
@@ -22,9 +22,10 @@ const comparePassword = async (password, passwordHash) => {
 /**
  * Generate JWT token
  */
-const generateToken = (userId, email, role = 'customer') => {
+const generateToken = (userId, email, role = 'customer', sessionVersion = 0) => {
+  require('../config/security').validateSecurity();
   return jwt.sign(
-    { userId, email, role },
+    { userId, email, role, sessionVersion },
     JWT_SECRET,
     { expiresIn: JWT_EXPIRE }
   );

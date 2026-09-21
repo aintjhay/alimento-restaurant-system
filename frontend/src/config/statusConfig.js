@@ -11,7 +11,7 @@ import {
   CompletedIcon,
   ClockIcon,
   ChefHatIcon,
-} from '../icons/StatusIcons';
+} from '../components/icons/StatusIcons';
 
 /**
  * Status Configuration Object
@@ -25,7 +25,7 @@ import {
  */
 export const ORDER_STATUS_CONFIG = {
   pending: {
-    label: 'Finished',
+    label: 'Received',
     color: '#1565c0',
     bgColor: '#e3f2fd',
     borderColor: '#90caf9',
@@ -51,6 +51,7 @@ export const ORDER_STATUS_CONFIG = {
     severity: 'success',
     description: 'Order ready for pickup',
   },
+  out_for_delivery: { label: 'Out for delivery', color: '#1565c0', bgColor: '#e3f2fd', borderColor: '#90caf9', icon: ReadyIcon, severity: 'info', description: 'Order is with the delivery rider' },
   completed: {
     label: 'Completed',
     color: '#616161',

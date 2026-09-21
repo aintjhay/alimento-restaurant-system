@@ -23,11 +23,19 @@ function salesRange(query, now = new Date()) {
 }
 
 function summarizeSales(orders) {
-  const summary = { totalSales: 0, paidOrderCount: 0, orderCount: orders.length, unpaidTotal: 0, itemsSold: 0, averageOrderValue: 0 };
+  const summary = { collected: 0, refunds: 0, orderValue: 0, unknownPartialBalances: 0, totalSales: 0, paidOrderCount: 0, orderCount: orders.length, unpaidTotal: 0, itemsSold: 0, averageOrderValue: 0 };
   const products = new Map();
   const days = new Map();
   for (const order of orders) {
-    if (['unpaid', 'payment_pending_verification'].includes(order.paymentStatus)) summary.unpaidTotal += order.totalAmount;
+    const received = order.amountPaid ?? (['paid', 'payment_verified', 'refunded'].includes(order.paymentStatus) ? order.totalAmount : 0);
+    const refunded = order.paymentStatus === 'refunded' ? received : order.amountRefunded || 0;
+    summary.collected += received; summary.refunds += refunded;
+    if (order.status !== 'cancelled' && order.paymentStatus !== 'refunded') summary.orderValue += order.totalAmount;
+    if (order.status !== 'cancelled' && ['unpaid', 'payment_pending_verification', 'partially_paid'].includes(order.paymentStatus)) {
+      if (order.paymentStatus === 'partially_paid' && order.amountPaid === undefined) summary.unknownPartialBalances++;
+      else summary.unpaidTotal += Math.max(0, order.totalAmount - received);
+    }
+    if (order.status === 'cancelled') continue;
     if (!paid(order)) continue;
     summary.totalSales += order.totalAmount;
     summary.paidOrderCount++;

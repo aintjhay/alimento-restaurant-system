@@ -1,9 +1,12 @@
-import React, { useState, useEffect } from 'react';
+import { checkoutKey, finishCheckout } from '../../services/checkoutKey';
+import React, { useState, useEffect, useRef } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
 import './PosSystem.css';
+import { quoteOrder, getStore, promoFor } from '../../services/storeService';
+import { authHeaders } from '../../services/api';
 import API_BASE_URL from '../../config/api';
 import { getFoodImage, getItemColor } from '../../utils/imageUtils';
-import { 
+import {
   FaSearch,
   FaTrash, FaPlus, FaMinus, FaCheck
 } from 'react-icons/fa';
@@ -13,39 +16,6 @@ import { LuSoup, LuUtensils, LuSandwich, LuCookingPot, LuWine, LuCupSoda, LuCoff
 // Import logo
 import logoImg from '../../assets/images/logo/alimentologo.png';
 
-function PosSystem() {
-  // States
-  const [menuItems, setMenuItems] = useState([]);
-  const [filteredItems, setFilteredItems] = useState([]);
-  const [cart, setCart] = useState([]);
-  const [tableNumber, setTableNumber] = useState('1');
-  const [customerName, setCustomerName] = useState('');
-  const [orderType, setOrderType] = useState('Dine-in');
-  const [notes, setNotes] = useState('');
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isUsingFallbackData, setIsUsingFallbackData] = useState(false);
-  const [paymentMethod, setPaymentMethod] = useState('cash');
-  const [menuPage, setMenuPage] = useState(1);
-  const [menuPagination, setMenuPagination] = useState({ page: 1, totalPages: 1, hasPreviousPage: false, hasNextPage: false });
-  
-  // Categories
-  const categories = [
-    { id: 'Rice Meals', name: 'Rice Meals', icon: <LuSoup aria-hidden="true" focusable="false" /> },
-    { id: 'Pasta', name: 'Pasta', icon: <LuUtensils aria-hidden="true" focusable="false" /> },
-    { id: 'Sandwiches', name: 'Sandwiches', icon: <LuSandwich aria-hidden="true" focusable="false" /> },
-    { id: 'Sides', name: 'Sides', icon: <LuCookingPot aria-hidden="true" focusable="false" /> },
-    { id: 'Cocktails', name: 'Cocktails', icon: <LuWine aria-hidden="true" focusable="false" /> },
-    { id: 'Coolers', name: 'Coolers', icon: <LuCupSoda aria-hidden="true" focusable="false" /> },
-    { id: 'Coffee', name: 'Coffee', icon: <LuCoffee aria-hidden="true" focusable="false" /> },
-    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: <LuIceCreamBowl aria-hidden="true" focusable="false" /> }
-  ];
-  
-  const [activeCategory, setActiveCategory] = useState('Rice Meals');
-  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
-  const [selectedItemForModal, setSelectedItemForModal] = useState(null);
-
-  // Sample menu data (fallback if API fails) - Synced from backend completeMenu.js
   const sampleMenu = [
     // ================ COCKTAILS ================
     { name: "TEQUILA SUNRISE", description: "Vibrant tequila cocktail with orange juice and grenadine", price: 120, category: "Cocktails", image: "", preparationTime: 8, tags: ["alcoholic", "popular"], modifiers: [], addons: [] },
@@ -60,37 +30,37 @@ function PosSystem() {
     { name: "WHISKY COKE", description: "Simple whisky mixed with Coca-Cola", price: 90, category: "Cocktails", image: "", preparationTime: 5, tags: ["alcoholic"], modifiers: [], addons: [] },
     { name: "GIN TONIC", description: "Classic gin and tonic with lime", price: 90, category: "Cocktails", image: "", preparationTime: 5, tags: ["alcoholic"], modifiers: [], addons: [] },
     { name: "TEQUILA SHOT", description: "Straight tequila shot with lime and salt", price: 50, category: "Cocktails", image: "", preparationTime: 2, tags: ["alcoholic"], modifiers: [], addons: [] },
-    
+
     // ================ PASTA ================
     { name: "CHORIZO JALAPENO", description: "Spicy pasta with chorizo and jalapeño peppers", price: 200, category: "Pasta", image: "Chorizojalapeno.jpg", preparationTime: 15, tags: ["spicy", "popular"], modifiers: [], addons: [] },
     { name: "CLASSIC CARBONARA", description: "Creamy pasta with bacon, egg, and parmesan", price: 220, category: "Pasta", image: "Classiccarbonara.jpg", preparationTime: 15, tags: ["creamy", "classic"], modifiers: [], addons: [] },
     { name: "SPANISH STYLE", description: "Spanish-inspired pasta with chorizo and paprika", price: 190, category: "Pasta", image: "SpanishStyle.jpg", preparationTime: 15, tags: ["spicy"], modifiers: [], addons: [] },
     { name: "FILIPINO STYLE", description: "Local Filipino-style pasta with a sweet twist", price: 190, category: "Pasta", image: "Pinoystyle.jpg", preparationTime: 15, tags: ["sweet", "local"], modifiers: [], addons: [] },
     { name: "SEAFOOD PASTA", description: "Pasta with mixed seafood in white wine sauce", price: 220, category: "Pasta", image: "", preparationTime: 20, tags: ["seafood"], modifiers: [], addons: [] },
-    
+
     // ================ SANDWICHES ================
     { name: "THICK CUT BACON", description: "Sandwich with thick-cut bacon and fresh vegetables", price: 180, category: "Sandwiches", image: "ThickCutBacon.jpg", preparationTime: 12, tags: ["bacon", "popular"], modifiers: [], addons: [{ name: "Add Cajun Fries", price: 50 }] },
     { name: "CRISPY CHIX", description: "Crispy chicken sandwich with your choice of sauce", price: 170, category: "Sandwiches", image: "CrispyChix.jpg", preparationTime: 15, tags: ["chicken", "popular"], modifiers: [{ name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }] }], addons: [{ name: "Add Cajun Fries", price: 50 }] },
     { name: "CHORI CHEESEBURGER", description: "Burger with chorizo patty and melted cheese", price: 180, category: "Sandwiches", image: "Choricheeseburger.jpg", preparationTime: 15, tags: ["chorizo", "burger"], modifiers: [], addons: [{ name: "Add Cajun Fries", price: 50 }] },
     { name: "BBQ CHEESEBURGER", description: "Classic cheeseburger with BBQ sauce", price: 190, category: "Sandwiches", image: "", preparationTime: 15, tags: ["burger", "bbq"], modifiers: [], addons: [{ name: "Add Cajun Fries", price: 50 }] },
-    
+
     // ================ SIDES ================
     { name: "NACHORIZO", description: "Nachos with chorizo, cheese, and toppings", price: 190, category: "Sides", image: "Nachorizo.jpg", preparationTime: 10, tags: ["chorizo", "snack"], modifiers: [], addons: [] },
     { name: "CAJUN FRIES", description: "Crispy fries with cajun seasoning", price: 130, category: "Sides", image: "", preparationTime: 8, tags: ["fries", "snack"], modifiers: [], addons: [] },
     { name: "CHICKEN WINGS", description: "Crispy chicken wings with your choice of flavor", price: 260, category: "Sides", image: "BuffaloWings12s_2.jpg", preparationTime: 20, tags: ["chicken", "popular"], modifiers: [{ name: "Size", required: true, options: [{ name: "8pcs", price: 260 }, { name: "12pcs", price: 350 }] }, { name: "Flavor", required: true, options: [{ name: "Buffalo", price: 0 }, { name: "BBQ", price: 0 }, { name: "Parmesan", price: 0 }] }], addons: [] },
-    
+
     // ================ RICE MEALS ================
     { name: "CHICKEN WINGS RICE MEAL", description: "Chicken wings served with rice", price: 160, category: "Rice Meals", image: "Buffalowingsricemeal.jpg", preparationTime: 15, tags: ["chicken", "rice"], modifiers: [], addons: [] },
     { name: "BURGER STEAK RICE MEAL", description: "Burger patty with mushroom gravy and rice", price: 170, category: "Rice Meals", image: "", preparationTime: 15, tags: ["beef", "rice"], modifiers: [], addons: [] },
     { name: "HOMEMADE CHORIZO WITH EGG", description: "Homemade chorizo with sunny-side-up egg and rice", price: 160, category: "Rice Meals", image: "Homemadechorizo.jpg", preparationTime: 12, tags: ["chorizo", "egg"], modifiers: [], addons: [] },
     { name: "CHICKEN TOCINO WITH EGG", description: "Sweet chicken tocino with egg and rice", price: 170, category: "Rice Meals", image: "Chickentocino.jpg", preparationTime: 12, tags: ["chicken", "sweet", "egg"], modifiers: [], addons: [] },
     { name: "BACON STEAK WITH EGG", description: "Bacon steak with sunny-side-up egg and rice", price: 180, category: "Rice Meals", image: "Baconsteak.jpg", preparationTime: 12, tags: ["bacon", "egg"], modifiers: [], addons: [] },
-    
+
     // ================ YOGURT MILKSHAKES ================
     { name: "MANGO YOGURT MILKSHAKE", description: "Creamy yogurt milkshake with mango flavor", price: 120, category: "Yogurt Milkshakes", image: "Coffee.jpg", preparationTime: 8, tags: ["dessert", "refreshing"], modifiers: [], addons: [] },
     { name: "STRAWBERRY YOGURT MILKSHAKE", description: "Creamy yogurt milkshake with strawberry flavor", price: 120, category: "Yogurt Milkshakes", image: "Coffee.jpg", preparationTime: 8, tags: ["dessert", "refreshing"], modifiers: [], addons: [] },
     { name: "BLUEBERRY YOGURT MILKSHAKE", description: "Creamy yogurt milkshake with blueberry flavor", price: 120, category: "Yogurt Milkshakes", image: "Coffee.jpg", preparationTime: 8, tags: ["dessert", "refreshing"], modifiers: [], addons: [] },
-    
+
     // ================ COFFEE ================
     { name: "AMERICANO", description: "Classic black coffee", price: 70, category: "Coffee", image: "Coffee.jpg", preparationTime: 5, tags: ["coffee", "classic"], modifiers: [{ name: "Temperature", required: true, options: [{ name: "Hot", price: 60 }, { name: "Cold", price: 70 }] }], addons: [{ name: "Add Double Shot", price: 25 }] },
     { name: "CAFE LATTE", description: "Espresso with steamed milk", price: 100, category: "Coffee", image: "Coffee.jpg", preparationTime: 7, tags: ["coffee", "milk"], modifiers: [{ name: "Temperature", required: true, options: [{ name: "Hot", price: 90 }, { name: "Cold", price: 100 }] }], addons: [{ name: "Add Double Shot", price: 25 }] },
@@ -102,7 +72,7 @@ function PosSystem() {
     { name: "SALTED LATTE", description: "Latte with a hint of salt", price: 105, category: "Coffee", image: "Coffee.jpg", preparationTime: 7, tags: ["coffee", "salted"], modifiers: [], addons: [{ name: "Add Double Shot", price: 25 }] },
     { name: "SALTED CARAMEL LATTE", description: "Latte with salted caramel flavor", price: 110, category: "Coffee", image: "Coffee.jpg", preparationTime: 7, tags: ["coffee", "caramel", "salted"], modifiers: [], addons: [{ name: "Add Double Shot", price: 25 }] },
     { name: "COCO-FREE (COCONUT MILK LATTE)", description: "Latte made with coconut milk", price: 110, category: "Coffee", image: "Coffee.jpg", preparationTime: 7, tags: ["coffee", "dairy-free", "coconut"], modifiers: [], addons: [{ name: "Add Double Shot", price: 25 }] },
-    
+
     // ================ COOLERS ================
     { name: "ALIMENTO SUNRISE", description: "Refreshing sunrise cooler", price: 140, category: "Coolers", image: "", preparationTime: 5, tags: ["refreshing", "non-alcoholic"], modifiers: [{ name: "Temperature", required: true, options: [{ name: "Hot", price: 75 }, { name: "Cold", price: 140 }] }], addons: [] },
     { name: "ALIMENTO CUCUMBER LEMONADE", description: "Refreshing cucumber lemonade", price: 140, category: "Coolers", image: "", preparationTime: 5, tags: ["refreshing", "non-alcoholic"], modifiers: [{ name: "Temperature", required: true, options: [{ name: "Hot", price: 75 }, { name: "Cold", price: 140 }] }], addons: [] },
@@ -113,53 +83,105 @@ function PosSystem() {
     { name: "RITE N LITE", description: "Light and refreshing drink", price: 60, category: "Coolers", image: "", preparationTime: 2, tags: ["light", "refreshing"], modifiers: [], addons: [] }
   ];
 
+function PosSystem() {
+  // States
+  const [menuItems, setMenuItems] = useState([]);
+  const menuCache = useRef(new Map());
+  const filteredItems = menuItems;
+  const [cart, setCart] = useState([]);
+  const [quote, setQuote] = useState(null);
+  const [quoteError, setQuoteError] = useState('');
+  const [store, setStore] = useState(null);
+  useEffect(() => { const refresh = () => getStore().then(setStore).catch(() => {}); refresh(); const timer = setInterval(refresh, 30000); return () => clearInterval(timer); }, []);
+  useEffect(() => {
+    let active = true; setQuote(null); setQuoteError('');
+    if (cart.length) quoteOrder(cart.map(item => ({ ...item, menuItemId: item.id })), 'pos').then(q => { if (active) setQuote(q); }).catch(e => { if (active) setQuoteError(e.message); });
+    return () => { active = false; };
+  }, [cart, store]);
+  const [tableNumber, setTableNumber] = useState('1');
+  const [customerName, setCustomerName] = useState('');
+  const [orderType, setOrderType] = useState('Dine-in');
+  const [notes, setNotes] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isUsingFallbackData, setIsUsingFallbackData] = useState(false);
+  const [paymentMethod, setPaymentMethod] = useState('cash');
+  const [menuPage, setMenuPage] = useState(1);
+  const [menuPagination, setMenuPagination] = useState({ page: 1, totalPages: 1, hasPreviousPage: false, hasNextPage: false });
+
+  // Categories
+  const categories = [
+    { id: 'Rice Meals', name: 'Rice Meals', icon: <LuSoup aria-hidden="true" focusable="false" /> },
+    { id: 'Pasta', name: 'Pasta', icon: <LuUtensils aria-hidden="true" focusable="false" /> },
+    { id: 'Sandwiches', name: 'Sandwiches', icon: <LuSandwich aria-hidden="true" focusable="false" /> },
+    { id: 'Sides', name: 'Sides', icon: <LuCookingPot aria-hidden="true" focusable="false" /> },
+    { id: 'Cocktails', name: 'Cocktails', icon: <LuWine aria-hidden="true" focusable="false" /> },
+    { id: 'Coolers', name: 'Coolers', icon: <LuCupSoda aria-hidden="true" focusable="false" /> },
+    { id: 'Coffee', name: 'Coffee', icon: <LuCoffee aria-hidden="true" focusable="false" /> },
+    { id: 'Yogurt Milkshakes', name: 'Milkshakes', icon: <LuIceCreamBowl aria-hidden="true" focusable="false" /> }
+  ];
+
+  const [activeCategory, setActiveCategory] = useState('Rice Meals');
+  const [isModifierModalOpen, setIsModifierModalOpen] = useState(false);
+  const [selectedItemForModal, setSelectedItemForModal] = useState(null);
+
+  // Sample menu data (fallback if API fails) - Synced from backend completeMenu.js
+
+
   // Fetch menu from backend
   useEffect(() => {
+    const controller = new AbortController();
+    const params = new URLSearchParams({ page: String(menuPage), category: activeCategory });
+    if (searchTerm.trim()) params.set('search', searchTerm.trim());
+    const cacheKey = params.toString();
+    const cached = menuCache.current.get(cacheKey);
+    if (cached && Date.now() - cached.savedAt < 30000) {
+      setMenuItems(cached.items);
+      setMenuPagination(cached.pagination);
+      setIsUsingFallbackData(false);
+      setLoading(false);
+      return () => controller.abort();
+    }
     const fetchMenu = async () => {
       setLoading(true);
       setIsUsingFallbackData(false);
       try {
-        const params = new URLSearchParams({ page: String(menuPage), category: activeCategory });
-        if (searchTerm.trim()) params.set('search', searchTerm.trim());
-        const response = await fetch(`${API_BASE_URL}/api/menu?${params}`);
-        
+        const response = await fetch(`${API_BASE_URL}/api/menu?${params}`, { signal: controller.signal });
+
         if (response.ok) {
           const data = await response.json();
+          if (controller.signal.aborted) return;
           const items = (Array.isArray(data.data) ? data.data : []).map(item =>
             (item.name || '').trim().toUpperCase() === 'CHICKEN WINGS'
               ? { ...item, image: 'food/BuffaloWings12s_2.jpg' }
               : item
           );
           setMenuItems(items);
-          setFilteredItems(items);
-          setMenuPagination(data.pagination || { page: 1, totalPages: 1 });
+          const pagination = data.pagination || { page: 1, totalPages: 1 };
+          menuCache.current.set(cacheKey, { items, pagination, savedAt: Date.now() });
+          setMenuPagination(pagination);
         } else {
           throw new Error('Backend not responding');
         }
       } catch (error) {
+        if (controller.signal.aborted) return;
         console.error('❌ Backend connection failed:', error);
         console.log('Using fallback sample data instead...');
-        setMenuItems(sampleMenu);
-        setFilteredItems(sampleMenu);
+        const matchingItems = sampleMenu.filter(item => item.category === activeCategory &&
+          `${item.name} ${item.description}`.toLowerCase().includes(searchTerm.trim().toLowerCase()));
+        const totalPages = Math.max(1, Math.ceil(matchingItems.length / 8));
+        const page = Math.min(menuPage, totalPages);
+        setMenuItems(matchingItems.slice((page - 1) * 8, page * 8));
+        setMenuPagination({ page, totalPages, hasPreviousPage: page > 1, hasNextPage: page < totalPages });
         setIsUsingFallbackData(true);
       } finally {
-        setLoading(false);
+        if (!controller.signal.aborted) setLoading(false);
       }
     };
-    
+
     fetchMenu();
+    return () => controller.abort();
   }, [activeCategory, menuPage, searchTerm]);
-
-  useEffect(() => {
-    setMenuPage(1);
-  }, [activeCategory, searchTerm]);
-
-  // Filter items based on category and search
-  useEffect(() => {
-    let filtered = menuItems;
-    
-    setFilteredItems(filtered);
-  }, [menuItems]);
 
   // Handle item click
   const handleItemClick = (item) => {
@@ -172,13 +194,6 @@ function PosSystem() {
     }
   };
 
-  // Handle options button click - separate from card click
-  const handleOptionsClick = (e, item) => {
-    e.stopPropagation(); // Prevent card click from triggering
-    setSelectedItemForModal(item);
-    setIsModifierModalOpen(true);
-  };
-
   // Handle modal close
   const handleCloseModifierModal = () => {
     setIsModifierModalOpen(false);
@@ -188,22 +203,6 @@ function PosSystem() {
   // Handle modal add to cart
   const handleModalAddToCart = (cartItem) => {
     addToCart(cartItem);
-  };
-
-  // Get modifier and addon names for preview
-  const getCustomizationPreview = (item) => {
-    const preview = [];
-    if (item.modifiers && item.modifiers.length > 0) {
-      item.modifiers.forEach(mod => {
-        preview.push(`+${mod.name}`);
-      });
-    }
-    if (item.addons && item.addons.length > 0) {
-      item.addons.forEach(addon => {
-        preview.push(`+${addon.name}`);
-      });
-    }
-    return preview;
   };
 
   // Add item directly to cart (no modifiers)
@@ -220,19 +219,19 @@ function PosSystem() {
       image: item.image,
       category: item.category
     };
-    
+
     addToCart(cartItem);
   };
 
   // Add item to cart (with modifiers)
   const addToCart = (cartItem) => {
-    const existingIndex = cart.findIndex(item => 
+    const existingIndex = cart.findIndex(item =>
       item.id === cartItem.id &&
       JSON.stringify(item.modifiers) === JSON.stringify(cartItem.modifiers) &&
       JSON.stringify(item.addons) === JSON.stringify(cartItem.addons) &&
       item.specialInstructions === cartItem.specialInstructions
     );
-    
+
     if (existingIndex >= 0) {
       // Update quantity if same item with same modifiers
       const updatedCart = [...cart];
@@ -251,7 +250,7 @@ function PosSystem() {
       removeFromCart(index);
       return;
     }
-    
+
     const updatedCart = [...cart];
     updatedCart[index].quantity = newQuantity;
     setCart(updatedCart);
@@ -280,11 +279,11 @@ function PosSystem() {
   const handleCardQuantityChange = (item, change) => {
     const currentQty = getItemQuantityInCart(item._id || item.id);
     const newQty = currentQty + change;
-    
+
     if (newQty > 0) {
       // Find and update the item
-      const updatedCart = cart.map(cartItem => 
-        (cartItem.id === item._id || cartItem.id === item.id) 
+      const updatedCart = cart.map(cartItem =>
+        (cartItem.id === item._id || cartItem.id === item.id)
           ? { ...cartItem, quantity: newQty }
           : cartItem
       );
@@ -292,7 +291,7 @@ function PosSystem() {
       localStorage.setItem('portalCart', JSON.stringify(updatedCart));
     } else if (newQty === 0) {
       // Remove from cart
-      const updatedCart = cart.filter(cartItem => 
+      const updatedCart = cart.filter(cartItem =>
         cartItem.id !== item._id && cartItem.id !== item.id
       );
       setCart(updatedCart);
@@ -304,7 +303,7 @@ function PosSystem() {
   const handleCardAddToCart = (item, e) => {
     e.stopPropagation();
     const currentQty = getItemQuantityInCart(item._id || item.id);
-    
+
     if (currentQty === 0) {
       // First time adding - add with quantity 1
       const newItem = {
@@ -329,15 +328,12 @@ function PosSystem() {
   };
 
   const calculateTotal = () => {
-    return calculateSubtotal();
-  };
-
-  const calculateTotalItems = () => {
-    return cart.reduce((sum, item) => sum + item.quantity, 0);
+    return quote?.totalAmount ?? calculateSubtotal();
   };
 
   // Submit order
   const handleSubmitOrder = async () => {
+    if (!quote) { alert(quoteError || 'Please wait for the order total to update.'); return; }
     if (cart.length === 0) {
       alert('Please add items to the cart');
       return;
@@ -370,7 +366,8 @@ function PosSystem() {
         image: item.image,
         itemTotal: item.price * item.quantity
       })),
-      subtotal: calculateSubtotal(),
+      subtotal: quote.subtotal,
+      discount: quote.discount,
       taxAmount: 0,
       totalAmount: calculateTotal(),
       notes,
@@ -386,6 +383,8 @@ function PosSystem() {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...authHeaders(),
+          'Idempotency-Key': checkoutKey('pos', orderData),
         },
         body: JSON.stringify(orderData)
       });
@@ -398,6 +397,13 @@ function PosSystem() {
       console.log('📥 Backend response:', result);
 
       if (result.success) {
+        finishCheckout('pos');
+        if (orderData.paymentMethod === 'qrph') {
+          const paymentResponse = await fetch(`${API_BASE_URL}/api/payments/qrph/checkout`, { method: 'POST', headers: { ...authHeaders(), 'Content-Type': 'application/json' }, body: JSON.stringify({ orderId: result.order._id }) });
+          const payment = await paymentResponse.json();
+          if (!paymentResponse.ok) { setCart([]); throw new Error(payment.message || 'Order saved; payment needs reconciliation.'); }
+          window.location.assign(payment.data.checkoutUrl);
+        }
         alert(`✅ Order #${result.order?.orderNumber || 'N/A'} submitted successfully!\nTotal: ₱${calculateTotal().toFixed(2)}`);
         setCart([]);
         setCustomerName('');
@@ -408,7 +414,7 @@ function PosSystem() {
     } catch (error) {
       console.error('❌ Order submission error:', error);
       alert(`Order submission failed: ${error.message}`);
-      
+
       // Fallback to localStorage
       const failedOrders = JSON.parse(localStorage.getItem('failedOrders') || '[]');
       failedOrders.push({ ...orderData, error: error.message, timestamp: new Date().toISOString() });
@@ -425,13 +431,13 @@ function PosSystem() {
       alert('Cannot print receipt: Cart is empty');
       return;
     }
-    
+
     // Generate and print receipt directly
     const currentDate = new Date();
     const orderNumber = String(Math.floor(Math.random() * 100000)).padStart(5, '0');
     const formattedDate = currentDate.toLocaleDateString('en-US', { month: '2-digit', day: '2-digit', year: 'numeric' });
     const formattedTime = currentDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: true });
-    
+
     const itemsHTML = cart.map((item) => {
       const itemTotal = ((item.price || 0) * item.quantity).toFixed(2);
       return `
@@ -446,7 +452,7 @@ function PosSystem() {
     }).join('');
 
     const logoUrl = require('../../assets/images/logo/alimentologo.png');
-    
+
     const receiptHTML = `
       <!DOCTYPE html>
       <html>
@@ -660,7 +666,7 @@ function PosSystem() {
       </body>
       </html>
     `;
-    
+
     const printWindow = window.open('', '', 'height=900,width=500');
     printWindow.document.write(receiptHTML);
     printWindow.document.close();
@@ -699,7 +705,7 @@ function PosSystem() {
           ⚠️ Backend server not connected! Using demo data. Orders cannot be submitted. Please ensure the backend server is running on http://localhost:5000
         </div>
       )}
-      
+
       {/* Header */}
       <div className="pos-header">
         <div className="header-left">
@@ -721,19 +727,19 @@ function PosSystem() {
             type="text"
             placeholder="Search menu items..."
             value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
+            onChange={(e) => { setSearchTerm(e.target.value); setMenuPage(1); }}
             className="search-input"
           />
           {searchTerm && (
-            <button 
-              onClick={() => setSearchTerm('')}
+            <button
+              onClick={() => { setSearchTerm(''); setMenuPage(1); }}
               className="clear-search"
             >
               ✕
             </button>
           )}
         </div>
-        
+
         <div className="header-controls">
           <div className="control-group">
             <label>Table:</label>
@@ -743,7 +749,7 @@ function PosSystem() {
               ))}
             </select>
           </div>
-          
+
           <div className="control-group">
             <label>Order Type:</label>
             <select value={orderType} onChange={(e) => setOrderType(e.target.value)}>
@@ -752,7 +758,7 @@ function PosSystem() {
               <option value="Delivery">Delivery</option>
             </select>
           </div>
-          
+
           <div className="control-group">
             <label>Customer:</label>
             <input
@@ -777,7 +783,7 @@ function PosSystem() {
                 type="button"
                 aria-pressed={activeCategory === category.id}
                 className={`category-tab ${activeCategory === category.id ? 'active' : ''}`}
-                onClick={() => setActiveCategory(category.id)}
+                onClick={() => { setActiveCategory(category.id); setMenuPage(1); }}
               >
                 <span className="category-icon">{category.icon}</span>
                 <span className="category-name">{category.name}</span>
@@ -801,13 +807,13 @@ function PosSystem() {
             {/* Show items in grid for selected category */}
             <div className="menu-items-grid">
               {filteredItems.map(item => (
-                <div 
-                  key={item._id || item.id} 
+                <div
+                  key={item._id || item.id}
                   className="menu-item-card"
                   onClick={() => handleItemClick(item)}
                 >
                   <div className="item-image-container">
-                    <div 
+                    <div
                       className="item-image"
                       style={{
                         backgroundImage: item.image
@@ -822,24 +828,24 @@ function PosSystem() {
                         </span>
                       )}
                     </div>
-                    <div 
+                    <div
                       className="item-category-badge"
                       style={{ backgroundColor: getItemColor(item.category) }}
                     >
                       {item.category}
                     </div>
                   </div>
-                  
+
                   <div className="item-details">
                     <h3 className="item-name">{formatItemName(item.name)}</h3>
                     <p className="item-description">{item.description}</p>
-                    
+
                     <div className="item-footer">
-                      <span className="item-price">₱{item.price.toFixed(2)}</span>
-                      
+                      {promoFor(item, store, 'pos') && <small>{promoFor(item, store, 'pos').percent}% off - PHP {(item.price * (1 - promoFor(item, store, 'pos').percent / 100)).toFixed(2)}</small>}<span className="item-price">₱{item.price.toFixed(2)}</span>
+
                       {getItemQuantityInCart(item._id || item.id) > 0 ? (
                         <div className="quantity-control-card" onClick={(e) => e.stopPropagation()}>
-                          <button 
+                          <button
                             className="qty-btn-card"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -851,7 +857,7 @@ function PosSystem() {
                           <span className="qty-display-card">
                             {getItemQuantityInCart(item._id || item.id)}
                           </span>
-                          <button 
+                          <button
                             className="qty-btn-card"
                             onClick={(e) => {
                               e.stopPropagation();
@@ -862,7 +868,7 @@ function PosSystem() {
                           </button>
                         </div>
                       ) : (
-                        <button 
+                        <button
                           className="add-to-cart-btn"
                           onClick={(e) => handleCardAddToCart(item, e)}
                         >
@@ -897,7 +903,7 @@ function PosSystem() {
               </button>
             )}
           </div>
-          
+
           <div className="cart-items-container">
             {cart.length === 0 ? (
               <div className="empty-cart">
@@ -914,14 +920,14 @@ function PosSystem() {
                         <strong>{formatItemName(item.name)}</strong>
                         <span className="cart-item-category">{item.category}</span>
                       </div>
-                      <button 
+                      <button
                         onClick={() => removeFromCart(index)}
                         className="remove-item-btn"
                       >
                         ✕
                       </button>
                     </div>
-                    
+
                     {/* Modifiers Display */}
                     {item.modifiers.length > 0 && (
                       <div className="cart-item-modifiers">
@@ -936,7 +942,7 @@ function PosSystem() {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Addons Display */}
                     {item.addons.length > 0 && (
                       <div className="cart-item-addons">
@@ -948,31 +954,31 @@ function PosSystem() {
                         ))}
                       </div>
                     )}
-                    
+
                     {/* Special Instructions */}
                     {item.specialInstructions && (
                       <div className="cart-item-instructions">
                         <small>Note: {item.specialInstructions}</small>
                       </div>
                     )}
-                    
+
                     <div className="cart-item-footer">
                       <div className="quantity-control">
-                        <button 
+                        <button
                           onClick={() => updateQuantity(index, item.quantity - 1)}
                           className="qty-btn"
                         >
                           <FaMinus />
                         </button>
                         <span className="item-quantity">{item.quantity}</span>
-                        <button 
+                        <button
                           onClick={() => updateQuantity(index, item.quantity + 1)}
                           className="qty-btn"
                         >
                           <FaPlus />
                         </button>
                       </div>
-                      
+
                       <div className="cart-item-total">
                         ₱{(item.price * item.quantity).toFixed(2)}
                       </div>
@@ -987,6 +993,9 @@ function PosSystem() {
           {cart.length > 0 && (
             <>
               <div className="order-summary">
+                  {quoteError && <p role="alert">{quoteError}</p>}
+                  {cart.length > 0 && !quote && !quoteError && <p role="status">Updating total...</p>}
+                  {quote?.discount > 0 && <div className="summary-row"><span>Promotion savings:</span><span>-PHP {quote.discount.toFixed(2)}</span></div>}
                 <div className="summary-row">
                   <span>Subtotal:</span>
                   <span>₱{calculateSubtotal().toFixed(2)}</span>
@@ -1014,7 +1023,7 @@ function PosSystem() {
                     GCash
                   </button>
                 </div>
-                <button 
+                <button
                   onClick={handlePlaceOrder}
                   className="place-order-btn"
                 >
@@ -1026,7 +1035,7 @@ function PosSystem() {
         </div>
       </div>
 
-      <ModifierModal 
+      <ModifierModal
         item={selectedItemForModal}
         isOpen={isModifierModalOpen}
         onClose={handleCloseModifierModal}

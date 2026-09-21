@@ -15,7 +15,7 @@ async function migrateAdminRoles() {
     return;
   }
 
-  let admin = await User.findOne({ email });
+  let admin = await User.findOne({ email }).select('+sessionVersion');
   if (!admin) {
     if (!password || password.length < 8) {
       throw new Error('ADMIN_PASSWORD with at least 8 characters is required to create an administrator.');
@@ -29,7 +29,9 @@ async function migrateAdminRoles() {
     });
   } else {
     admin.role = 'admin';
+    if (password && password.length < 8) throw new Error('ADMIN_PASSWORD must be at least 8 characters.');
     if (password) admin.passwordHash = await hashPassword(password);
+    admin.sessionVersion = (admin.sessionVersion || 0) + 1;
   }
   await admin.save();
   console.log(`Administrator ready: ${admin.email}`);

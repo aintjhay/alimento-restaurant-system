@@ -1,0 +1,23 @@
+name: Verify system
+on: [push, pull_request]
+jobs:
+  verify:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+      - run: npm ci --prefix backend
+      - run: npm ci --prefix frontend
+      - uses: actions/cache@v4
+        with:
+          path: backend/mongodb-binaries
+          key: mongodb-${{ runner.os }}-7.0.14
+      - run: npm --prefix backend test
+      - run: npm --prefix frontend test -- --watchAll=false --runInBand
+      - run: npm run build

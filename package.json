@@ -6,6 +6,7 @@
     "dev": "npm --prefix backend run dev",
     "dev:backend": "npm --prefix backend run dev",
     "dev:frontend": "npm --prefix frontend start",
-    "build": "npm --prefix frontend run build"
+    "build": "npm --prefix frontend run build",
+    "test": "npm --prefix backend test && npm --prefix frontend test -- --watchAll=false --runInBand"
   }
 }

@@ -188,6 +188,8 @@ function BartenderDisplay() {
   const getActionButtons = (order, itemIndex) => {
     if (['completed', 'cancelled', 'served'].includes(order.originalStatus)) return null;
     const isUpdating = updatingOrderId === order._id;
+    const readyLabel = order.orderType === 'Delivery' ? 'Ready for Dispatch' : order.orderType === 'Takeaway' ? 'Ready for Pickup' : 'Ready to Serve';
+    const handoverLabel = order.orderType === 'Delivery' ? 'Handed to Rider' : order.orderType === 'Takeaway' ? 'Collected' : 'Served';
     const allItems = order.items || order.allItems || [];
     
     // Safety check: ensure itemIndex is valid
@@ -210,7 +212,7 @@ function BartenderDisplay() {
           <>
             <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'pending')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
             <button className="kds-action-btn ready-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'ready')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} Ready to Serve
+              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {readyLabel}
             </button>
           </>
         );
@@ -219,14 +221,14 @@ function BartenderDisplay() {
           <>
             <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
             <button className="kds-action-btn served-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'served')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} Served
+              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {handoverLabel}
             </button>
           </>
         );
       case 'served':
         return (
           <button className="kds-action-btn completed-btn" disabled>
-            <LuCheck aria-hidden="true" /> Served
+            <LuCheck aria-hidden="true" /> {handoverLabel}
           </button>
         );
       default: return null;

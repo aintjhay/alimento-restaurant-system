@@ -3,13 +3,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { API_URL } from '../../services/api';
 import PortalHeader from '../../components/portal/PortalHeader';
 import PortalFooter from '../../components/portal/PortalFooter';
+import OrderRating from '../../components/portal/OrderRating';
 import { LuArrowLeft, LuCheck, LuChefHat, LuClock, LuCopy, LuCreditCard, LuPackageCheck, LuReceiptText, LuX } from 'react-icons/lu';
 import './Portal.css';
 import './PortalTracking.css';
 
 const statuses = {
   pending: 'Waiting for restaurant confirmation', confirmed: 'Order confirmed',
-  preparing: 'Preparing your order', ready: 'Your order is ready',
+  out_for_delivery: 'Out for delivery', preparing: 'Preparing your order', ready: 'Your order is ready',
   served: 'Order served', completed: 'Order completed', cancelled: 'Order cancelled'
 };
 const payments = {
@@ -20,12 +21,14 @@ const steps = [
   { label: 'Order received', icon: LuReceiptText },
   { label: 'Preparing', icon: LuChefHat },
   { label: 'Ready', icon: LuPackageCheck },
+  { label: 'Out for delivery', icon: LuPackageCheck },
   { label: 'Completed', icon: LuCheck }
 ];
 const descriptions = {
   pending: 'Your order is with Alimento. We’ll update you here once the kitchen starts preparing it.',
   confirmed: 'The restaurant has confirmed your order. Your food will be prepared soon.',
   preparing: 'The kitchen is working on your order. Sit back while we prepare your favorites.',
+  out_for_delivery: 'Your rider is on the way with your order.',
   ready: 'Your food is ready. Keep this page handy for the next update.',
   served: 'Your order has been marked as served. Thank you for choosing Alimento.',
   completed: 'Thank you for ordering with Alimento. We hope you enjoyed your meal!',
@@ -75,8 +78,8 @@ export default function PortalTracking() {
   };
 
   const cancelled = order?.status === 'cancelled';
-  const currentStep = { pending: 0, confirmed: 0, preparing: 1, ready: 2, served: 3, completed: 3 }[order?.status] ?? -1;
-  const finished = currentStep === 3;
+  const currentStep = { pending: 0, confirmed: 0, preparing: 1, ready: 2, out_for_delivery: 3, served: 4, completed: 4 }[order?.status] ?? -1;
+  const finished = currentStep === 4;
   const StatusIcon = cancelled ? LuX : finished ? LuCheck : currentStep === 1 ? LuChefHat : currentStep === 2 ? LuPackageCheck : LuClock;
   const paymentLabel = payments[order?.paymentStatus] || (order?.paymentStatus === 'unpaid' ? (order?.paymentMethod === 'cash' ? 'Pay on delivery' : 'Awaiting payment') : 'Status unavailable');
 
@@ -113,9 +116,17 @@ export default function PortalTracking() {
             })}
           </ol>}
         </section>
+        <OrderRating key={token} order={order} onSubmit={async rating => {
+          const response = await fetch(`${API_URL}/orders/track/${encodeURIComponent(token)}/rating`, {
+            method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rating })
+          });
+          const result = await response.json();
+          if (!response.ok) throw new Error(result.message || 'Unable to save rating. Please try again.');
+          return result.rating;
+        }} />
         <section className="tracking-payment" aria-label="Payment summary">
           <span className="tracking-payment-icon"><LuCreditCard aria-hidden="true" /></span>
-          <div><h2>Payment</h2><p>{order.paymentMethod === 'cash' ? 'Cash on delivery' : order.paymentMethod === 'qrph' ? 'QR Ph' : 'Order payment'}</p></div>
+          <div><h2>Payment</h2><p>{order.paymentMethod === 'cash' ? 'Cash on delivery' : order.paymentMethod === 'gcash' ? 'GCash' : order.paymentMethod === 'qrph' ? 'QR Ph' : 'Order payment'}</p></div>
           <strong>{paymentLabel}</strong>
         </section>
       </>}

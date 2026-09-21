@@ -5,6 +5,7 @@ import { FiPackage, FiAlertTriangle, FiSlash, FiDollarSign } from 'react-icons/f
 import { getStockStatus, filterStockItems } from './inventoryView';
 import API_BASE_URL from '../../config/api';
 import { authHeaders } from '../../services/api';
+import StockAdjustment from './StockAdjustment';
 import AdminNav from '../../components/admin/AdminNav';
 import { FaPlus, FaEdit, FaTrash, FaSearch, FaDownload, FaSync, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 
@@ -22,6 +23,9 @@ function InventoryManagement() {
   const [stockFilter, setStockFilter] = useState('all');
   const [loadError, setLoadError] = useState('');
   const [productOptions, setProductOptions] = useState([]);
+  const [productSearch, setProductSearch] = useState('');
+  const [adjustment, setAdjustment] = useState(null);
+  const [expiryFilter, setExpiryFilter] = useState('all');
   const summary = useMemo(() => ({
     totalItems: inventoryItems.length,
     lowStockCount: inventoryItems.filter(item => getStockStatus(item.currentStock, item.minimumThreshold) === 'low').length,
@@ -77,8 +81,9 @@ function InventoryManagement() {
       );
     }
 
+    if (expiryFilter !== 'all') filtered = filtered.filter(item => (item.expirationAlerts || []).some(batch => batch.status === expiryFilter));
     return filterStockItems(filtered, stockFilter);
-  }, [inventoryItems, selectedCategory, searchTerm, stockFilter]);
+  }, [inventoryItems, selectedCategory, searchTerm, stockFilter, expiryFilter]);
 
   // Memoized paginated items
   const paginatedItems = useMemo(() => {
@@ -91,7 +96,7 @@ function InventoryManagement() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [searchTerm, selectedCategory, stockFilter]);
+  }, [searchTerm, selectedCategory, stockFilter, expiryFilter]);
 
   useEffect(() => { setCurrentPage(page => Math.min(page, Math.max(1, totalPages))); }, [totalPages]);
 
@@ -149,6 +154,7 @@ function InventoryManagement() {
     setEditingItem(item);
     setFormData({
       productId: item.productId || '',
+      batchExpiries: (item.batches || []).map(batch => ({ _id: batch._id, label: batch.label, quantity: batch.quantity, expiryDate: batch.expiryDate?.slice(0, 10) || '' })),
       name: item.name,
       category: item.category,
       unit: item.unit,
@@ -214,39 +220,11 @@ function InventoryManagement() {
     const item = inventoryItems.find(i => i._id === itemId);
     if (!item) return;
 
-    let quantity = 1;
-    if (action === 'add' || action === 'subtract') {
-      quantity = prompt(`Enter quantity to ${action}:`, '1');
-      if (!quantity) return;
-      quantity = Number(quantity);
-      if (!Number.isFinite(quantity) || quantity <= 0) {
-        alert('Please enter a valid quantity');
-        return;
-      }
-    }
-
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/inventory/${itemId}/stock`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify({ quantity, action })
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        fetchInventory();
-          } else {
-        alert('Error: ' + data.error);
-      }
-    } catch (error) {
-      console.error('Error updating stock:', error);
-      alert('Error updating stock');
-    }
+    setAdjustment({ item, action });
   };
 
   const handleDeleteItem = async (itemId) => {
-    if (!window.confirm('Are you sure you want to delete this item?')) return;
+    if (!window.confirm('Delete this inventory item?')) return;
 
     try {
       const response = await fetch(`${API_BASE_URL}/api/admin/inventory/${itemId}`, {
@@ -336,7 +314,9 @@ function InventoryManagement() {
         </button>)}
         <div className="stock-summary-card"><span className="stock-card-label">Inventory value<FiDollarSign aria-hidden="true" /></span><strong>{loadError ? 'Unavailable' : new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP', maximumFractionDigits: 0 }).format(summary.totalInventoryValue)}</strong><small>Based on current stock cost</small></div>
       </div>
+      {inventoryItems.some(item => item.expirationAlerts?.length) && <div className="alert-box alert-warning" role="status"><div><strong>Check stock expiration</strong><p>{inventoryItems.reduce((sum, item) => sum + (item.expirationAlerts || []).filter(batch => batch.status === 'expired').length, 0)} expired batches; {inventoryItems.reduce((sum, item) => sum + (item.expirationAlerts || []).filter(batch => batch.status === 'expiring-soon').length, 0)} batches expire within 7 days. Review and remove unusable stock.</p></div></div>}
       <div className="stock-filter-row">
+        <label><span>Expiration</span><select value={expiryFilter} onChange={event => setExpiryFilter(event.target.value)}><option value="all">All expiration dates</option><option value="expired">Expired</option><option value="expiring-soon">Expiring soon (7 days)</option></select></label>
         <label className="stock-search"><span>Search inventory</span><div><FaSearch aria-hidden="true" /><input placeholder="Item, supplier, or location" value={searchTerm} onChange={event => setSearchTerm(event.target.value)} /></div></label>
         <label><span>Category</span><select value={selectedCategory} onChange={event => setSelectedCategory(event.target.value)}>{[...new Set([...categories, ...inventoryItems.map(item => item.category).filter(Boolean)])].map(cat => <option key={cat}>{cat}</option>)}</select></label>
         <label><span>Stock status</span><select value={stockFilter} onChange={event => setStockFilter(event.target.value)}><option value="all">All stock levels</option><option value="low">Low stock</option><option value="out">Out of stock</option><option value="good">In stock</option></select></label>
@@ -381,6 +361,7 @@ function InventoryManagement() {
                 <th>Category</th>
                 <th>Current Stock</th>
                 <th>Status</th>
+                <th>Expiration</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -405,7 +386,14 @@ function InventoryManagement() {
                           {{ low: 'Low stock', out: 'Out of stock', good: 'In stock' }[status]}
                         </span>
                       </td>
-                      <td className="actions-cell"><button className="stock-restock" onClick={() => handleUpdateStock(item._id, 'add')}>Restock</button><button className="stock-restock" onClick={() => handleUpdateStock(item._id, 'subtract')}>Remove stock</button>
+                      <td className="stock-expiration-cell">
+                        {(item.expirationAlerts || []).map((batch, index) => <small className={`stock-expiry-alert expiry-${batch.status}`} key={batch.batchId || index}>{batch.status === 'expired' ? 'Expired' : 'Expiring soon'}: {batch.label || 'Batch'} · {batch.quantity} {item.unit} · {batch.expiryDate}</small>)}
+                        {Number(item.currentStock) <= 0 ? <span>No stock</span> : <details className="stock-details" open>
+                          <summary>Stock expiry dates</summary>
+                          <ul>{(item.batches?.length ? item.batches : [{ label: 'Opening stock', quantity: item.currentStock, expiryDate: item.expiryDate }]).filter(batch => batch.quantity > 0).map((batch, index) => <li key={batch._id || index}>{batch.label || 'Batch'}: {batch.quantity} {item.unit} · {batch.expiryDate?.slice(0, 10) || 'No expiry date set'}</li>)}</ul>
+                        </details>}
+                      </td>
+                      <td className="actions-cell"><button className="stock-restock" onClick={() => handleUpdateStock(item._id, 'add')}>Restock</button><button className="stock-restock" disabled={Number(item.currentStock) <= 0} onClick={() => handleUpdateStock(item._id, 'subtract')}>Remove stock</button>
                         <button
                           className="action-btn edit-btn"
                           onClick={() => handleEdit(item)}
@@ -426,12 +414,12 @@ function InventoryManagement() {
                 })
               ) : (
                 <tr>
-                  <td colSpan="5" className="empty-state">
+                  <td colSpan="6" className="inventory-empty-cell">
                     <div className="empty-state-content">
                       <FiPackage size={32} aria-hidden="true" />
                       <h3>{loadError ? 'Inventory unavailable' : inventoryItems.length ? 'No matching items' : 'Add your first ingredient'}</h3>
-                      <p>{loadError ? 'Use Try again above to reload your inventory.' : inventoryItems.length ? 'Try another category or stock status.' : 'Start tracking quantities and get a clear view of what needs restocking.'}</p>
-                      {!loadError && (inventoryItems.length ? <button className="btn btn-secondary" onClick={() => { setSearchTerm(''); setSelectedCategory('All'); setStockFilter('all'); }}>Clear filters</button> : <button className="btn btn-primary" onClick={handleAddNew}><FaPlus /> Add Item</button>)}
+                      <p>{loadError ? 'Use Try again above to reload your inventory.' : inventoryItems.length ? 'Try another search, category, stock status, or expiration filter.' : 'Start tracking quantities and expiration dates to plan your next restock.'}</p>
+                      {!loadError && (inventoryItems.length ? <button className="btn btn-secondary" onClick={() => { setSearchTerm(''); setSelectedCategory('All'); setStockFilter('all'); setExpiryFilter('all'); }}>Clear filters</button> : <button className="btn btn-primary" onClick={handleAddNew}><FaPlus /> Add Item</button>)}
                     </div>
                   </td>
                 </tr>
@@ -441,6 +429,7 @@ function InventoryManagement() {
         </div>
       </div>
 
+      {adjustment && <StockAdjustment {...adjustment} onClose={() => setAdjustment(null)} onSaved={fetchInventory} />}
       {/* Modal */}
       {showModal && (
         <div className="modal-overlay" onClick={() => setShowModal(false)}>
@@ -452,10 +441,11 @@ function InventoryManagement() {
 
             <div className="modal-body">
               <div className="form-group">
+                <label htmlFor="linked-product-search">Search linked products</label><input id="linked-product-search" className="form-input" value={productSearch} onChange={event => setProductSearch(event.target.value)} placeholder="Type a product name" />
                 <label>Linked Product (optional)</label>
                 <select name="productId" value={formData.productId} onChange={handleFormChange} className="form-input">
                   <option value="">Ingredient or supply (not a sellable product)</option>
-                  {productOptions.map(product => <option key={product._id} value={product._id}>{product.name}</option>)}
+                  {productOptions.filter(product => product._id === formData.productId || product.name.toLowerCase().includes(productSearch.trim().toLowerCase())).map(product => <option key={product._id} value={product._id}>{product.name}</option>)}
                 </select>
               </div>
               <div className="form-group">
@@ -520,6 +510,7 @@ function InventoryManagement() {
                   <input
                     type="number"
                     name="currentStock"
+                    disabled={!!editingItem}
                     value={formData.currentStock}
                     onChange={handleFormChange}
                     min="0"
@@ -581,10 +572,11 @@ function InventoryManagement() {
 
               <div className="form-row">
                 <div className="form-group">
-                  <label>Expiry Date</label>
+                  <label>Opening stock expiry</label>
                   <input
                     type="date"
                     name="expiryDate"
+                    disabled={!!editingItem?.batches?.length}
                     value={formData.expiryDate}
                     onChange={handleFormChange}
                     className="form-input"
@@ -605,6 +597,7 @@ function InventoryManagement() {
               </div>
             </div>
 
+            {!!formData.batchExpiries?.length && <div className="modal-body"><h3>Batch expiry dates</h3><p>Correct expiry dates here. Use Restock or Remove stock to change quantities.</p>{formData.batchExpiries.map((batch, index) => <label key={batch._id} className="stock-batch-edit">{batch.label || 'Batch'} ({batch.quantity} {formData.unit})<input type="date" value={batch.expiryDate} onChange={event => { const value = event.target.value; setFormData(current => ({ ...current, batchExpiries: current.batchExpiries.map((entry, entryIndex) => entryIndex === index ? { ...entry, expiryDate: value } : entry) })); }} /></label>)}</div>}
             <div className="modal-footer">
               <button className="btn btn-secondary" onClick={() => setShowModal(false)}>Cancel</button>
               <button className="btn btn-primary" onClick={handleSaveItem}>Save Item</button>

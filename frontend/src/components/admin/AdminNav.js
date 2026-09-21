@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiGrid, FiMonitor, FiCoffee, FiList, FiTag, FiPackage, FiBarChart2, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
+import { FiGrid, FiLayout, FiPercent, FiCoffee, FiMonitor, FiList, FiTag, FiPackage, FiBarChart2, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './AdminPanel.css';
@@ -7,8 +7,8 @@ import './AdminSidebar.css';
 
 const groups = [
   { name: 'Overview', links: [['/admin/dashboard', 'Dashboard', FiGrid]] },
-  { name: 'Operations', links: [['/admin/pos', 'POS', FiMonitor], ['/admin/kitchen', 'Kitchen', FiList], ['/admin/bartender', 'Bartender', FiCoffee]] },
-  { name: 'Menu & inventory', links: [['/admin/products', 'Menu Management', FiList], ['/admin/categories', 'Categories', FiTag], ['/admin/inventory', 'Inventory', FiPackage]] },
+  { name: 'Operations', links: [['/admin/pos', 'POS', FiMonitor], ['/admin/kitchen', 'Kitchen & Bar', FiCoffee]] },
+  { name: 'Menu & inventory', links: [['/admin/products', 'Menu Management', FiList], ['/admin/store', 'Portal settings', FiLayout], ['/admin/promotions', 'Promotions', FiPercent], ['/admin/categories', 'Categories', FiTag], ['/admin/inventory', 'Inventory', FiPackage]] },
   { name: 'Reports', links: [['/admin/sales', 'Sales Reports', FiBarChart2]] }
 ];
 

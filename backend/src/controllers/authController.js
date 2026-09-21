@@ -68,7 +68,7 @@ const register = async (req, res) => {
     await user.save();
 
     // Generate token
-    const token = generateToken(user._id, user.email, user.role);
+    const token = generateToken(user._id, user.email, user.role, user.sessionVersion || 0);
 
     // Return response without password
     const userResponse = {
@@ -115,7 +115,7 @@ const login = async (req, res) => {
     }
 
     // Find user
-    const user = await User.findOne({ email: email.toLowerCase() });
+    const user = await User.findOne({ email: email.toLowerCase() }).select('+passwordHash +sessionVersion');
     if (!user) {
       return res.status(401).json({
         success: false,
@@ -133,7 +133,7 @@ const login = async (req, res) => {
     }
 
     // Generate token
-    const token = generateToken(user._id, user.email, user.role);
+    const token = generateToken(user._id, user.email, user.role, user.sessionVersion || 0);
 
     // Return response without password
     const userResponse = {
@@ -170,33 +170,13 @@ const adminLogin = async (req, res) => {
     }
 
     const normalizedUsername = username.trim().toLowerCase();
-    const isDefaultAdmin = normalizedUsername === 'admin' && password === '1234';
-    let user = isDefaultAdmin
-      ? await User.findOne({ email: normalizedUsername })
-      : await User.findOne({ email: normalizedUsername, role: 'admin' });
-
-    // Temporary bootstrap account so the admin screens are accessible on a fresh database.
-    if (isDefaultAdmin && !user) {
-      user = await User.create({
-        firstName: 'Alimento',
-        lastName: 'Administrator',
-        email: 'admin',
-        passwordHash: await hashPassword('1234'),
-        role: 'admin'
-      });
-    } else if (isDefaultAdmin && user.role !== 'admin') {
-      user.role = 'admin';
-      await user.save();
-    }
-
-    const isPasswordValid = user && (
-      isDefaultAdmin || await comparePassword(password, user.passwordHash)
-    );
+    const user = await User.findOne({ email: normalizedUsername, role: { $in: ['admin', 'staff', 'cashier', 'kitchen'] } }).select('+passwordHash +sessionVersion');
+    const isPasswordValid = user && user.passwordHash && await comparePassword(password, user.passwordHash);
     if (!isPasswordValid) {
       return res.status(401).json({ success: false, message: 'Invalid administrator credentials' });
     }
 
-    const token = generateToken(user._id, user.email, user.role);
+    const token = generateToken(user._id, user.email, user.role, user.sessionVersion || 0);
     return res.json({
       success: true,
       message: 'Administrator login successful!',
@@ -261,8 +241,7 @@ const getCurrentUser = async (req, res) => {
  */
 const logout = async (req, res) => {
   try {
-    // In JWT, logout is mostly frontend-side (remove token)
-    // Backend can maintain a blacklist if needed
+    await User.updateOne({ _id: req.user.userId }, { $inc: { sessionVersion: 1 } });
     res.json({
       success: true,
       message: 'Logout successful. Please remove the token from client-side.'

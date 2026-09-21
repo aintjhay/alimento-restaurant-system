@@ -2,8 +2,9 @@ import React, { useId, useState } from 'react';
 import { LuChevronDown, LuClock, LuCheck, LuX, LuMapPin, LuReceiptText, LuCreditCard } from 'react-icons/lu';
 import { orderItemTotal } from '../../utils/orderUtils';
 import './PortalOrderCard.css';
+import OrderRating from './OrderRating';
 
-const states = { pending: 'Awaiting confirmation', confirmed: 'Confirmed', preparing: 'Preparing', ready: 'Ready', served: 'Served', completed: 'Completed', cancelled: 'Cancelled' };
+const states = { pending: 'Received', out_for_delivery: 'Out for delivery', confirmed: 'Confirmed', preparing: 'Preparing', ready: 'Ready', served: 'Served', completed: 'Completed', cancelled: 'Cancelled' };
 const money = value => value != null && Number.isFinite(Number(value)) ? new Intl.NumberFormat('en-PH', { style: 'currency', currency: 'PHP' }).format(Number(value)) : 'Unavailable';
 const dateText = value => value && !Number.isNaN(new Date(value).getTime()) ? new Date(value).toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', year: 'numeric', hour: 'numeric', minute: '2-digit' }) : '';
 const title = value => value.toLowerCase().replace(/\b\w/g, letter => letter.toUpperCase()).replace(/\bBbq\b/g, 'BBQ');
@@ -25,13 +26,14 @@ const PortalOrderCard = ({ order, onReorder }) => {
       </div>
       <div className="history-card-summary"><div><span className="history-summary-label">{quantity} {quantity === 1 ? 'item' : 'items'}{order.orderType ? ` · ${order.orderType}` : ''}</span><p className="history-item-preview">{items.slice(0, 2).map(item => title(item.name || item.menuItemId?.name || 'Item')).join(', ')}{items.length > 2 ? ` +${items.length - 2} more` : ''}</p></div><div className="history-summary-total"><span className="history-summary-label">Order total</span><strong>{money(order.totalAmount)}</strong></div></div>
       <div className="history-card-bottom"><span className="history-payment-caption"><LuCreditCard aria-hidden="true" />{payment}</span><button type="button" onClick={() => setExpanded(value => !value)} aria-expanded={expanded} aria-controls={detailsId}>{expanded ? 'Hide details' : 'View details'}<LuChevronDown aria-hidden="true" className={expanded ? 'rotated' : ''} /></button></div>
+      <OrderRating order={order} />
       {expanded && <div id={detailsId} className="history-details">
         <section className="history-progress" aria-label="Order progress">
           <h3>Order progress</h3>
           {order.status === 'pending' && <p>Waiting for restaurant confirmation.</p>}
-          {order.status === 'cancelled' ? <p>This order was cancelled.</p> : <ol>{['pending', 'preparing', 'ready', 'completed'].map((step, index) => {
-            const current = { pending: 0, confirmed: 0, preparing: 1, ready: 2, served: 3, completed: 3 }[order.status];
-            return <li key={step} className={index <= current ? 'reached' : ''} aria-current={index === current ? 'step' : undefined}><span aria-hidden="true">{index < current ? <LuCheck /> : index + 1}</span>{['Received', 'Preparing', 'Ready', 'Completed'][index]}</li>;
+          {order.status === 'cancelled' ? <p>This order was cancelled.</p> : <ol>{['pending', 'preparing', 'ready', 'out_for_delivery', 'completed'].map((step, index) => {
+            const current = { pending: 0, confirmed: 0, preparing: 1, ready: 2, out_for_delivery: 3, served: 4, completed: 4 }[order.status];
+            return <li key={step} className={index <= current ? 'reached' : ''} aria-current={index === current ? 'step' : undefined}><span aria-hidden="true">{index < current ? <LuCheck /> : index + 1}</span>{['Received', 'Preparing', 'Ready', 'Out for delivery', 'Completed'][index]}</li>;
           })}</ol>}
           {!terminal && order.status !== 'pending' && order.estimatedCompletionTime && <p>Estimated ready: {dateText(order.estimatedCompletionTime)}</p>}
         </section>

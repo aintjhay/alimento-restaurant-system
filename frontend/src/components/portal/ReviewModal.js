@@ -28,7 +28,7 @@ const ReviewModal = ({ itemId, itemName, orderId, onClose, onSuccess }) => {
         rating: parseInt(rating),
         title,
         comment
-      });
+      }, { headers: { Authorization: `Bearer ${localStorage.getItem("portalToken")}` } });
 
       if (response.data.success) {
         alert('Thank you for your review!');

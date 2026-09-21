@@ -13,7 +13,7 @@ test('status updates retain receipt item names and prices', () => {
 
 test('expanded receipt explains tax and separates cash payment from order status', () => {
   render(<PortalOrderCard order={{ orderNumber: 'ORD-3', status: 'pending', paymentMethod: 'cash', paymentStatus: 'unpaid', subtotal: 610, taxAmount: 73.2, deliveryFee: 50, totalAmount: 733.2, items: [{ name: 'PASTA', itemTotal: 610, quantity: 1 }] }} />);
-  expect(screen.getByText('Awaiting confirmation')).toBeInTheDocument();
+  expect(screen.getByText('Received')).toBeInTheDocument();
   expect(screen.getByText('Pay on delivery')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'View details' }));
   expect(screen.getByText('Tax')).toBeInTheDocument();

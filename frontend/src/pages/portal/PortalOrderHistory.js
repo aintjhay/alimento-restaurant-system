@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PortalHeader from '../../components/portal/PortalHeader';
 import AccountSidebar from '../../components/portal/AccountSidebar';
@@ -19,7 +19,78 @@ const PortalOrderHistory = () => {
   const [loading, setLoading] = useState(true);
   const [user, setUser] = useState(null);
   const [filter, setFilter] = useState('all'); // all, active (pending/confirmed/preparing), completed
-  const [notifications, setNotifications] = useState([]);
+
+
+
+
+  const ordersRef = useRef(orders);
+  ordersRef.current = orders;
+  const activeOrderIds = JSON.stringify(orders.filter(order => !['completed', 'cancelled', 'served'].includes(order.status)).map(order => order._id || order.id).filter(Boolean).sort());
+
+  useEffect(() => {
+    const ids = JSON.parse(activeOrderIds);
+    let active = true;
+    ids.forEach(id => realtimeService.startPolling(id, response => {
+      if (!active) return;
+      const updated = response?.data || response?.order || response;
+      if (!(updated?._id || updated?.id)) return;
+      const previous = ordersRef.current.find(order => (order._id || order.id) === id);
+      if (previous && previous.status !== updated.status) {
+        realtimeService.notify(`Order ${updated.orderNumber || id} is now ${realtimeService.getStatusText(updated.status).toLowerCase()}!`, 'success');
+      }
+      setOrders(current => current.map(order => (order._id || order.id) === id ? mergeOrderUpdate(order, updated) : order));
+    }, 10000));
+    return () => { active = false; ids.forEach(id => realtimeService.stopPolling(id)); };
+  }, [activeOrderIds]);
+
+  const loadOrderHistoryFromStorage = useCallback(async () => {
+    setLoading(true);
+    try {
+      const savedOrders = localStorage.getItem('portalOrders');
+      if (savedOrders) {
+        try {
+          const parsedOrders = JSON.parse(savedOrders);
+          setOrders(Array.isArray(parsedOrders) ? parsedOrders : []);
+        } catch {
+          setOrders([]);
+        }
+      }
+    } catch (error) {
+      console.error('Error loading orders from storage:', error);
+      setOrders([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  const loadOrderHistory = useCallback(async (userId) => {
+    setLoading(true);
+    try {
+      console.log('🔄 Fetching orders for user:', userId);
+      // Fetch orders from backend API for the logged-in user
+      const response = await fetch(`${API_URL}/orders/user/${userId}`, { headers: { Authorization: `Bearer ${localStorage.getItem("portalToken")}` } });
+      const data = await response.json();
+      
+      console.log('📦 Backend response:', data);
+      
+      if (data.success && Array.isArray(data.orders)) {
+        console.log(`✅ Found ${data.orders.length} orders for user ${userId}`);
+        setOrders(data.orders);
+        
+        // Save to localStorage as backup
+        localStorage.setItem('portalOrders', JSON.stringify(data.orders));
+      } else {
+        console.log('⚠️ No orders found or error in response');
+        setOrders([]);
+      }
+    } catch (error) {
+      console.error('❌ Error loading orders from backend:', error);
+      // Fallback to localStorage if API fails
+      loadOrderHistoryFromStorage();
+    } finally {
+      setLoading(false);
+    }
+  }, [loadOrderHistoryFromStorage]);
 
   useEffect(() => {
     const portalUser = localStorage.getItem('portalUser');
@@ -45,92 +116,10 @@ const PortalOrderHistory = () => {
       navigate('/portal/login');
     }
 
-    // Listen for notifications
-    realtimeService.on('notifications', 'new', (notification) => {
-      addNotification(notification);
-    });
-
     return () => {
       realtimeService.stopAllPolling();
     };
-  }, [navigate]);
-
-  const ordersRef = useRef(orders);
-  ordersRef.current = orders;
-  const activeOrderIds = JSON.stringify(orders.filter(order => !['completed', 'cancelled', 'served'].includes(order.status)).map(order => order._id || order.id).filter(Boolean).sort());
-
-  useEffect(() => {
-    const ids = JSON.parse(activeOrderIds);
-    let active = true;
-    ids.forEach(id => realtimeService.startPolling(id, response => {
-      if (!active) return;
-      const updated = response?.data || response?.order || response;
-      if (!(updated?._id || updated?.id)) return;
-      const previous = ordersRef.current.find(order => (order._id || order.id) === id);
-      if (previous && previous.status !== updated.status) {
-        realtimeService.notify(`Order ${updated.orderNumber || id} is now ${realtimeService.getStatusText(updated.status).toLowerCase()}!`, 'success');
-      }
-      setOrders(current => current.map(order => (order._id || order.id) === id ? mergeOrderUpdate(order, updated) : order));
-    }, 10000));
-    return () => { active = false; ids.forEach(id => realtimeService.stopPolling(id)); };
-  }, [activeOrderIds]);
-
-  const loadOrderHistoryFromStorage = async () => {
-    setLoading(true);
-    try {
-      const savedOrders = localStorage.getItem('portalOrders');
-      if (savedOrders) {
-        try {
-          const parsedOrders = JSON.parse(savedOrders);
-          setOrders(Array.isArray(parsedOrders) ? parsedOrders : []);
-        } catch {
-          setOrders([]);
-        }
-      }
-    } catch (error) {
-      console.error('Error loading orders from storage:', error);
-      setOrders([]);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const loadOrderHistory = async (userId) => {
-    setLoading(true);
-    try {
-      console.log('🔄 Fetching orders for user:', userId);
-      // Fetch orders from backend API for the logged-in user
-      const response = await fetch(`${API_URL}/orders/user/${userId}`);
-      const data = await response.json();
-      
-      console.log('📦 Backend response:', data);
-      
-      if (data.success && Array.isArray(data.orders)) {
-        console.log(`✅ Found ${data.orders.length} orders for user ${userId}`);
-        setOrders(data.orders);
-        
-        // Save to localStorage as backup
-        localStorage.setItem('portalOrders', JSON.stringify(data.orders));
-      } else {
-        console.log('⚠️ No orders found or error in response');
-        setOrders([]);
-      }
-    } catch (error) {
-      console.error('❌ Error loading orders from backend:', error);
-      // Fallback to localStorage if API fails
-      loadOrderHistoryFromStorage();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const addNotification = (notification) => {
-    setNotifications(prev => [notification, ...prev]);
-    // Auto remove after duration
-    setTimeout(() => {
-      setNotifications(prev => prev.filter(n => n.id !== notification.id));
-    }, notification.duration || 5000);
-  };
+  }, [navigate, loadOrderHistory, loadOrderHistoryFromStorage]);
 
   const handleReorder = (order) => {
     // Add items back to cart

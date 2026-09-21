@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
 
 const reviewSchema = new mongoose.Schema({
+  reviewKey: { type: String, unique: true, sparse: true },
+  helpfulVoters: [{ type: mongoose.Schema.Types.ObjectId, select: false }],
   // Reviewer Info
   userId: {
     type: mongoose.Schema.Types.ObjectId,
@@ -61,7 +63,7 @@ const reviewSchema = new mongoose.Schema({
   // Status
   verified: {
     type: Boolean,
-    default: true // Verified means they actually ordered the item
+    default: false // Verified means they actually ordered the item
   },
   
   // Timestamps

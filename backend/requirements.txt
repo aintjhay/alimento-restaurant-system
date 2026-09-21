@@ -1,0 +1,3 @@
+# Optional Prophet runtime. Install into a dedicated virtual environment.
+prophet>=1.1,<2
+pandas>=2,<3

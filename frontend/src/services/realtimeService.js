@@ -149,10 +149,11 @@ class RealtimeService {
    */
   getStatusText(status) {
     const texts = {
-      'pending': 'Pending Payment',
+      'pending': 'Received',
       'confirmed': 'Confirmed',
       'preparing': 'Preparing',
       'ready': 'Ready for Pickup',
+      'out_for_delivery': 'Out for delivery',
       'served': 'Order Served',
       'completed': 'Completed',
       'cancelled': 'Cancelled'

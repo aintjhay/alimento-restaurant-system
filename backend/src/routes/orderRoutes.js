@@ -1,33 +1,63 @@
 const express = require('express');
 const router = express.Router();
 const Order = require('../models/Order');
-const { randomBytes, createHash } = require('crypto');
+const { createHash } = require('crypto');
 const { isValidPhPhone, PH_PHONE_MESSAGE } = require('../utils/phoneUtils');
 const { deductProductStock } = require('../services/inventoryService');
 const { authMiddleware, optionalAuthMiddleware, requireRole } = require('../middleware/authMiddleware');
-const adminOnly = [authMiddleware, requireRole('admin')];
+const adminOnly = [authMiddleware, requireRole('admin', 'staff', 'cashier', 'kitchen')];
+const Counter = require('../models/Counter');
+const { updateOrder } = require('../services/orderLifecycle');
+const publicOrder = order => { const result = order.toObject ? order.toObject() : { ...order }; for (const key of ['paymentProof', 'trackingTokenHash', 'idempotencyKey', 'requestHash', 'stockDeductions']) delete result[key]; return result; };
+const hash = value => createHash('sha256').update(value).digest('hex');
+const StoreSettings = require('../models/StoreSettings');
+const MenuItem = require('../models/MenuItem');
+const { isOpen, priceItems, validImage } = require('../services/storeService');
 
 // POST - Create new order
 router.post('/', optionalAuthMiddleware, async (req, res) => {
     try {
+        if (req.user?.role === 'kitchen') return res.status(403).json({ message: 'Kitchen accounts cannot create orders.' });
+        const key = req.get('Idempotency-Key');
+        if (!key || !/^[a-zA-Z0-9-]{16,100}$/.test(key)) return res.status(400).json({ message: 'A valid Idempotency-Key is required.' });
+        const idempotencyKey = hash(`${req.user?.userId || 'guest'}:${key}`);
+        const requestHash = hash(JSON.stringify(req.body));
+        // Domain-separated from the stored idempotency digest; stable across session-secret rotation.
+        const trackingToken = hash(`tracking:${req.user?.userId || 'guest'}:${key}`);
+        const replay = await Order.findOne({ idempotencyKey }).select('+requestHash');
+        if (replay) {
+            if (replay.requestHash !== requestHash) return res.status(409).json({ message: 'This checkout key was used for a different order.' });
+            return res.json({ success: true, order: { ...publicOrder(replay), trackingToken } });
+        }
+        const portal = !['admin', 'cashier', 'staff'].includes(req.user?.role);
+        if (portal && req.body.orderType !== 'Delivery') return res.status(403).json({ success: false, message: 'Please use delivery checkout.' });
+        const settings = await StoreSettings.current();
+        if (portal && !isOpen(settings)) return res.status(409).json({ success: false, message: 'The store is closed. Please order during opening hours.' });
+        if (portal && (req.body.paymentMethod !== 'gcash' || !validImage(req.body.paymentProof))) return res.status(400).json({ success: false, message: 'Pay with GCash and upload a payment receipt (PNG, JPEG or WebP, up to 3 MB).' });
+        if (portal && !settings.gcashQr) return res.status(409).json({ success: false, message: 'GCash payment is not yet configured.' });
+        let quote;
+        try {
+            if (!Array.isArray(req.body.items)) throw new Error('Invalid items.');
+            const products = await MenuItem.find({ _id: { $in: req.body.items.map(i => i.menuItemId) } }).lean();
+            quote = priceItems(req.body.items, products, settings, portal ? 'portal' : 'pos');
+            if (Math.abs(Number(req.body.totalAmount) - quote.totalAmount) > 0.01 || !Number.isFinite(Number(req.body.totalAmount))) return res.status(409).json({ success: false, message: 'Prices or promotions changed. Refresh your order total before paying.', quote });
+        } catch (error) { return res.status(400).json({ success: false, message: error.message }); }
         if (req.body.orderType === 'Delivery' && !isValidPhPhone(req.body.customerContact)) {
             return res.status(400).json({ success: false, message: PH_PHONE_MESSAGE });
         }
-        // Generate orderNumber if not provided
-        let orderNumber = req.body.orderNumber;
-        if (!orderNumber) {
-            const lastOrder = await Order.findOne().sort({ createdAt: -1 });
-            const nextNumber = lastOrder ? parseInt(lastOrder.orderNumber?.replace(/\D/g, '') || 0) + 1 : 1;
-            orderNumber = `ORD-${String(nextNumber).padStart(5, '0')}`;
-        }
-
-        const resolvedPaymentStatus = req.body.paymentStatus ||
+        const resolvedPaymentStatus = portal || req.body.paymentMethod === 'qrph' ? 'payment_pending_verification' : req.body.paymentStatus ||
             (req.body.paymentMethod === 'gcash' ? 'payment_pending_verification' : 'unpaid');
 
-        const trackingToken = randomBytes(32).toString('hex');
+        if (!['unpaid', 'paid', 'payment_verified', 'payment_pending_verification'].includes(resolvedPaymentStatus)) return res.status(400).json({ message: 'New orders cannot start partially paid or refunded.' });
         const orderData = {
-            ...req.body,
-            orderNumber: orderNumber,
+            ...Object.fromEntries(['orderType', 'tableNumber', 'customerName', 'customerEmail', 'customerContact', 'customerAddress', 'paymentMethod', 'paymentProof'].filter(k => req.body[k] !== undefined).map(k => [k, req.body[k]])),
+            ...quote,
+            rating: undefined,
+            ratedAt: undefined,
+            paymentVerifiedAt: undefined,
+            statusTimeline: [],
+            notes: String(req.body.specialInstructions || req.body.notes || '').slice(0, 1000),
+            idempotencyKey, requestHash,
             status: 'pending',
             paymentStatus: resolvedPaymentStatus,
             trackingTokenHash: createHash('sha256').update(trackingToken).digest('hex')
@@ -42,45 +72,22 @@ router.post('/', optionalAuthMiddleware, async (req, res) => {
             orderData.paymentVerifiedAt = new Date();
         }
 
-        const order = new Order(orderData);
-        
-        // Debug logging
-        console.log(`\n📝 ORDER CREATION DEBUG:`);
-        console.log(`  Order Number: ${orderNumber}`);
-        console.log(`  Customer Name: ${order.customerName}`);
-        console.log(`  Customer Email: ${order.customerEmail}`);
-        console.log(`  Delivery Type: ${order.deliveryType}`);
-        console.log(`  Payload UserId Type: ${typeof req.body.userId}`);
-        console.log(`  Payload UserId Value: ${req.body.userId || 'UNDEFINED/NULL'}`);
-        console.log(`  Order.userId (before save): ${order.userId || 'UNDEFINED/NULL'}`);
-        
-        await order.validate();
-        const deductions = await deductProductStock(order.items);
-        order.stockDeductions = deductions;
-        order.stockDeductedAt = deductions.length ? new Date() : null;
-        try {
-            await order.save();
-        } catch (saveError) {
-            const Inventory = require('../models/Inventory');
-            await Promise.all(deductions.map(entry => Inventory.updateOne(
-                { _id: entry.inventoryId }, { $inc: { currentStock: entry.quantity } }
-            )));
-            throw saveError;
-        }
-        
-        console.log(`  Order.userId (after save): ${order.userId || 'UNDEFINED/NULL'}`);
-        console.log(`✅ Order created: ${order.orderNumber} for Table ${order.tableNumber}${order.userId ? ` [UserId: ${order.userId}]` : ' [GUEST - NO USERID]'}\n`);
-        
-        res.status(201).json({
-            success: true,
-            message: 'Order placed successfully!',
-            order: { ...order.toObject(), trackingTokenHash: undefined, trackingToken }
+        const order = await require('../services/transaction')(async session => {
+            const sequence = await Counter.findOneAndUpdate({ _id: 'orders-v2' }, { $inc: { value: 1 } }, { new: true, upsert: true, session });
+            const order = new Order({ ...orderData, orderNumber: `ORD-V2-${String(sequence.value).padStart(8, '0')}` });
+            if (['paid', 'payment_verified'].includes(order.paymentStatus)) { order.amountPaid = order.totalAmount; order.paymentTimeline.push({ amount: order.totalAmount, kind: 'payment', by: String(req.user.userId), at: new Date() }); }
+            await order.validate();
+            order.stockDeductions = await deductProductStock(order.items, session, order._id, String(req.user?.userId || 'guest'));
+            order.stockDeductedAt = order.stockDeductions.length ? new Date() : null;
+            await order.save({ session });
+            return order;
         });
+        res.status(201).json({ success: true, message: 'Order placed successfully!', order: { ...publicOrder(order), trackingToken } });
     } catch (error) {
-        console.error('❌ Order creation error:', error);
-        res.status(500).json({
+        console.error('Order creation failed:', error.name);
+        res.status(error.code === 11000 || error.name === 'VersionError' ? 409 : 400).json({
             success: false,
-            message: 'Failed to create order',
+            message: error.code === 11000 ? 'Checkout already submitted. Retry with the same key.' : 'Failed to create order',
             error: error.message
         });
     }
@@ -94,7 +101,7 @@ router.get('/track/:token', async (req, res) => {
     try {
         const order = await Order.findOne({
             trackingTokenHash: createHash('sha256').update(req.params.token).digest('hex')
-        }).select('orderNumber status paymentStatus paymentMethod estimatedCompletionTime updatedAt').lean();
+        }).select('orderNumber orderType status paymentStatus paymentMethod estimatedCompletionTime updatedAt rating').lean();
         res.set('Cache-Control', 'no-store');
         if (!order) return res.status(404).json({ success: false, message: 'Tracking link not found' });
         res.json({ success: true, order });
@@ -103,15 +110,38 @@ router.get('/track/:token', async (req, res) => {
     }
 });
 
+router.post('/track/:token/rating', async (req, res) => {
+    if (!/^[a-f0-9]{64}$/.test(req.params.token) || !Number.isInteger(req.body.rating) || req.body.rating < 1 || req.body.rating > 5) return res.status(400).json({ message: 'Choose 1 to 5 stars.' });
+    try {
+        const order = await Order.findOneAndUpdate({ trackingTokenHash: createHash('sha256').update(req.params.token).digest('hex'), status: 'completed', rating: { $exists: false } }, { $set: { rating: req.body.rating, ratedAt: new Date() } }, { new: true });
+        if (!order) return res.status(409).json({ message: 'Only completed, unrated orders can be rated.' });
+        res.json({ rating: order.rating });
+    } catch { res.status(500).json({ message: 'Unable to save rating. Please retry.' }); }
+});
+
+router.get('/summary', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
+  try { res.json(await require('../services/dashboardService').dashboardSummary(req.query.period)); }
+  catch (error) { res.status(400).json({ message: error.message }); }
+});
+
 // GET - All orders (for dashboard)
+router.post('/:id/rating', authMiddleware, async (req, res) => {
+    if (!Number.isInteger(req.body.rating) || req.body.rating < 1 || req.body.rating > 5) return res.status(400).json({ message: 'Choose 1 to 5 stars.' });
+    try {
+        const order = await Order.findOneAndUpdate({ _id: req.params.id, userId: req.user.userId, status: 'completed', rating: { $exists: false } }, { $set: { rating: req.body.rating, ratedAt: new Date() } }, { new: true });
+        if (!order) return res.status(409).json({ message: 'Only your completed, unrated orders can be rated.' });
+        res.json({ rating: order.rating });
+    } catch { res.status(400).json({ message: 'Unable to save rating. Please retry.' }); }
+});
+
 router.get('/', ...adminOnly, async (req, res) => {
     try {
-        const { status, startDate, endDate, limit = 50 } = req.query;
+        const { status, startDate, endDate, limit = 50, page = 1 } = req.query;
         
         let query = {};
         
         if (status) {
-            query.status = status;
+            query.status = status === 'active' ? { $in: ['pending', 'preparing', 'ready', 'out_for_delivery', 'served'] } : status;
         }
         
         if (startDate || endDate) {
@@ -120,19 +150,39 @@ router.get('/', ...adminOnly, async (req, res) => {
             if (endDate) query.createdAt.$lte = new Date(endDate);
         }
         
+        if (status === 'unpaid') { query.status = { $ne: 'cancelled' }; query.paymentStatus = { $in: ['unpaid', 'partially_paid', 'payment_pending_verification'] }; }
+        if (req.query.period) {
+            const days = { today: 0, week: 6, month: 29 }[req.query.period];
+            if (days === undefined) return res.status(400).json({ message: 'Invalid period' });
+            const today = require('../services/dashboardService').dayKey(new Date());
+            query.createdAt = { $gte: new Date(new Date(`${today}T00:00:00+08:00`).getTime() - days * 86400000), $lte: new Date() };
+        }
+        if (req.user.role === 'kitchen') query.status = { $in: ['pending', 'preparing', 'ready', 'served', 'out_for_delivery'] };
+        if (typeof req.query.search === 'string' && req.query.search.trim()) {
+            const term = req.query.search.trim().slice(0, 100);
+            const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+            query.$or = [
+                { orderNumber: { $regex: escape(term), $options: 'i' } },
+                { tableNumber: { $regex: escape(term.replace(/^table\s+/i, '')), $options: 'i' } }
+            ];
+        }
+        const sort = req.query.sort === 'highest' ? { totalAmount: -1, _id: -1 } : { createdAt: req.query.sort === 'oldest' ? 1 : -1, _id: req.query.sort === 'oldest' ? 1 : -1 };
         const orders = await Order.find(query)
-            .sort({ createdAt: -1 })
-            .limit(parseInt(limit))
+            .sort(sort)
+            .select('-paymentProof -trackingTokenHash -stockDeductions -items.image')
+            .skip((Math.max(1, parseInt(page) || 1) - 1) * Math.min(200, Math.max(1, parseInt(limit) || 50)))
+            .limit(Math.min(200, Math.max(1, parseInt(limit) || 50)))
             .lean();
         
         // Calculate dashboard stats
-        const totalRevenue = orders.reduce((sum, order) => sum + order.totalAmount, 0);
+        const totalRevenue = require('../services/salesReportService').summarizeSales(orders).summary.totalSales;
         const totalOrders = orders.length;
         const pendingOrders = orders.filter(o => o.status === 'pending').length;
         
         res.json({
             success: true,
-            orders: orders,
+            orders: req.user.role === 'kitchen' ? orders.map(o => ({ _id: o._id, orderNumber: o.orderNumber, orderType: o.orderType, tableNumber: o.tableNumber, items: o.items, status: o.status, createdAt: o.createdAt })) : orders,
+            pagination: { page: Math.max(1, parseInt(page) || 1), total: await Order.countDocuments(query), pageSize: Math.min(200, Math.max(1, parseInt(limit) || 50)) },
             stats: {
                 totalRevenue,
                 totalOrders,
@@ -151,9 +201,10 @@ router.get('/', ...adminOnly, async (req, res) => {
 });
 
 // GET - Orders for a specific user
-router.get('/user/:userId', async (req, res) => {
+router.get('/user/:userId', authMiddleware, async (req, res) => {
     try {
         const { userId } = req.params;
+        if (String(req.user.userId) !== userId) return res.status(403).json({ message: 'You can only access your own orders.' });
         
         if (!userId) {
             return res.status(400).json({ 
@@ -162,23 +213,17 @@ router.get('/user/:userId', async (req, res) => {
             });
         }
         
-        console.log(`\n🔍 FETCHING ORDERS FOR USER:`);
-        console.log(`  Requested UserId: ${userId}`);
-        console.log(`  UserId Type: ${typeof userId}`);
         
-        const orders = await Order.find({ userId })
+        const orders = await Order.find({ userId }).select('-paymentProof -trackingTokenHash -idempotencyKey -requestHash -stockDeductions -items.image')
             .sort({ createdAt: -1 })
             .populate('items.menuItemId', 'name price');
         
-        console.log(`  Found: ${orders.length} orders`);
         if (orders.length > 0) {
-            console.log(`  Sample order userId: ${orders[0].userId} (type: ${typeof orders[0].userId})`);
         }
         
         // Additional debug: check what's actually in DB
         const allOrdersCount = await Order.countDocuments();
         const ordersWithUserIdCount = await Order.countDocuments({ userId: { $exists: true, $ne: null } });
-        console.log(`  Total orders in DB: ${allOrdersCount}, With userId: ${ordersWithUserIdCount}\n`);
         
         res.json({
             success: true,
@@ -195,18 +240,17 @@ router.get('/user/:userId', async (req, res) => {
 });
 
 // GET - Today's orders and revenue
-router.get('/today', ...adminOnly, async (req, res) => {
+router.get('/today', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = new Date(`${require('../services/dashboardService').dayKey(new Date())}T00:00:00+08:00`);
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
         const todaysOrders = await Order.find({
             createdAt: { $gte: today, $lt: tomorrow }
-        }).sort({ createdAt: -1 });
+        }).select('-paymentProof -trackingTokenHash -stockDeductions -items.image').sort({ createdAt: -1 });
 
-        const todaysRevenue = todaysOrders.reduce((sum, order) => sum + order.totalAmount, 0);
+        const todaysRevenue = require('../services/salesReportService').summarizeSales(todaysOrders).summary.totalSales;
         const activeTables = [...new Set(todaysOrders.map(order => order.tableNumber))];
 
         res.json({
@@ -226,9 +270,9 @@ router.get('/today', ...adminOnly, async (req, res) => {
 });
 
 // GET - Top selling items
-router.get('/top-items', ...adminOnly, async (req, res) => {
+router.get('/top-items', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
     try {
-        const orders = await Order.find({})
+        const orders = await Order.find({ status: { $ne: 'cancelled' }, paymentStatus: { $in: ['paid', 'payment_verified'] } })
             .select('items')
             .lean();
 
@@ -276,176 +320,27 @@ router.get('/:id', async (req, res) => {
     }
 });
 
-// PATCH - Update order status
-router.patch('/:id/status', ...adminOnly, async (req, res) => {
+const changeStatus = async (req, res) => {
     try {
-        const { id } = req.params;
-        const { status, paymentStatus, itemIndex } = req.body;
-
-        console.log(`\n📝 PATCH /orders/${id}/status`);
-        console.log(`  itemIndex: ${itemIndex}, status: ${status}, paymentStatus: ${paymentStatus}`);
-
-        // If itemIndex is provided, update only that item's status
-        if (itemIndex !== undefined) {
-            console.log(`  → Updating item at index ${itemIndex}`);
-            const order = await Order.findById(id);
-            if (!order) {
-                console.log(`  ❌ Order not found`);
-                return res.status(404).json({
-                    success: false,
-                    message: 'Order not found'
-                });
-            }
-            
-            console.log(`  Order has ${order.items.length} items`);
-            if (itemIndex < 0 || itemIndex >= order.items.length) {
-                console.log(`  ❌ Invalid item index: ${itemIndex}`);
-                return res.status(400).json({
-                    success: false,
-                    error: 'Invalid item index'
-                });
-            }
-            
-            const previousOrderStatus = order.status;
-            console.log(`  Current item status: ${order.items[itemIndex].itemStatus}`);
-            // Update individual item status
-            order.items[itemIndex].itemStatus = status;
-            order.items[itemIndex].itemStatusTimeline = order.items[itemIndex].itemStatusTimeline || [];
-            order.items[itemIndex].itemStatusTimeline.push({
-                status: status,
-                timestamp: new Date(),
-                changedBy: req.body.changedBy || 'system'
-            });
-            
-            console.log(`  Updated item status to: ${status}`);
-            
-            // Check if all items are served/completed
-            const allItemsServed = order.items.every(item => 
-                ['served', 'completed'].includes(item.itemStatus)
-            );
-            
-            // Check if all items are ready/served/completed
-            const allItemsReady = order.items.every(item => 
-                ['ready', 'served', 'completed'].includes(item.itemStatus)
-            );
-            
-            // Update order-level status based on items
-            if (allItemsServed) {
-                order.status = 'completed';
-                console.log(`  All items served, updating order status to: completed`);
-            } else if (allItemsReady && !['served', 'completed'].includes(order.status)) {
-                order.status = 'ready';
-                console.log(`  All items ready, updating order status to: ready`);
-            } else if (order.items.some(item => item.itemStatus === 'preparing') && order.status === 'pending') {
-                order.status = 'preparing';
-            }
-
-            if (order.status !== previousOrderStatus) {
-                order.statusTimeline.push({ status: order.status, timestamp: new Date(), changedBy: req.body.changedBy || 'kitchen' });
-                if (order.status === 'completed') order.completedAt = new Date();
-            }
-            
-            order.updatedAt = new Date();
-            await order.save();
-            
-            console.log(`  ✅ Item updated successfully`);
-            return res.json({
-                success: true,
-                message: `Item status updated to ${status}`,
-                order: order
-            });
-        }
-
-        // Otherwise update entire order status (legacy behavior)
-        console.log(`  → Updating entire order status`);
-        const update = { updatedAt: new Date() };
-        if (status) {
-            update.status = status;
-            update.$push = { statusTimeline: { status, timestamp: new Date(), changedBy: req.body.changedBy || 'admin' } };
-            if (status === 'completed') update.completedAt = new Date();
-        }
-        if (paymentStatus) {
-            update.paymentStatus = paymentStatus;
-            if (paymentStatus === 'payment_verified') {
-                update.paymentVerifiedAt = new Date();
-            }
-        }
-
-        const order = await Order.findByIdAndUpdate(
-            id,
-            update,
-            { new: true }
-        );
-
-        if (!order) {
-            console.log(`  ❌ Order not found`);
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
-
-        console.log(`  ✅ Order status updated to: ${status}`);
-        res.json({
-            success: true,
-            message: `Order status updated to ${status}`,
-            order: order
-        });
-    } catch (error) {
-        console.error('❌ Update status error:', error);
-        res.status(500).json({ success: false, error: error.message });
+      const order = await updateOrder(req.params.id, req.body, req.user);
+      const result = req.user.role === 'kitchen' ? { _id: order._id, orderNumber: order.orderNumber, orderType: order.orderType, tableNumber: order.tableNumber, items: order.items, status: order.status, createdAt: order.createdAt } : publicOrder(order);
+      res.json({ success: true, order: result });
     }
-});
-
-// PUT - Update order (alternative endpoint for updating status)
-router.put('/:id', ...adminOnly, async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { status, paymentStatus } = req.body;
-
-        const update = { updatedAt: new Date() };
-        if (status) update.status = status;
-        if (paymentStatus) {
-            update.paymentStatus = paymentStatus;
-            if (paymentStatus === 'payment_verified') {
-                update.paymentVerifiedAt = new Date();
-            }
-        }
-
-        const order = await Order.findByIdAndUpdate(
-            id,
-            update,
-            { new: true }
-        );
-
-        if (!order) {
-            return res.status(404).json({
-                success: false,
-                message: 'Order not found'
-            });
-        }
-
-        console.log(`✅ Order ${id} status updated to ${status}`);
-
-        res.json({
-            success: true,
-            message: `Order status updated to ${status}`,
-            order: order
-        });
-    } catch (error) {
-        console.error('❌ Update order error:', error);
-        res.status(500).json({ 
-            success: false, 
-            message: 'Failed to update order',
-            error: error.message 
-        });
-    }
+    catch (error) { res.status(error.status || 400).json({ success: false, message: error.message }); }
+};
+router.patch('/:id/status', ...adminOnly, changeStatus);
+router.put('/:id', ...adminOnly, changeStatus);
+router.get('/:id/receipt', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
+    try { const order = await Order.findById(req.params.id).select('paymentProof');
+      if (!order) return res.status(404).json({ message: 'Order not found' });
+      res.set('Cache-Control', 'no-store').json({ paymentProof: order.paymentProof || null });
+    } catch { res.status(400).json({ message: 'Invalid order' }); }
 });
 
 // ==================== EXPORT ROUTES ====================
 
 // GET - Export orders to CSV
-router.get('/export/csv', ...adminOnly, async (req, res) => {
+router.get('/export/csv', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
     try {
         const { startDate, endDate, status } = req.query;
         
@@ -483,7 +378,7 @@ router.get('/export/csv', ...adminOnly, async (req, res) => {
 });
 
 // GET - Export orders to PDF
-router.get('/export/pdf', ...adminOnly, async (req, res) => {
+router.get('/export/pdf', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
     try {
         const { startDate, endDate, status } = req.query;
         
@@ -521,7 +416,7 @@ router.get('/export/pdf', ...adminOnly, async (req, res) => {
 });
 
 // GET - Export sales summary to CSV
-router.get('/export/summary/csv', ...adminOnly, async (req, res) => {
+router.get('/export/summary/csv', authMiddleware, requireRole('admin', 'staff', 'cashier'), async (req, res) => {
     try {
         const { period = 'day', startDate, endDate } = req.query;
         
@@ -557,152 +452,4 @@ router.get('/export/summary/csv', ...adminOnly, async (req, res) => {
     }
 });
 
-// GET - Debug: Check last orders and userId status
-router.get('/debug/last-orders', async (req, res) => {
-    try {
-        const lastOrders = await Order.find().sort({ createdAt: -1 }).limit(10).lean();
-        
-        const report = lastOrders.map(order => ({
-            orderNumber: order.orderNumber,
-            customerEmail: order.customerEmail,
-            customerName: order.customerName,
-            userId: order.userId || 'NULL',
-            deliveryType: order.deliveryType,
-            status: order.status,
-            createdAt: order.createdAt
-        }));
-
-        res.json({
-            success: true,
-            totalOrdersInDB: await Order.countDocuments(),
-            ordersWithUserId: await Order.countDocuments({ userId: { $exists: true, $ne: null } }),
-            ordersWithoutUserId: await Order.countDocuments({ userId: { $exists: false } }),
-            lastOrders: report
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// GET - Debug: Check a specific user's orders
-router.get('/debug/user/:email', async (req, res) => {
-    try {
-        const { email } = req.params;
-        const User = require('../models/User');
-        
-        // Find user by email
-        const user = await User.findOne({ email: email.toLowerCase() });
-        
-        if (!user) {
-            return res.json({
-                success: false,
-                message: 'User not found',
-                searchEmail: email.toLowerCase()
-            });
-        }
-
-        // Find orders by userId
-        const ordersByUserId = await Order.find({ userId: user._id }).lean();
-        
-        // Find orders by email
-        const ordersByEmail = await Order.find({ customerEmail: email.toLowerCase() }).lean();
-
-        res.json({
-            success: true,
-            user: {
-                _id: user._id,
-                email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName
-            },
-            ordersByUserId: ordersByUserId.length,
-            ordersByEmail: ordersByEmail.length,
-            ordersByUserIdDetails: ordersByUserId.map(o => ({
-                orderNumber: o.orderNumber,
-                userId: o.userId,
-                customerEmail: o.customerEmail,
-                createdAt: o.createdAt
-            })),
-            ordersByEmailDetails: ordersByEmail.map(o => ({
-                orderNumber: o.orderNumber,
-                userId: o.userId || 'NULL',
-                customerEmail: o.customerEmail,
-                createdAt: o.createdAt
-            }))
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            error: error.message
-        });
-    }
-});
-
-// POST - Migrate old orders to link with registered users (Admin only)
-router.post('/migrate/link-users', async (req, res) => {
-    try {
-        const User = require('../models/User');
-        
-        // Find all orders without userId
-        const ordersWithoutUserId = await Order.find({ userId: { $exists: false } });
-        
-        if (ordersWithoutUserId.length === 0) {
-            return res.json({
-                success: true,
-                message: 'No orders to migrate',
-                stats: {
-                    ordersProcessed: 0,
-                    ordersLinked: 0,
-                    ordersSkipped: 0
-                }
-            });
-        }
-
-        let linkedCount = 0;
-        let skippedCount = 0;
-
-        // Process each order
-        for (const order of ordersWithoutUserId) {
-            // Skip if no customerEmail
-            if (!order.customerEmail) {
-                skippedCount++;
-                continue;
-            }
-
-            // Find user with matching email
-            const user = await User.findOne({ email: order.customerEmail.toLowerCase() });
-            
-            if (user) {
-                // Link the order to the user
-                order.userId = user._id;
-                await order.save();
-                linkedCount++;
-            } else {
-                skippedCount++;
-            }
-        }
-
-        res.json({
-            success: true,
-            message: `Migration complete! Linked ${linkedCount} orders to registered users.`,
-            stats: {
-                ordersProcessed: ordersWithoutUserId.length,
-                ordersLinked: linkedCount,
-                ordersSkipped: skippedCount
-            }
-        });
-    } catch (error) {
-        console.error('❌ Migration error:', error);
-        res.status(500).json({
-            success: false,
-            message: 'Migration failed',
-            error: error.message
-        });
-    }
-});
-
 module.exports = router;
-

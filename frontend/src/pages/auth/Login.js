@@ -4,8 +4,8 @@ import { useAuth } from '../../context/AuthContext';
 import './Login.css';
 
 function Login() {
-  const [username, setUsername] = useState('admin');
-  const [password, setPassword] = useState('1234');
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const navigate = useNavigate();
   const { adminLogin, loading } = useAuth();
@@ -18,7 +18,7 @@ function Login() {
       return;
     }
     const result = await adminLogin(username, password);
-    if (result.success) navigate('/admin/dashboard', { replace: true });
+    if (result.success) navigate(result.user?.role === 'kitchen' ? '/admin/kitchen' : '/admin/dashboard', { replace: true });
     else setError(result.message);
   };
 

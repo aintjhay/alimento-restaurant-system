@@ -42,7 +42,7 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
     // Check modifiers
     Object.entries(selectedModifiers).forEach(([modifierName, modValue]) => {
       // Modifiers like Temperature, Size, Quantity replace the base price
-      if (['Temperature', 'Size', 'Quantity'].includes(modifierName)) {
+      if (modifierName === 'Temperature') {
         modifierPrice = modValue.extraPrice;
       } else {
         // Other modifiers add to the price
@@ -52,7 +52,7 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
     
     // Calculate item total (using replacement price or base price)
     const unitPrice = modifierPrice !== null ? modifierPrice : item.price;
-    const itemTotal = unitPrice * quantity + modifierExtra;
+    const itemTotal = (unitPrice + modifierExtra) * quantity;
     
     // Add addon prices (not multiplied by quantity)
     let addonTotal = 0;
@@ -60,7 +60,7 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
       addonTotal += addon.price;
     });
     
-    return itemTotal + addonTotal;
+    return itemTotal + addonTotal * quantity;
   };
 
   const handleAddToCart = () => {
@@ -73,7 +73,7 @@ function ModifierModal({ item, isOpen, onClose, onAddToCart }) {
       modifiers: Object.entries(selectedModifiers).map(([key, value]) => ({
         modifierName: key,
         selectedOption: value.name,
-        extraPrice: value.extraPrice
+        extraPrice: key === 'Temperature' ? value.extraPrice - item.price : value.extraPrice
       })),
       addons: selectedAddons,
       image: item.image,

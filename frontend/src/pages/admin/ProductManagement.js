@@ -24,6 +24,9 @@ export default function ProductManagement() {
   const [loading, setLoading] = useState(true), [saving, setSaving] = useState(false), [revision, setRevision] = useState(0);
   const nameInput = useRef(null);
   const imageInput = useRef(null);
+  const previewDialog = useRef(null);
+  const [preview, setPreview] = useState(null);
+  useEffect(() => { if (preview) previewDialog.current?.showModal(); }, [preview]);
   const [processingImage, setProcessingImage] = useState(false);
   const [imageError, setImageError] = useState('');
   const busy = saving || processingImage;
@@ -76,7 +79,7 @@ export default function ProductManagement() {
     nameInput.current?.focus();
   };
   const remove = async product => {
-    if (!window.confirm(`Delete "${product.name}"? This also removes its linked stock record. To temporarily hide it, edit the item and turn off availability instead.`)) return;
+    if (!window.confirm(`Delete "${product.name}"? Linked inventory will be retained.`)) return;
     setSaving(true); setError(''); setMessage('');
     try {
       await request(`products/${product._id}`, { method: 'DELETE' });
@@ -89,13 +92,17 @@ export default function ProductManagement() {
     <div className="menu-intro"><p>Add your dishes and drinks, update prices, and keep your menu ready for service.</p><button className="menu-primary" disabled={busy} onClick={() => { reset(); nameInput.current?.focus(); }}><FiPlus /> Add menu item</button></div>
     {message && <div className="menu-notice" role="status">{message}</div>}
     {error && <div className="menu-notice menu-error" role="alert">{error} <button onClick={() => setRevision(value => value + 1)}>Retry list</button></div>}
+    {preview && <dialog ref={previewDialog} className="menu-photo-dialog" aria-label={`Photo of ${preview.name}`} onClose={() => setPreview(null)} onClick={event => { if (event.target === event.currentTarget) previewDialog.current.close(); }}>
+      <button type="button" autoFocus onClick={() => previewDialog.current.close()} aria-label="Close image preview">Close</button>
+      <img src={getFoodImage(preview.image)} alt={preview.name} /><p>{preview.name}</p>
+    </dialog>}
     <div className="menu-workspace">
       <section className="menu-panel" aria-labelledby="menu-list-title">
         <div className="menu-heading"><div><span className="menu-eyebrow">YOUR OFFERINGS</span><h2 id="menu-list-title">Food & drinks</h2></div><span className="menu-count">{loading ? 'Loading…' : `${pagination.totalItems} items`}</span></div>
         <div className="menu-filter"><label htmlFor="category-filter">Browse category</label><select id="category-filter" value={category} onChange={event => { setCategory(event.target.value); setPage(1); }}><option value="">All categories</option>{categories.map(item => <option key={item._id} value={item.name}>{item.name}</option>)}</select></div>
         <div className="menu-table-wrap" tabIndex="0" aria-label="Menu items" aria-busy={loading}><table className="menu-table"><thead><tr><th>Menu item</th><th>Price</th><th>Status</th><th>Actions</th></tr></thead><tbody>
           {loading ? <tr><td colSpan="4" className="menu-empty">Loading your menu…</td></tr> : products.length === 0 ? <tr><td colSpan="4" className="menu-empty">{error ? 'Your menu could not be loaded.' : 'No items here yet. Add your first dish or drink using the form.'}</td></tr> : products.map(product => <tr key={product._id}>
-            <td className="menu-item">{product.image && <img className="menu-item-thumbnail" src={getFoodImage(product.image)} alt="" />}<strong>{product.name}</strong><small>{product.category}</small><small>{product.stock ? `Stock: ${product.stock.currentStock}` : 'Stock not linked'}</small></td>
+            <td className="menu-item">{product.image && <button type="button" className="menu-photo-button" aria-label={`Enlarge ${product.name} image`} onClick={() => setPreview(product)}><img className="menu-item-thumbnail" src={getFoodImage(product.image)} alt="" /></button>}<strong>{product.name}</strong><small>{product.category}</small><small>{product.stock ? `Stock: ${product.stock.currentStock}` : 'Stock not linked'}</small></td>
             <td className="menu-price">{money(product.price)}</td><td><span className={`menu-status ${product.isAvailable ? 'available' : ''}`}>{product.isAvailable ? 'Available' : 'Unavailable'}</span></td>
             <td><div className="menu-row-actions"><button disabled={busy} onClick={() => edit(product)} aria-label={`Edit ${product.name}`} title="Edit item"><FiEdit2 /></button><button className="menu-delete" disabled={busy} onClick={() => remove(product)} aria-label={`Delete ${product.name}`} title="Delete item"><FiTrash2 /></button></div></td>
           </tr>)}

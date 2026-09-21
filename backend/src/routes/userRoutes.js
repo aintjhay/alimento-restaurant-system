@@ -1,6 +1,14 @@
 const express = require('express');
 const router = express.Router();
 const User = require('../models/User');
+const { authMiddleware } = require('../middleware/authMiddleware');
+router.use(authMiddleware);
+router.use((req, res, next) => {
+  const requested = req.path.split('/')[1];
+  if (!requested || requested !== String(req.user.userId)) return res.status(403).json({ message: 'You can only access your own profile.' });
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 const { isValidPhPhone, PH_PHONE_MESSAGE } = require('../utils/phoneUtils');
 
 router.use((req, res, next) => {
@@ -141,7 +149,7 @@ router.post('/:userId/addresses', async (req, res) => {
     
     // Set the default address ID to the newly created address
     const addedAddress = user.addresses[user.addresses.length - 1];
-    if (addedAddress._id) {
+    if (addedAddress._id && addedAddress.isDefault) {
       user.defaultAddressId = addedAddress._id.toString();
       await user.save();
     }
@@ -222,7 +230,9 @@ router.delete('/:userId/addresses/:addressId', async (req, res) => {
       });
     }
     
-    user.addresses.id(req.params.addressId).deleteOne();
+    const address = user.addresses.id(req.params.addressId);
+    if (!address) return res.status(404).json({ success: false, message: 'Address not found' });
+    address.deleteOne();
     
     // Update default address if needed
     if (user.defaultAddressId === req.params.addressId) {

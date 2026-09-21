@@ -5,6 +5,7 @@ const Inventory = require('../models/Inventory');
 const Order = require('../models/Order');
 const { authMiddleware, requireRole } = require('../middleware/authMiddleware');
 
+const productPayload = body => Object.fromEntries(['name', 'description', 'price', 'category', 'categoryId', 'image', 'isAvailable', 'preparationTime', 'modifiers', 'addons', 'tags', 'displayOrder', 'code'].filter(key => body[key] !== undefined).map(key => [key, body[key]]));
 const router = express.Router();
 router.use(authMiddleware, requireRole('admin'));
 
@@ -37,7 +38,7 @@ router.get('/products', async (req, res) => {
 
 router.post('/products', async (req, res) => {
   try {
-    const product = await MenuItem.create(req.body);
+    const product = await MenuItem.create(productPayload(req.body));
     res.status(201).json({ success: true, data: product });
   } catch (error) {
     res.status(400).json({ success: false, message: error.message });
@@ -51,7 +52,7 @@ router.get('/product-options', async (_req, res) => {
 
 router.put('/products/:id', async (req, res) => {
   try {
-    const product = await MenuItem.findByIdAndUpdate(req.params.id, req.body, { new: true, runValidators: true });
+    const product = await MenuItem.findByIdAndUpdate(req.params.id, productPayload(req.body), { new: true, runValidators: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
     res.json({ success: true, data: product });
   } catch (error) {
@@ -61,9 +62,9 @@ router.put('/products/:id', async (req, res) => {
 
 router.delete('/products/:id', async (req, res) => {
   try {
-    const product = await MenuItem.findByIdAndDelete(req.params.id);
+    const product = await MenuItem.findByIdAndUpdate(req.params.id, { $set: { deletedAt: new Date(), deletedBy: String(req.user.userId) }, $push: { deletionHistory: { action: 'deleted', at: new Date(), by: String(req.user.userId) } } }, { new: true });
     if (!product) return res.status(404).json({ success: false, message: 'Product not found' });
-    await Inventory.deleteMany({ productId: product._id });
+    // Keep linked stock intact so deleting a menu item never destroys inventory.
     res.json({ success: true, message: 'Product deleted' });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -117,7 +118,7 @@ router.get('/sales', async (req, res) => {
   try {
     const match = { status: { $ne: 'cancelled' }, createdAt: { $lte: range.end } };
     if (range.start) match.createdAt.$gte = range.start;
-    const orders = await Order.find(match).sort({ createdAt: -1 }).lean();
+    const orders = await Order.find(match).select('-paymentProof -trackingTokenHash -stockDeductions -items.image').sort({ createdAt: -1 }).lean();
     const filter = order => {
       const status = req.query.paymentStatus;
       const statusMatches = !status || status === 'all' || (status === 'paid' ? ['paid', 'payment_verified'].includes(order.paymentStatus) : order.paymentStatus === status);
@@ -135,7 +136,7 @@ router.get('/sales', async (req, res) => {
         previousStart.setTime(localStart.getTime() - 8 * 3600000);
       }
       const previousEnd = new Date(Math.min(previousStart.getTime() + range.end.getTime() - range.start.getTime(), range.start.getTime() - 1));
-      const previous = await Order.find({ status: { $ne: 'cancelled' }, createdAt: { $gte: previousStart, $lte: previousEnd } }).lean();
+      const previous = await Order.find({ status: { $ne: 'cancelled' }, createdAt: { $gte: previousStart, $lte: previousEnd } }).select('totalAmount paymentStatus amountPaid amountRefunded createdAt items.name items.quantity').lean();
       comparison = { totalSales: summarizeSales(previous.filter(filter)).summary.totalSales, start: previousStart, end: previousEnd };
     }
     res.json({ success: true, data, ...summarizeSales(data), range, comparison });

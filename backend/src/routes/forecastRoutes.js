@@ -5,6 +5,24 @@
 
 const express = require('express');
 const router = express.Router();
+const { authMiddleware, requireRole } = require('../middleware/authMiddleware');
+router.use(authMiddleware, requireRole('admin', 'staff', 'cashier'));
+const cache = new Map();
+const pending = new Map();
+async function cachedForecast(days, historical) {
+  const key = `${days}:${historical}`;
+  const saved = cache.get(key);
+  if (saved && saved.expires > Date.now()) return saved.result;
+  if (pending.has(key)) return pending.get(key);
+  if (pending.size) throw new Error('Forecast generation in progress; retry shortly.');
+  const job = forecastService.generateForecast(days, historical).then(async result => {
+    if (result.status === 'success') { await Forecast.create({ generatedAt: result.generatedAt, forecastDays: days, historicalDays: historical, algorithm: result.modelMetadata.algorithmUsed, dataPoints: result.modelMetadata.historicalDataPoints, predictions: result.forecast, insights: result.insights }); }
+    if (cache.size >= 20) cache.delete(cache.keys().next().value);
+    cache.set(key, { result, expires: Date.now() + 15 * 60000 }); return result;
+  }).finally(() => pending.delete(key));
+  pending.set(key, job); return job;
+}
+
 const forecastService = require('../services/forecastService');
 const dataCollectionService = require('../services/dataCollectionService');
 const Forecast = require('../models/Forecast');
@@ -38,27 +56,7 @@ router.get('/', async (req, res) => {
       });
     }
 
-    // Generate forecast
-    const forecast = await forecastService.generateForecast(forecastDays, historicalDays);
-
-    // Save forecast to database for history/tracking
-    if (forecast.status === 'success' && forecast.forecast) {
-      try {
-        const forecastRecord = new Forecast({
-          generatedAt: new Date(),
-          forecastDays,
-          historicalDays,
-          dataPoints: forecast.modelMetadata.historicalDataPoints,
-          predictions: forecast.forecast,
-          insights: forecast.insights
-        });
-        await forecastRecord.save();
-        console.log('[Route] Forecast saved to database');
-      } catch (dbError) {
-        console.error('[Route] Error saving forecast to DB:', dbError.message);
-        // Don't fail the request if DB save fails
-      }
-    }
+    const forecast = await cachedForecast(forecastDays, historicalDays);
 
     res.json(forecast);
 
@@ -109,7 +107,7 @@ router.get('/data-stats', async (req, res) => {
  */
 router.get('/history', async (req, res) => {
   try {
-    const limit = parseInt(req.query.limit) || 10;
+    const limit = Math.min(100, Math.max(1, parseInt(req.query.limit) || 10));
 
     console.log(`[Route] GET /api/forecast/history - limit=${limit}`);
 
@@ -144,18 +142,18 @@ router.get('/history', async (req, res) => {
  */
 router.post('/accuracy', async (req, res) => {
   try {
-    const { forecastDate, actualOrders } = req.body;
+    const { forecastDate } = req.body;
 
-    console.log(`[Route] POST /api/forecast/accuracy - date=${forecastDate}, actual=${actualOrders}`);
+    console.log(`[Route] POST /api/forecast/accuracy - date=${forecastDate}, actual=database`);
 
-    if (!forecastDate || !actualOrders) {
+    if (!forecastDate) {
       return res.status(400).json({
         success: false,
-        error: 'forecastDate and actualOrders are required'
+        error: 'forecastDate is required'
       });
     }
 
-    const accuracy = await forecastService.calculateAccuracy(forecastDate, actualOrders);
+    const accuracy = await forecastService.calculateAccuracy(forecastDate);
 
     res.json({
       success: true,
@@ -179,7 +177,7 @@ router.post('/accuracy', async (req, res) => {
 router.get('/health', async (req, res) => {
   try {
     // Try to get a quick forecast to verify system works
-    const testForecast = await forecastService.generateForecast(1, 14);
+    const testForecast = await cachedForecast(1, 14);
 
     res.json({
       success: testForecast.status === 'success',

@@ -47,6 +47,9 @@ const orderItemSchema = new mongoose.Schema({
     required: true,
     min: 0
   },
+  discountAmount: { type: Number, default: 0 },
+  discountPercent: { type: Number, default: 0 },
+  promotionName: String,
   itemStatus: {
     type: String,
     enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled'],
@@ -91,6 +94,9 @@ const orderSchema = new mongoose.Schema({
   customerName: String,
   customerContact: String,
   customerAddress: String,
+  customerPostal: String,
+  rating: { type: Number, min: 1, max: 5 },
+  ratedAt: Date,
   items: [orderItemSchema],
   subtotal: {
     type: Number,
@@ -117,7 +123,7 @@ const orderSchema = new mongoose.Schema({
   },
   status: {
     type: String,
-    enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled'],
+    enum: ['pending', 'preparing', 'ready', 'out_for_delivery', 'served', 'completed', 'cancelled'],
     default: 'pending'
   },
   paymentStatus: {
@@ -139,15 +145,22 @@ const orderSchema = new mongoose.Schema({
   completedAt: Date,
   estimatedCompletionTime: Date, // Estimated when order will be ready
   stockDeductedAt: Date,
+  stockCancelledAt: Date,
+  idempotencyKey: { type: String, unique: true, sparse: true, select: false },
+  requestHash: { type: String, select: false },
+  amountPaid: { type: Number, min: 0 },
+  amountRefunded: { type: Number, min: 0, default: 0 },
+  paymentTimeline: [{ amount: Number, kind: String, at: Date, by: String, reference: String }],
   stockDeductions: [{
     inventoryId: { type: mongoose.Schema.Types.ObjectId, ref: 'Inventory' },
     productId: { type: mongoose.Schema.Types.ObjectId, ref: 'MenuItem' },
-    quantity: { type: Number, min: 0 }
+    quantity: { type: Number, min: 0 },
+    batches: [{ batchId: mongoose.Schema.Types.ObjectId, quantity: Number }]
   }],
   statusTimeline: [{
     status: {
       type: String,
-      enum: ['pending', 'preparing', 'ready', 'served', 'completed', 'cancelled']
+      enum: ['pending', 'preparing', 'ready', 'out_for_delivery', 'served', 'completed', 'cancelled']
     },
     timestamp: {
       type: Date,
@@ -211,18 +224,19 @@ orderSchema.pre('save', async function(next) {
         itemTotal += addon.price * item.quantity;
       });
       
-      item.itemTotal = itemTotal;
+      item.itemTotal = require('../services/storeService').money(itemTotal);
     });
     
     // Recalculate subtotal
-    this.subtotal = this.items.reduce((sum, item) => sum + item.itemTotal, 0);
+    this.subtotal = require('../services/storeService').money(this.items.reduce((sum, item) => sum + item.itemTotal, 0));
     
     // Calculate tax (12%)
-    this.taxAmount = this.subtotal * 0.12;
+    // Menu prices are the displayed selling prices; do not add tax again.
+    this.taxAmount = 0;
     
     // Calculate total
     const deliveryFee = this.deliveryFee || 0;
-    this.totalAmount = this.subtotal + this.taxAmount - this.discount + deliveryFee;
+    this.totalAmount = require('../services/storeService').money(this.subtotal + this.taxAmount - this.discount + deliveryFee);
   }
   
   this.updatedAt = new Date();

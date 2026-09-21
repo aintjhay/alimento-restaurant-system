@@ -1,0 +1,49 @@
+.kitchen-board .kds-header { padding: 14px 24px; border-bottom-width: 2px; box-shadow: none; }
+.kitchen-board .kds-logo-text h1 { font-size: 1.2rem; }
+.kitchen-board .kds-connection { padding: 4px 0 0; background: transparent; justify-content: flex-start; gap: 6px 12px; max-width: 460px; }
+.kitchen-board .kds-connection span { font-size: 11px; color: #526d65; text-transform: none; letter-spacing: 0; }
+.kitchen-board .kds-connection span[role=status]::before { content: ''; display: inline-block; width: 6px; height: 6px; border-radius: 50%; background: #25806b; margin-right: 6px; vertical-align: middle; }
+.kitchen-board .kds-connection.disconnected { background: #fff3e0; padding: 5px 8px; border-radius: 5px; }
+.kitchen-board .kds-connection.disconnected span { color: #8a3600; }
+.kitchen-board .kds-connection.disconnected span[role=status]::before { background: #b94e00; }
+.kitchen-board .kds-clock { background: transparent; border: 0; font-variant-numeric: tabular-nums; }
+.kitchen-board .kds-filters { padding: 12px 24px; gap: 10px; background: white; }
+.kitchen-board .kds-filter-btn { min-height: 44px; box-shadow: none; }
+.kitchen-board .kds-status-board.view-active,
+.kitchen-board .kds-status-board.view-history { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.kitchen-board .kds-status-board.view-out_for_delivery { grid-auto-flow: row; grid-template-columns: minmax(0, 1fr); }
+.kitchen-board .view-out_for_delivery .kds-column-tickets { grid-template-columns: repeat(auto-fit, minmax(min(100%, 330px), 1fr)); align-items: start; }
+.kitchen-board .kds-column-heading { padding: 18px; }
+.kitchen-board .kds-column-heading h2 { font-size: 17px; }
+.kitchen-board .kds-column-empty { font-size: 13px; color: #71807b; padding: 36px 12px; }
+.kitchen-board .kds-order-card { border: 1px solid #dce5e3; border-left: 3px solid #dce5e3; box-shadow: 0 2px 6px #163c3008; }
+.kitchen-board .kds-order-card.warning { border-left-color: #c48316; }
+.kitchen-board .kds-order-card.urgent { border-left-color: #c73e36; animation: none; }
+.kitchen-board .kds-card-header { background: white; padding: 16px; }
+.kitchen-board .kds-order-number { font-size: 19px; color: #214d42; overflow-wrap: anywhere; }
+.kitchen-board .kds-timer { font-size: 23px; }
+.kitchen-board .kds-timer.normal { color: #3b5550; }
+.kitchen-board .kds-timer.warning, .kitchen-board .kds-timer-label.warning { color: #925d08; }
+.kitchen-board .kds-timer.urgent, .kitchen-board .kds-timer-label.urgent { color: #b92e28; }
+.kitchen-board .kds-timer-label { color: #61736e; font-size: 10px; }
+.kitchen-board .kds-item { padding: 12px 0; gap: 10px; }
+.kitchen-board .kds-item-name { font-size: 16px; line-height: 1.4; }
+.kitchen-board .kds-item-qty { min-width: 34px; height: 34px; font-size: 16px; }
+.kitchen-board .kds-item-note, .kitchen-board .kds-order-notes { background: #fff6df; color: #734d0a; border-radius: 6px; padding: 9px 10px; font-size: 13px; line-height: 1.5; overflow-wrap: anywhere; }
+.kitchen-board .kds-item-actions { padding-left: 44px; }
+.kitchen-board .kds-item-actions .kds-action-btn { min-height: 44px; font-size: 13px; }
+.kitchen-board .kds-item-actions .undo-btn { flex: 0 0 44px; color: #5c7069; background: #f3f6f4; border: 1px solid #dce5e3; }
+.kitchen-board .kds-history-note { margin: 12px 24px 0; color: #5c7069; font-size: 12px; }
+@media (min-width: 701px) and (max-width: 1100px) {
+  .kitchen-board .kds-status-board.view-active, .kitchen-board .kds-status-board.view-history { grid-template-columns: repeat(3, minmax(300px, 1fr)); }
+}
+@media (max-width: 700px) {
+  .kitchen-board .kds-header { position: static; align-items: flex-start; padding: 12px; }
+  .kitchen-board .kds-header-right { justify-content: flex-start; gap: 6px; }
+  .kitchen-board .kds-clock { display: none; }
+  .kitchen-board .kds-filters { padding: 12px; gap: 6px; }
+  .kitchen-board .kds-filter-btn { padding: 8px 12px; font-size: 12px; }
+  .kitchen-board .kds-status-board.view-active, .kitchen-board .kds-status-board.view-history { grid-template-columns: minmax(0, 1fr); }
+  .kitchen-board .kds-status-board { padding: 12px; }
+  .kitchen-board .kds-status-column { min-height: 150px; }
+}

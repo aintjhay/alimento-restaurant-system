@@ -754,6 +754,56 @@
   flex-shrink: 0;
 }
 
+.portal-page .menu-card-header-discounted {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.65rem;
+}
+
+.portal-page .menu-card-header-discounted .menu-category {
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.portal-page .menu-price {
+  min-width: 0;
+  white-space: normal;
+  letter-spacing: normal;
+  text-transform: none;
+}
+
+.portal-item-price {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.portal-price-amounts {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+  color: var(--portal-moss);
+  font-variant-numeric: tabular-nums;
+}
+
+.portal-price-amounts del {
+  color: #6b7280;
+  font-size: 0.85em;
+  font-weight: 400;
+}
+
+.portal-price-discount {
+  color: var(--portal-moss);
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
 .portal-modal .modal-content-wrapper {
   min-height: 0;
   overscroll-behavior: contain;

@@ -1,4 +1,6 @@
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { FiTag, FiPlus, FiEdit2, FiTrash2, FiSearch } from 'react-icons/fi';
+import './CategoryManagement.css';
 import AdminNav from '../../components/admin/AdminNav';
 import { API_URL, authHeaders, fetchWithTimeout } from '../../services/api';
 
@@ -20,6 +22,9 @@ async function categoryRequest(path = '', options = {}) {
 export default function CategoryManagement() {
   const [items, setItems] = useState([]), [name, setName] = useState(''), [editing, setEditing] = useState(null);
   const [error, setError] = useState(''), [loading, setLoading] = useState(true), [saving, setSaving] = useState(false);
+  const [search, setSearch] = useState('');
+  const nameInput = useRef(null);
+  const visibleItems = items.filter(item => item.name.toLowerCase().includes(search.trim().toLowerCase()));
   const load = useCallback(async () => {
     setLoading(true); setError('');
     try {
@@ -51,17 +56,37 @@ export default function CategoryManagement() {
     finally { setSaving(false); }
   };
   return <AdminNav title="Product Categories">
-    <form className="admin-form" onSubmit={submit}>
-      <input aria-label="Category name" required disabled={saving} value={name} onChange={event => setName(event.target.value)} placeholder="Category name, e.g. Beverages" />
-      <div><button disabled={saving} className="admin-button">{saving ? 'Saving…' : editing ? 'Rename' : 'Add category'}</button>
-        {editing && <button type="button" disabled={saving} onClick={() => { setEditing(null); setName(''); }}>Cancel</button>}</div>
-    </form>
-    {error && <div role="alert" className="admin-error"><p>{error}</p><button className="admin-button" disabled={loading || saving} onClick={load}>Retry categories</button></div>}
-    <table className="admin-table" aria-busy={loading}><thead><tr><th>Name</th><th>Status</th><th>Actions</th></tr></thead><tbody>
-      {loading ? <tr><td colSpan="3" role="status">Loading categories…</td></tr> : items.length === 0 ? <tr><td colSpan="3">{error ? 'Categories are currently unavailable.' : 'No categories yet. Add one using the form above.'}</td></tr> : items.map(item => <tr key={item._id}><td>{item.name}</td><td>{item.isActive ? 'Active' : 'Inactive'}</td><td>
-        <button className="admin-button" disabled={saving} onClick={() => { setEditing(item._id); setName(item.name); }}>Rename</button>{' '}
-        <button className="admin-button danger" disabled={saving} onClick={() => remove(item)}>Delete</button>
-      </td></tr>)}
-    </tbody></table>
+    <div className="category-management">
+      <p className="category-intro">Organize your menu so every dish is easy to find.</p>
+      {error && <div role="alert" className="category-error"><p>{error}</p><button disabled={loading || saving} onClick={load}>Retry categories</button></div>}
+      <div className="category-workspace">
+        <section className="category-panel" aria-label="Category list" aria-busy={loading}>
+          <div className="category-panel-heading"><div><span className="category-eyebrow">MENU ORGANIZATION</span><h2>Your categories</h2></div><span className="category-count">{loading ? 'Loading?' : `${items.length} total`}</span></div>
+          <div className="category-search"><FiSearch aria-hidden="true" /><input aria-label="Search categories" placeholder="Search categories?" value={search} onChange={event => setSearch(event.target.value)} /></div>
+          <div className="category-list">
+            {loading ? <div className="category-empty" role="status">Loading categories?</div> : visibleItems.length === 0 ? <div className="category-empty"><FiTag aria-hidden="true" /><h3>{error ? 'Categories unavailable' : search.trim() ? 'No matching categories' : 'Start organizing your menu'}</h3><p>{error ? 'Try loading the list again.' : search.trim() ? 'Try a different category name.' : 'Add your first category using the form.'}</p></div> : visibleItems.map(item => <div className={`category-row${editing === item._id ? ' is-editing' : ''}`} key={item._id}>
+              <span className="category-icon"><FiTag aria-hidden="true" /></span>
+              <div className="category-row-details"><strong>{item.name}</strong><span className={`category-status${item.isActive ? ' active' : ''}`}>{item.isActive ? 'Active' : 'Inactive'}</span></div>
+              <div className="category-actions">
+                <button type="button" aria-label={`Rename ${item.name}`} disabled={saving} onClick={() => { setEditing(item._id); setName(item.name); nameInput.current?.focus(); }}><FiEdit2 aria-hidden="true" /><span>Rename</span></button>
+                <button type="button" className="category-delete" aria-label={`Delete ${item.name}`} disabled={saving} onClick={() => remove(item)}><FiTrash2 aria-hidden="true" /><span>Delete</span></button>
+              </div>
+            </div>)}
+          </div>
+          {!loading && items.length > 0 && <p className="category-list-footer">Showing {visibleItems.length} of {items.length} categories</p>}
+        </section>
+        <section className="category-panel category-editor" aria-labelledby="category-editor-title">
+          <div className="category-panel-heading"><div><span className="category-eyebrow">{editing ? 'EDIT CATEGORY' : 'GROW YOUR MENU'}</span><h2 id="category-editor-title">{editing ? 'Rename category' : 'Add a category'}</h2></div><span className="category-icon">{editing ? <FiEdit2 aria-hidden="true" /> : <FiPlus aria-hidden="true" />}</span></div>
+          <form onSubmit={submit}>
+            <label htmlFor="category-name">Category name</label>
+            <input id="category-name" ref={nameInput} required disabled={saving} value={name} onChange={event => setName(event.target.value)} placeholder="e.g. Beverages" aria-describedby="category-name-help" />
+            <p id="category-name-help">{editing ? 'Renaming also updates the products in this category.' : 'Use a short, clear name to group related menu items.'}</p>
+            <button disabled={saving || !name.trim()} className="category-primary">{editing ? <FiEdit2 aria-hidden="true" /> : <FiPlus aria-hidden="true" />}{saving ? 'Saving?' : editing ? 'Save changes' : 'Add category'}</button>
+            {editing && <button className="category-cancel" type="button" disabled={saving} onClick={() => { setEditing(null); setName(''); }}>Cancel editing</button>}
+          </form>
+          <div className="category-tip"><FiTag aria-hidden="true" /><p>Categories keep your menu organized. Assign them to products in Menu Management.</p></div>
+        </section>
+      </div>
+    </div>
   </AdminNav>;
 }

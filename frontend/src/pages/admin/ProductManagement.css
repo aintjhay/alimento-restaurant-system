@@ -63,3 +63,10 @@
 @media(min-width:1500px){.menu-workspace{grid-template-columns:minmax(0,1fr) 390px}}
 @media(max-width:1150px){.menu-workspace{grid-template-columns:minmax(0,1fr)}.menu-item strong{font-size:13px}}
 @media(max-width:800px){.admin-shell{grid-template-columns:minmax(0,1fr)}.menu-intro{align-items:flex-start;flex-direction:column}.menu-heading{padding:20px}.menu-pagination{padding:16px}.menu-table td,.menu-table th{padding:12px}}
+
+.menu-photo-button { border: 0; background: transparent; padding: 0; cursor: zoom-in; float: left; margin-right: 12px; }
+.menu-photo-button .menu-item-thumbnail { margin: 0; float: none; }
+.menu-photo-dialog { border: 0; border-radius: 16px; padding: 20px; max-width: 90vw; max-height: 90vh; }
+.menu-photo-dialog::backdrop { background: #102922bb; }
+.menu-photo-dialog img { display: block; max-width: 80vw; max-height: 70vh; object-fit: contain; }
+.menu-photo-dialog button { display: block; margin: 0 0 12px auto; padding: 8px 16px; cursor: pointer; }

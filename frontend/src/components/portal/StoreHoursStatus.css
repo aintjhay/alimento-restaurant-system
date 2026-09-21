@@ -1,0 +1,11 @@
+.store-hours-status { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; margin: 16px 0; border: 1px solid #ead8bd; background: #fff8ed; border-radius: 12px; color: #815725; text-align: left; max-width: 560px; }
+.store-hours-status.is-open { background: #eef7f1; border-color: #c6dece; color: #2c644b; }
+.store-hours-status > svg { flex-shrink: 0; margin-top: 2px; width: 18px; height: 18px; }
+.store-hours-status strong, .store-hours-status span, .store-hours-status small { display: block; line-height: 1.5; }
+.store-hours-status strong { font-size: 14px; }
+.store-hours-status span { font-size: 13px; margin-top: 3px; }
+.store-hours-status small { font-size: 12px; margin-top: 6px; color: #666b61; }
+.store-hours-status.is-compact.is-open { padding: 0; border: 0; background: transparent; max-width: none; gap: 8px; }
+.store-hours-status.is-compact.is-open > div { display: flex; align-items: baseline; flex-wrap: wrap; column-gap: 12px; row-gap: 2px; }
+.store-hours-status.is-compact.is-open small { margin-top: 0; font-size: 13px; }
+.store-hours-status.is-compact.is-open span { flex-basis: 100%; order: 1; }

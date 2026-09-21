@@ -3,17 +3,14 @@
  * Displays demand forecast predictions and insights
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import axios from 'axios';
+import { authHeaders } from '../../services/api';
 import API_BASE_URL from '../../config/api';
 import {
-  TrendUpIcon,
-  TrendDownIcon,
-  TrendNeutralIcon,
   ChartIcon,
   RefreshIcon,
   AlertIcon,
-  CheckIcon,
   CalendarIcon,
   InfoIcon,
   LoadingSpinner
@@ -25,24 +22,8 @@ const ForecastChart = ({ days = 7 }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [refreshing, setRefreshing] = useState(false);
-  const [expandedSections, setExpandedSections] = useState({
-    insights: false,
-    fullPredictions: false,
-    metadata: false
-  });
 
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
-
-  useEffect(() => {
-    fetchForecast();
-  }, [days]);
-
-  const fetchForecast = async () => {
+  const fetchForecast = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -51,6 +32,7 @@ const ForecastChart = ({ days = 7 }) => {
       const timeoutId = setTimeout(() => controller.abort(), 40000);
 
       const response = await axios.get(`${API_BASE_URL}/api/forecast`, {
+        headers: authHeaders(),
         params: {
           days,
           historical: 90
@@ -71,7 +53,8 @@ const ForecastChart = ({ days = 7 }) => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [days]);
+  useEffect(() => { fetchForecast(); }, [fetchForecast]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -105,6 +88,14 @@ const ForecastChart = ({ days = 7 }) => {
     );
   }
 
+  if (forecast?.status === 'insufficient_data') {
+    return <div className="forecast-container">
+      <h2><ChartIcon size={24} color="#00796b" />Demand Forecast</h2>
+      <p className="forecast-empty">Forecasts will appear after completed orders are recorded on at least two days.</p>
+      <button onClick={handleRefresh} className="btn-refresh"><RefreshIcon size={16} color="currentColor" />Refresh</button>
+    </div>;
+  }
+
   if (!forecast || forecast.status !== 'success') {
     return (
       <div className="forecast-container">
@@ -118,235 +109,99 @@ const ForecastChart = ({ days = 7 }) => {
     );
   }
 
+  const metadata = forecast.modelMetadata || {};
+  const historyDays = Number(metadata.historicalDataPoints) || 0;
+  const simulated = metadata.algorithmUsed?.includes('Mock');
+  const baseline = metadata.algorithmUsed?.includes('baseline');
+  const limited = historyDays < 14;
+  const count = value => value != null && Number.isFinite(Number(value)) ? Math.max(0, Math.round(Number(value))) : null;
+  const dateLabel = (value, options) => new Date(value).toLocaleDateString('en-PH', { timeZone: 'Asia/Manila', ...options });
+  const predictions = forecast.forecast.filter(day => day.yhat != null && Number.isFinite(Number(day.yhat)) && !Number.isNaN(new Date(day.ds).getTime())).slice(0, days).map(day => {
+    const predicted = count(day.yhat);
+    const lower = count(day.yhat_lower);
+    const upper = count(day.yhat_upper);
+    return { ...day, predicted, lower: lower == null ? null : Math.min(lower, predicted), upper: upper == null ? null : Math.max(upper, predicted) };
+  }).sort((a, b) => new Date(a.ds) - new Date(b.ds));
+  const first = predictions[0];
+  const total = predictions.reduce((sum, day) => sum + day.predicted, 0);
+  const peak = predictions.length ? Math.max(...predictions.map(day => day.predicted)) : 0;
+  const peakDays = predictions.filter(day => day.predicted === peak);
+  const tomorrow = new Date();
+  tomorrow.setDate(tomorrow.getDate() + 1);
+  const isTomorrow = first && dateLabel(first.ds) === dateLabel(tomorrow);
+  const firstLabel = isTomorrow ? 'Tomorrow' : first ? dateLabel(first.ds, { month: 'short', day: 'numeric' }) : 'Next day';
+  const average = Number(metadata.dataStatistics?.avgOrdersPerDay);
+  const change = first && average > 0 ? ((Math.max(0, Number(first.yhat)) - average) / average) * 100 : null;
+  const quieter = change != null && change < -15;
+  const busier = change != null && change > 15;
+  const range = day => day.lower == null || day.upper == null ? 'Range unavailable' : `${day.lower}–${day.upper} orders`;
+  const max = Math.max(1, ...predictions.map(day => Math.max(day.predicted, day.upper || 0)));
+  const ceiling = Math.ceil(max / 4) * 4;
+  const chartWidth = Math.max(560, predictions.length * 78 + 60);
+  const plotWidth = chartWidth - 60;
+  const y = value => 190 - value / ceiling * 160;
+  const updated = new Date(forecast.generatedAt);
+
   return (
     <div className="forecast-container">
-      {/* Header */}
       <div className="forecast-header">
         <div>
-          <h2>
-            <ChartIcon size={24} color="#00796b" style={{ marginRight: '8px', verticalAlign: 'middle' }} />
-            Demand Forecast
-          </h2>
+          <div className="forecast-title-row">
+            <h2><ChartIcon size={24} color="#00796b" />Demand Forecast</h2>
+            <span className={`forecast-data-badge ${limited || simulated ? 'limited' : ''}`}>
+              {baseline ? 'Baseline estimate' : simulated ? 'Preview estimates' : limited ? 'Limited data' : 'Historical data'} · {historyDays} days of history
+            </span>
+          </div>
           <p className="forecast-subtitle">
-            <CalendarIcon size={12} color="#757575" style={{ marginRight: '4px', verticalAlign: 'middle' }} />
-            Next {days} days | Updated: {new Date(forecast.generatedAt).toLocaleString()}
+            <span className="forecast-period"><CalendarIcon size={14} color="currentColor" />Next {days} days</span>
+            {!Number.isNaN(updated.getTime()) && <span className="forecast-updated">Updated {updated.toLocaleString('en-PH', { timeZone: 'Asia/Manila', month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })} (PH)</span>}
           </p>
         </div>
-        <button 
-          onClick={handleRefresh} 
-          disabled={refreshing}
-          className="btn-refresh"
-        >
-          <RefreshIcon size={16} color="#00796b" style={{
-            transform: refreshing ? 'rotate(180deg)' : 'rotate(0deg)',
-            transition: 'transform 1s linear'
-          }} />
-          {refreshing ? 'Refreshing...' : 'Refresh'}
-        </button>
+        <button onClick={handleRefresh} disabled={refreshing} className="btn-refresh"><RefreshIcon size={16} color="currentColor" />{refreshing ? 'Refreshing...' : 'Refresh'}</button>
       </div>
-
-      {forecast.modelMetadata?.algorithmUsed?.includes('Mock') && (
-        <p className="forecast-info">Preview estimates: the forecasting model is unavailable. These simulated values should not be used for purchasing or staffing decisions.</p>
-      )}
-      {/* Top Insight Card */}
-      {forecast.insights && forecast.insights.length > 0 && (
-        <div className="forecast-section">
-          <div className="section-content">
-            <div className={`insight-card-featured insight-${forecast.insights[0].type}`}>
-              <div className="insight-icon">
-                <InfoIcon size={20} color="currentColor" />
-              </div>
-              <div className="insight-details">
-                <div className="insight-message">{forecast.insights[0].message}</div>
-                <div className="insight-recommendation">{forecast.insights[0].recommendation}</div>
-              </div>
-            </div>
-          </div>
+      {simulated && <p className="forecast-preview">Preview estimates: the forecasting model is unavailable. These simulated values should not be used for purchasing or staffing decisions.</p>}
+      {baseline && <p className="forecast-preview">Using historical weekday averages while Prophet is unavailable. The displayed range reflects historical variation, not a calibrated confidence interval.</p>}
+      {!first ? <p className="forecast-empty">No daily predictions are available. Refresh to try again.</p> : <>
+        <div className="forecast-summary" aria-label="Forecast summary">
+          <div><span>{firstLabel}</span><strong>{first.predicted} <small>orders</small></strong><p>Expected: {range(first)}</p></div>
+          <div><span>Next {days} days</span><strong>{total} <small>orders</small></strong><p>{predictions.length < days ? `Partial forecast · ${predictions.length} days available` : 'Estimated total'}</p></div>
+          <div><span>Busiest day</span><strong className="forecast-peak">{peakDays.length === predictions.length && peakDays.length > 1 ? 'Similar demand' : dateLabel(peakDays[0].ds, { weekday: 'short', month: 'short', day: 'numeric' })}</strong><p>{peak} orders{peakDays.length > 1 ? ` · tied across ${peakDays.length} days` : ' estimated'}</p></div>
         </div>
-      )}
-
-      {/* Next 3 Days Summary Cards */}
-      <div className="forecast-section">
-        <div className="section-title">
-          <h3>Next 3 Days</h3>
-        </div>
-        <div className="prediction-cards-grid">
-          {forecast.forecast.slice(0, 3).map((prediction, idx) => {
-            const date = new Date(prediction.ds);
-            const dayName = date.toLocaleString('en-US', { weekday: 'long' });
-            const dayDate = date.toLocaleString('en-US', { month: 'short', day: 'numeric' });
-            const predicted = Math.round(prediction.yhat);
-            const lower = Math.round(prediction.yhat_lower);
-            const upper = Math.round(prediction.yhat_upper);
-
-            return (
-              <div key={idx} className="prediction-card">
-                <div className="card-date">
-                  <div className="card-day">{dayName}</div>
-                  <div className="card-datevalue">{dayDate}</div>
-                </div>
-                <div className="card-content">
-                  <div className="card-predicted">
-                    <span className="predicted-value">{predicted}</span>
-                    <span className="predicted-label">orders</span>
-                  </div>
-                  <div className="card-confidence">
-                    <span className="confidence-label">Range:</span>
-                    <span className="confidence-value">{lower}–{upper}</span>
-                  </div>
-                  <div className="card-trend">
-                    {prediction.trend > 0 && <TrendUpIcon size={14} color="#4caf50" />}
-                    {prediction.trend < 0 && <TrendDownIcon size={14} color="#f44336" />}
-                    {prediction.trend === 0 && <TrendNeutralIcon size={14} color="#9e9e9e" />}
-                    <span>{Math.abs(prediction.trend).toFixed(1)}%</span>
-                  </div>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Additional Insights - Collapsible */}
-      {forecast.insights && forecast.insights.length > 1 && (
-        <div className="forecast-section">
-          <button 
-            className="section-toggle"
-            onClick={() => toggleSection('insights')}
-          >
-            <span>More Insights ({forecast.insights.length - 1})</span>
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d={expandedSections.insights ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
+        <figure className="forecast-figure">
+          <figcaption><div><h3>Daily demand</h3><p>Estimated orders and expected range</p></div><div className="forecast-legend"><span><i className="estimate-key" />Estimated orders</span><span><i className="range-key" />Expected range</span></div></figcaption>
+          <div className="forecast-plot-scroll" tabIndex={0} role="region" aria-label="Daily demand chart; scroll horizontally on small screens">
+            <svg className="forecast-plot" viewBox={`0 0 ${chartWidth} 254`} role="img" aria-label="Daily order estimates with shaded expected ranges. Exact values are listed below.">
+              {[0, 1, 2, 3, 4].map(tick => <g key={tick}><line x1="44" x2={chartWidth - 16} y1={y(tick * ceiling / 4)} y2={y(tick * ceiling / 4)} stroke="#e5ece9" /><text x="34" y={y(tick * ceiling / 4) + 4} textAnchor="end">{tick * ceiling / 4}</text></g>)}
+              {predictions.map((day, index) => {
+                const x = 44 + (index + 0.5) * plotWidth / predictions.length;
+                return <g key={day.ds}>
+                  <title>{dateLabel(day.ds, { weekday: 'long', month: 'short', day: 'numeric' })}: {day.predicted} orders; {range(day)}</title>
+                  {day.lower != null && day.upper != null && <rect x={x - 25} y={y(day.upper)} width="50" height={Math.max(2, y(day.lower) - y(day.upper))} rx="4" fill="#d7e9e3" />}
+                  <rect x={x - 11} y={y(day.predicted)} width="22" height={Math.max(2, 190 - y(day.predicted))} rx="3" fill="#008575" />
+                  <text x={x} y={y(Math.max(day.predicted, day.upper || 0)) - 8} textAnchor="middle" className="forecast-bar-value">{day.predicted}</text>
+                  <text x={x} y="216" textAnchor="middle">{dateLabel(day.ds, { weekday: 'short' })}</text>
+                  <text x={x} y="236" textAnchor="middle">{dateLabel(day.ds, { month: 'short', day: 'numeric' })}</text>
+                </g>;
+              })}
             </svg>
-          </button>
-          {expandedSections.insights && (
-            <div className="section-content">
-              <div className="insights-list">
-                {forecast.insights.slice(1).map((insight, idx) => (
-                  <div key={idx} className={`insight-card insight-${insight.type}`}>
-                    <div className="insight-message">{insight.message}</div>
-                    <div className="insight-recommendation">{insight.recommendation}</div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
-
-      {/* Full Predictions Table - Collapsible */}
-      <div className="forecast-section">
-        <button 
-          className="section-toggle"
-          onClick={() => toggleSection('fullPredictions')}
-        >
-          <span>Full {days}-Day Forecast</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d={expandedSections.fullPredictions ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {expandedSections.fullPredictions && (
-          <div className="section-content">
-            <div className="forecast-table-wrapper">
-              <table className="forecast-table">
-                <thead>
-                  <tr>
-                    <th>Date</th>
-                    <th>Predicted</th>
-                    <th>Range</th>
-                    <th>Trend</th>
-                    <th>Weekly</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {forecast.forecast.map((prediction, idx) => {
-                    const date = new Date(prediction.ds);
-                    const dayName = date.toLocaleString('en-US', { weekday: 'short' });
-                    const lower = Math.round(prediction.yhat_lower);
-                    const upper = Math.round(prediction.yhat_upper);
-                    const predicted = Math.round(prediction.yhat);
-
-                    return (
-                      <tr key={idx} className="forecast-row">
-                        <td className="date-cell">
-                          <div className="date-info">
-                            <div className="date-day">{dayName}</div>
-                            <div className="date-value">{prediction.ds}</div>
-                          </div>
-                        </td>
-                        <td className="prediction-cell">
-                          <div className="prediction-badge">{predicted}</div>
-                        </td>
-                        <td className="range-cell">
-                          <div className="range-info">{lower}–{upper}</div>
-                        </td>
-                        <td className="trend-cell">
-                          <div className={`trend-indicator ${prediction.trend > 0 ? 'up' : prediction.trend < 0 ? 'down' : 'neutral'}`}>
-                            {prediction.trend > 0 && <TrendUpIcon size={14} color="#4caf50" />}
-                            {prediction.trend < 0 && <TrendDownIcon size={14} color="#f44336" />}
-                            {prediction.trend === 0 && <TrendNeutralIcon size={14} color="#9e9e9e" />}
-                            <span>{Math.abs(prediction.trend).toFixed(1)}%</span>
-                          </div>
-                        </td>
-                        <td className="weekly-cell">
-                          <div className={`weekly-factor ${prediction.weekly > 0 ? 'positive' : 'negative'}`}>
-                            {prediction.weekly > 0 ? '+' : ''}{prediction.weekly.toFixed(1)}%
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
           </div>
-        )}
-      </div>
-
-      {/* Model Metadata - Collapsible */}
-      <div className="forecast-section">
-        <button 
-          className="section-toggle"
-          onClick={() => toggleSection('metadata')}
-        >
-          <span>Model Details</span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <path d={expandedSections.metadata ? "M18 15L12 9L6 15" : "M6 9L12 15L18 9"} stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </button>
-        {expandedSections.metadata && (
-          <div className="section-content">
-            <div className="metadata-grid">
-              <div className="metadata-item">
-                <span className="label">Algorithm:</span>
-                <span className="value">{forecast.modelMetadata.algorithmUsed}</span>
-              </div>
-              <div className="metadata-item">
-                <span className="label">Historical Data:</span>
-                <span className="value">{forecast.modelMetadata.historicalDataPoints} days</span>
-              </div>
-              <div className="metadata-item">
-                <span className="label">Avg Orders/Day:</span>
-                <span className="value">{forecast.modelMetadata.dataStatistics.avgOrdersPerDay}</span>
-              </div>
-              <div className="metadata-item">
-                <span className="label">Seasonality:</span>
-                <span className="value">
-                  {forecast.modelMetadata.seasonalityEnabled.weekly ? '✓ Weekly' : '✗ None'}
-                </span>
-              </div>
-            </div>
+          <div className="forecast-day-values" aria-label="Daily forecast values">
+            {predictions.map(day => <div key={day.ds}><strong>{dateLabel(day.ds, { weekday: 'short', month: 'short', day: 'numeric' })}</strong><span>{day.predicted} orders</span><small>{range(day)}</small></div>)}
           </div>
-        )}
-      </div>
-
-      {/* Footer Info */}
-      <div className="forecast-info">
-        <CheckIcon size={14} color="#4caf50" style={{ marginRight: '6px', verticalAlign: 'middle' }} />
-        <span>
-          <strong>Based on {forecast.modelMetadata.historicalDataPoints} days</strong> of historical patterns. Predictions become more accurate as data accumulates.
-        </span>
-      </div>
+        </figure>
+        {!simulated && <div className="forecast-guidance"><InfoIcon size={20} color="currentColor" /><div>
+          <strong>{firstLabel} {quieter ? 'may be quieter than usual.' : busier ? 'may be busier than usual.' : change == null ? 'demand is an early estimate.' : 'looks close to usual demand.'}</strong>
+          {change != null && <p>{Math.abs(change).toFixed(1)}% {change < 0 ? 'below' : 'above'} the historical daily average of {average.toFixed(1)} orders.</p>}
+          <p>{quieter ? 'Consider lighter prep; check confirmed orders before adjusting staffing.' : busier ? 'Review ingredient availability and confirmed orders before adding prep or staffing.' : 'Use your usual prep as a starting point and check confirmed orders.'}</p>
+          {limited && <p className="forecast-caution">Only {historyDays} days of history are available. Treat these estimates as early guidance.</p>}
+        </div></div>}
+      </>}
+      <details className="forecast-method">
+        <summary>How this forecast is calculated</summary>
+        <p>Daily estimates use historical order counts. Expected ranges show model uncertainty, not guaranteed minimums or maximums. Displayed counts are rounded and cannot be negative.</p>
+        <p>Fewer than 14 days of history is marked as limited data because the forecasting model needs at least two weeks to enable weekly patterns. More history can help, but does not guarantee accuracy.</p>
+        <dl><div><dt>Algorithm</dt><dd>{metadata.algorithmUsed || 'Unavailable'}</dd></div><div><dt>Historical data</dt><dd>{historyDays} days</dd></div><div><dt>Average orders per day</dt><dd>{Number.isFinite(average) ? average.toFixed(1) : 'Unavailable'}</dd></div></dl>
+      </details>
     </div>
   );
 };

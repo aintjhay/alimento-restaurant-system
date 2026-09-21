@@ -11,12 +11,34 @@ import forkSpoonFallback from '../../assets/images/fork-spoon-fallback.png';
 import { FaSearch, FaSlidersH, FaTimes } from 'react-icons/fa';
 import { LuLayoutGrid, LuSoup, LuUtensils, LuSandwich, LuCookingPot, LuWine, LuCupSoda, LuCoffee, LuIceCreamBowl } from 'react-icons/lu';
 import './Portal.css';
+import './FoodItemPreview.css';
+import StoreHoursStatus from '../../components/portal/StoreHoursStatus';
+
+import { getStore, promoFor } from '../../services/storeService';
 
 const CART_KEY = 'portalCart';
 const CATEGORY_ICONS = { All: LuLayoutGrid, 'Rice Meals': LuSoup, Pasta: LuUtensils, Sandwiches: LuSandwich, Sides: LuCookingPot, Cocktails: LuWine, Coolers: LuCupSoda, Coffee: LuCoffee, 'Yogurt Milkshakes': LuIceCreamBowl };
 
 const PortalHome = () => {
   const navigate = useNavigate();
+  const [store, setStore] = useState(null);
+  useEffect(() => {
+    const refresh = () => getStore().then(setStore).catch(() => {});
+    refresh();
+    const timer = setInterval(refresh, 30000);
+    window.addEventListener('focus', refresh);
+    return () => { clearInterval(timer); window.removeEventListener('focus', refresh); };
+  }, []);
+  const promoPrice = item => {
+    const promotion = promoFor(item, store);
+    return <span className="portal-item-price">
+      <span className="portal-price-amounts">
+        {promotion && <del>{formatCurrency(item.price)}</del>}
+        <span>{formatCurrency(item.price * (1 - (promotion?.percent || 0) / 100))}</span>
+      </span>
+      {promotion && <small className="portal-price-discount">{promotion.percent}% off · {promotion.name}</small>}
+    </span>;
+  };
   const pageRef = useRef(null);
   const [hasLoadedMenu, setHasLoadedMenu] = useState(false);
 
@@ -212,7 +234,8 @@ const PortalHome = () => {
 
   const cartSubtotal = cart.reduce((sum, item) => sum + (item.itemPrice * item.quantity), 0);
   const deliveryFee = 50;
-  const cartTotal = cartSubtotal + deliveryFee;
+  const cartDiscount = cart.reduce((sum, item) => sum + Math.round(item.itemPrice * item.quantity * (promoFor(item, store)?.percent || 0)) / 100, 0);
+  const cartTotal = cartSubtotal - cartDiscount + deliveryFee;
   const cartItemCount = cart.reduce((sum, item) => sum + item.quantity, 0);
   const formatCurrency = (amount) => `₱${amount.toFixed(2)}`;
   const formatProductName = (name = '') => name
@@ -311,11 +334,13 @@ const PortalHome = () => {
     <div className="portal-page" ref={pageRef}>
       <PortalHeader onCartClick={() => setShowCartModal(true)} cartCount={cartItemCount} />
       
-      <header className="portal-hero">
+      <header className="portal-hero" style={store?.coverImage ? { backgroundImage: `linear-gradient(#ffffffcc, #ffffffcc), url(${store.coverImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : undefined}>
         <div className="portal-hero-content">
           <p className="portal-kicker">Alimento Resto</p>
-          <h1>Your Alimento favorites, delivered.</h1>
-          <p className="portal-subtitle">Browse the menu and pay with GCash.</p>
+          <h1>{store?.title || 'Your Alimento favorites, delivered.'}</h1>
+          <p className="portal-subtitle">{store?.subtitle || 'Browse the menu and pay with GCash.'}</p>
+          {store?.announcement && <p className="store-announcement" role="status">{store.announcement}</p>}
+          <StoreHoursStatus store={store} compact />
           <div className="portal-search">
             <FaSearch className="search-icon" />
             <input
@@ -365,7 +390,7 @@ const PortalHome = () => {
               {recommendedItems.map(item => (
                 <div key={item._id || item.name} className="recommended-card">
                   <div
-                    className="recommended-image"
+                    className="recommended-image" role="button" tabIndex={0} aria-label={`View ${item.name}`} onClick={() => openModal(item)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(item); } }}
                     style={{ 
                       backgroundColor: item.image ? getItemColor(item.category) : '#dde5e4',
                       backgroundImage: item.image ? `url(${getFoodImage(item.image)})` : 'none',
@@ -382,7 +407,7 @@ const PortalHome = () => {
                   </div>
                   <div className="recommended-body">
                     <h3>{item.name}</h3>
-                    <p className="recommended-price">₱{item.price}</p>
+                    <p className="recommended-price">{promoPrice(item)}</p>
                     <button className="recommended-btn" onClick={() => handleAddClick(item)}>
                       Quick add →
                     </button>
@@ -401,7 +426,7 @@ const PortalHome = () => {
             {filteredItems.map(item => (
               <div key={item._id || item.name} className="menu-card">
                 <div
-                  className="menu-image"
+                  className="menu-image" role="button" tabIndex={0} aria-label={`View ${item.name}`} onClick={() => openModal(item)} onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); openModal(item); } }}
                   style={{ 
                     backgroundColor: item.image ? getItemColor(item.category) : '#dde5e4',
                     backgroundImage: item.image ? `url(${getFoodImage(item.image)})` : 'none',
@@ -422,9 +447,9 @@ const PortalHome = () => {
                   )}
                 </div>
                 <div className="menu-card-body">
-                  <div className="menu-card-header">
+                  <div className={`menu-card-header${promoFor(item, store) ? ' menu-card-header-discounted' : ''}`}>
                     <span className="menu-category">{item.category}</span>
-                    <span className="menu-price">₱{item.price}</span>
+                    <span className="menu-price">{promoPrice(item)}</span>
                   </div>
                   <h3>{item.name}</h3>
                   <p>{item.description}</p>
@@ -502,6 +527,7 @@ const PortalHome = () => {
                 <strong>{formatCurrency(cartSubtotal)}</strong>
               </div>
               <div className="cart-breakdown">
+                {cartDiscount > 0 && <div className="breakdown-row"><span>Discount</span><span>-{formatCurrency(cartDiscount)}</span></div>}
                 <div className="breakdown-row">
                   <span className="delivery-label">Delivery fee <small>Standard delivery</small></span>
                   <span>{formatCurrency(deliveryFee)}</span>
@@ -513,24 +539,33 @@ const PortalHome = () => {
               </div>
             </div>
           )}
-          <button className="checkout-btn" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut}>
+          <button className="checkout-btn" onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut || store?.isOpen === false}>
             {isCheckingOut ? 'Opening checkout…' : 'Proceed to checkout'}
           </button>
         </aside>
       </div>
 
       {modalItem && (
-        <div className="portal-modal">
-          <div className="modal-card">
+        <div className="portal-modal food-item-preview" onClick={event => { if (event.target === event.currentTarget) closeModal(); }}>
+          <div className="modal-card" role="dialog" aria-modal="true" aria-label={modalItem.name} onKeyDown={e => { if (e.key === 'Escape') closeModal(); }}>
             <div className="modal-header">
-              <h3>{modalItem.name}</h3>
-              <button className="modal-close" onClick={closeModal}>x</button>
+              <span className="food-preview-eyebrow">Make it yours</span>
+              <button className="modal-close" autoFocus aria-label="Close item preview" onClick={closeModal}><FaTimes size={16} /></button>
             </div>
 
             <div className="modal-content-wrapper">
+            <div className={`food-preview-photo${modalItem.image ? '' : ' is-fallback'}`}>
+              <img src={modalItem.image ? getFoodImage(modalItem.image) : forkSpoonFallback} alt={modalItem.name} onError={event => { event.currentTarget.onerror = null; event.currentTarget.src = forkSpoonFallback; event.currentTarget.parentElement.classList.add('is-fallback'); }} />
+              {modalItem.category && <span className="food-preview-category">{modalItem.category}</span>}
+            </div>
+            <div className="food-preview-summary">
+              <h3>{formatProductName(modalItem.name)}</h3>
+              {modalItem.description && <p>{modalItem.description}</p>}
+              <div className="food-preview-price">{promoPrice(modalItem)}</div>
+            </div>
             {(modalItem.modifiers || []).map(mod => (
               <div key={mod.name} className="modal-section">
-                <h4>{mod.name}</h4>
+                <h4>{mod.name}<span className="food-preview-badge">{mod.required ? 'Required' : 'Optional'}</span></h4>
                 <div className="modal-options">
                   {(mod.options || []).map(option => (
                     <label key={option.name} className="option-row">
@@ -553,7 +588,7 @@ const PortalHome = () => {
 
             {(modalItem.addons || []).length > 0 && (
               <div className="modal-section">
-                <h4>Add-ons</h4>
+                <h4>Add-ons<span className="food-preview-badge">Optional</span></h4>
                 <div className="modal-options">
                   {modalItem.addons.map(addon => (
                     <label key={addon.name} className="option-row">
@@ -574,8 +609,10 @@ const PortalHome = () => {
             )}
 
             <div className="modal-section">
-              <label className="instructions-label">Special instructions (optional)</label>
+              <label className="instructions-label" htmlFor="food-preview-instructions">Special instructions<span className="food-preview-badge">Optional</span></label>
               <textarea
+                id="food-preview-instructions"
+                rows={2}
                 value={specialInstructions}
                 onChange={(event) => setSpecialInstructions(event.target.value)}
                 placeholder="Less ice, extra sauce, etc."
@@ -585,7 +622,7 @@ const PortalHome = () => {
 
             <div className="modal-actions">
               <button className="secondary-btn" onClick={closeModal}>Cancel</button>
-              <button className="primary-btn" onClick={handleConfirmModal}>Add to cart</button>
+              <button className="primary-btn" onClick={handleConfirmModal}><CartIcon size={18} color="currentColor" />Add to cart</button>
             </div>
           </div>
         </div>
@@ -594,6 +631,8 @@ const PortalHome = () => {
       {showCartModal && (
         <CartModal 
           cart={cart}
+          discount={cartDiscount}
+          closed={store?.isOpen === false}
           onClose={() => setShowCartModal(false)}
           onUpdateQuantity={updateQuantity}
           onCheckout={handleCheckout}

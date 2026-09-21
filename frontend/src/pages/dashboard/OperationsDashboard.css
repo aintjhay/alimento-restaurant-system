@@ -1,6 +1,11 @@
 
 .ops-dashboard {
-  max-width: 1480px;
+  box-sizing: border-box;
+  width: 100%;
+  min-width: 0;
+  max-width: min(1480px, 100%);
+  flex: 1 1 0;
+  contain: inline-size;
   margin: 0 auto;
   padding: 28px;
   color: #203330;
@@ -73,13 +78,17 @@
   font-weight: 600
 }
 .ops-shortcuts {
-  padding: 14px 0 20px;
+  padding: 8px;
+  margin: 16px 0;
+  border: 1px solid #e0e7e4;
+  border-radius: 10px;
+  background: #fff;
   font-size: 12px;
-  gap: 22px
+  gap: 6px
 }
 .ops-metrics {
   display: grid;
-  grid-template-columns: repeat(4,1fr);
+  grid-template-columns: repeat(4,minmax(0,1fr));
   gap: 14px
 }
 .ops-metric,.ops-panel {
@@ -88,7 +97,9 @@
   border-radius: 12px
 }
 .ops-metric {
-  padding: 20px;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  padding: 15px 18px;
   border-top: 3px solid #008575
 }
 .ops-metric h2 {
@@ -99,7 +110,7 @@
 .ops-metric strong {
   display: block;
   font-size: 29px;
-  margin: 13px 0 8px;
+  margin: 8px 0 5px;
   letter-spacing: -.6px;
   font-variant-numeric: tabular-nums
 }
@@ -124,6 +135,7 @@
   margin-left: auto
 }
 .ops-panel {
+  min-width: 0;
   overflow: hidden
 }
 .ops-panel-heading {
@@ -213,7 +225,7 @@
 }
 .ops-insights {
   display: grid;
-  grid-template-columns: 1.3fr 1fr;
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr);
   gap: 18px;
   margin: 18px 0
 }
@@ -264,11 +276,8 @@
   white-space: nowrap;
   color: #00796b
 }
-.ops-forecast summary {
-  padding: 20px;
-  font-size: 15px;
-  font-weight: 600;
-  cursor: pointer
+.ops-forecast {
+  min-width: 0
 }
 .ops-forecast .forecast-container {
   margin: 0;
@@ -287,7 +296,7 @@
 }
 @media(max-width:1000px) {
 .ops-metrics {
-  grid-template-columns: repeat(2,1fr)
+  grid-template-columns: repeat(2,minmax(0,1fr))
 }
 .ops-header {
   align-items: flex-start;
@@ -321,3 +330,100 @@
 }
 }
 
+.ops-payment-action { margin-top: 8px; }
+/* Keep the expanded review within the viewport even when the order table scrolls. */
+.ops-review-panel {
+  width: min(960px, calc(100vw - 110px));
+  max-width: 100%;
+  background: #fff;
+  border: 1px solid #dce7e1;
+  border-radius: 12px;
+  overflow: hidden;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.ops-review-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 22px;
+  border-bottom: 1px solid #e8efeb;
+}
+.ops-review-eyebrow { color: #647570; font-size: 11px; }
+.ops-review-header h3 { margin: 3px 0 0; font-size: 17px; }
+.ops-review-header h3 span { display: inline-block; margin-left: 8px; color: #647570; font-size: 12px; font-weight: 500; }
+.ops-review-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 320px); gap: 28px; padding: 22px; }
+.ops-review-summary { min-width: 0; }
+.ops-review-total { padding-bottom: 18px; border-bottom: 1px solid #e8efeb; }
+.ops-review-total p { margin: 0 0 10px; color: #647570; }
+.ops-review-total strong { display: block; font-size: 28px; color: #203330; font-variant-numeric: tabular-nums; }
+.ops-review-badge { display: inline-block; padding: 4px 9px; border-radius: 6px; background: #f1f5f3; color: #496459; font-size: 11px; }
+.ops-review-fields { margin: 18px 0; display: grid; gap: 12px; }
+.ops-review-fields > div { display: grid; grid-template-columns: 110px minmax(0, 1fr); gap: 12px; }
+.ops-review-fields dt { color: #647570; }
+.ops-review-fields dd { margin: 0; font-weight: 500; }
+.ops-review-items { border-top: 1px solid #e8efeb; padding-top: 16px; margin-bottom: 16px; }
+.ops-review-items h4 { margin: 0 0 8px; font-size: 12px; }
+.ops-review-items ul { padding-left: 18px; margin: 0; }
+.ops-review-items li + li { margin-top: 6px; }
+.ops-review-receipt { min-width: 0; margin: 0; }
+.ops-review-receipt figcaption { font-weight: 600; margin-bottom: 10px; }
+.ops-review-receipt figcaption span { display: block; color: #647570; font-size: 11px; font-weight: 400; }
+.ops-receipt-preview { display: flex; justify-content: center; padding: 12px; background: #f4f7f5; border: 1px solid #e0e7e4; border-radius: 8px; }
+.ops-receipt-preview img { display: block; width: 100%; height: 280px; object-fit: contain; }
+.ops-receipt-empty { display: grid; place-items: center; min-height: 160px; padding: 20px; border: 1px dashed #cad8d0; border-radius: 8px; color: #647570; text-align: center; }
+.ops-payment-review { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 18px 22px; background: #f0f8f5; border-top: 1px solid #dcebe3; }
+.ops-payment-review p { margin: 4px 0 0; color: #536b60; max-width: 460px; }
+.ops-dashboard .ops-confirm-payment { background: #00796b; border-color: #00796b; color: #fff; font-weight: 600; padding: 12px 16px; flex-shrink: 0; }
+.ops-dashboard .ops-confirm-payment:hover:not(:disabled) { background: #006357; }
+@media (max-width: 750px) {
+  .ops-table .ops-order-details { padding: 12px; }
+  .ops-review-panel { width: calc(100vw - 60px); }
+  .ops-review-grid { grid-template-columns: minmax(0, 1fr); gap: 20px; padding: 16px; }
+  .ops-review-header { padding: 16px; }
+  .ops-review-header h3 span { display: block; margin-left: 0; }
+  .ops-payment-review { flex-direction: column; align-items: stretch; gap: 14px; padding: 16px; }
+  .ops-review-fields > div { grid-template-columns: 90px minmax(0, 1fr); }
+}
+
+.ops-status-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ops-status-badge { display: inline-block; border-radius: 20px; padding: 5px 10px; background: #eef3f0; color: #476458; font-size: 11px; font-weight: 600; }
+.ops-status-completed, .ops-status-ready { background: #e2f3ed; color: #00695c; }
+.ops-status-cancelled { background: #faece9; color: #a23d30; }
+.ops-status-preparing, .ops-status-pending { background: #fff4df; color: #895414; }
+.ops-review-drawer { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(580px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; background: #fff; color: #203330; box-shadow: -12px 0 48px #14352b26; }
+.ops-review-drawer::backdrop { background: #122b2566; }
+.ops-review-drawer .ops-review-panel { display: flex; flex-direction: column; width: 100%; min-height: 100%; max-height: 100%; border: 0; border-radius: 0; font-size: 13px; }
+.ops-review-drawer .ops-review-header { flex-shrink: 0; }
+.ops-review-drawer .ops-review-grid { grid-template-columns: minmax(0, 1fr); overflow-y: auto; flex: 1; min-height: 0; }
+.ops-review-drawer .ops-payment-review { flex-shrink: 0; flex-direction: column; align-items: stretch; gap: 12px; }
+.ops-review-drawer .ops-payment-review p { max-width: none; font-size: 12px; }
+.ops-review-drawer .ops-review-total p { margin-top: 0; }
+.ops-review-drawer .ops-notice { margin: 10px 16px 0; }
+.ops-dashboard button.ops-receipt-preview { width: 100%; cursor: zoom-in; }
+.ops-dashboard button.ops-receipt-zoom { cursor: zoom-out; }
+.ops-receipt-zoom img { height: auto; max-height: none; }
+.ops-cancel-order { padding-top: 12px; border-top: 1px solid #e8efeb; }
+.ops-cancel-order button { margin: 0 8px 8px 0; }
+.ops-cancel-order button:first-of-type { color: #a23d30; }
+
+.ops-shortcuts a { padding: 9px 12px; border-radius: 6px; }
+.ops-shortcuts a:hover { background: #e2f3ed; }
+.ops-header > div { min-width: 0; }
+.ops-actions { justify-content: flex-end; }
+.ops-attention-warning { background: #fff4df; border-color: #edd2a1; }
+.ops-order-search { padding: 0 20px 16px; }
+.ops-order-search label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 6px; }
+.ops-order-search > div { display: flex; gap: 8px; }
+.ops-order-search input { width: 100%; max-width: 380px; min-width: 0; padding: 10px 12px; border: 1px solid #cbdad3; border-radius: 7px; font: inherit; font-size: 13px; background: #fff; color: #203330; }
+.ops-elapsed-warning { color: #895414; font-weight: 700; }
+.ops-table-scroll { max-width: 100%; }
+@media (max-width: 1100px) {
+  .ops-metrics { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .ops-header { flex-wrap: wrap; }
+  .ops-actions { justify-content: flex-start; }
+}
+@media (max-width: 400px) {
+  .ops-metrics { grid-template-columns: minmax(0, 1fr); }
+}

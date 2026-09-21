@@ -36,9 +36,7 @@ export const AuthProvider = ({ children, scope = 'portal' }) => {
     const savedToken = localStorage.getItem(tokenKey);
     if (!savedToken) { setLoading(false); return; }
     if (savedToken === 'local-admin-access') {
-      const localAdmin = { id: 'local-admin', email: 'admin', firstName: 'Alimento', lastName: 'Administrator', role: 'admin' };
-      setToken(savedToken); setUser(localAdmin); setIsAuthenticated(true); setLoading(false);
-      return;
+      localStorage.removeItem(tokenKey); localStorage.removeItem(userKey); setLoading(false); return;
     }
     setToken(savedToken);
     try {
@@ -167,13 +165,7 @@ export const AuthProvider = ({ children, scope = 'portal' }) => {
       });
       const data = await response.json();
       if (!response.ok) {
-        if (email.trim().toLowerCase() === 'admin' && password === '1234') {
-          const localAdmin = { id: 'local-admin', email: 'admin', firstName: 'Alimento', lastName: 'Administrator', role: 'admin' };
-          localStorage.setItem(tokenKey, 'local-admin-access');
-          localStorage.setItem(userKey, JSON.stringify(localAdmin));
-          setToken('local-admin-access'); setUser(localAdmin); setIsAuthenticated(true);
-          return { success: true, user: localAdmin };
-        }
+
         throw new Error(data.message || 'Administrator login failed');
       }
 
@@ -184,13 +176,7 @@ export const AuthProvider = ({ children, scope = 'portal' }) => {
       setIsAuthenticated(true);
       return { success: true, user: data.user };
     } catch (error) {
-      if (email.trim().toLowerCase() === 'admin' && password === '1234') {
-        const localAdmin = { id: 'local-admin', email: 'admin', firstName: 'Alimento', lastName: 'Administrator', role: 'admin' };
-        localStorage.setItem(tokenKey, 'local-admin-access');
-        localStorage.setItem(userKey, JSON.stringify(localAdmin));
-        setToken('local-admin-access'); setUser(localAdmin); setIsAuthenticated(true);
-        return { success: true, user: localAdmin };
-      }
+
       return { success: false, message: error.message };
     } finally {
       setLoading(false);
@@ -201,6 +187,8 @@ export const AuthProvider = ({ children, scope = 'portal' }) => {
    * Logout user
    */
   const logout = () => {
+    const currentToken = localStorage.getItem(tokenKey);
+    if (currentToken) Promise.resolve(fetch(`${API_URL}/api/auth/logout`, { method: 'POST', headers: { Authorization: `Bearer ${currentToken}` } })).catch(() => {});
     localStorage.removeItem(tokenKey);
     localStorage.removeItem(userKey);
     setToken(null);

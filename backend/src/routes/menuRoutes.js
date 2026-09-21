@@ -10,7 +10,7 @@ const ProductCategory = require('../models/ProductCategory');
 router.get('/categories/list', async (req, res) => {
     try {
         const managed = await ProductCategory.find({ isActive: true }).sort({ displayOrder: 1, name: 1 }).select('name').lean();
-        const categories = managed.length ? managed.map(category => category.name) : await MenuItem.distinct('category');
+        const categories = managed.length ? managed.map(category => category.name) : await MenuItem.distinct('category', { deletedAt: null });
         res.json(categories);
     } catch (error) {
         res.status(500).json({ error: error.message });

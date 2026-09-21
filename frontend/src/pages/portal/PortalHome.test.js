@@ -1,3 +1,4 @@
+jest.mock('../../services/storeService', () => ({ getStore: async () => ({ isOpen: true, promotions: [] }), promoFor: () => undefined, quoteOrder: async () => ({ totalAmount: 100, discount: 0 }) }));
 import React from 'react';
 import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom';

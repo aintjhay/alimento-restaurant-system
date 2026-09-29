@@ -1,0 +1,41 @@
+.pos-dialog {
+  width: min(460px, calc(100vw - 32px));
+  max-height: calc(100dvh - 32px);
+  margin: auto;
+  padding: 0;
+  border: 1px solid #dce8e4;
+  border-radius: 24px;
+  background: #fffefa;
+  color: #173f3a;
+  box-shadow: 0 24px 80px #102e3b33;
+  font-family: inherit;
+}
+.pos-dialog::backdrop { background: #122d2b80; backdrop-filter: blur(4px); }
+.pos-dialog-content { padding: 32px; }
+.pos-dialog-icon {
+  display: flex; align-items: center; justify-content: center;
+  width: 56px; height: 56px; margin-bottom: 22px;
+  border-radius: 18px; background: #e4f3ed; color: #08766b; font-size: 24px;
+}
+.pos-dialog--error .pos-dialog-icon, .pos-dialog--clear .pos-dialog-icon { background: #fff0e5; color: #ac5126; }
+.pos-dialog-eyebrow { font-size: 11px; font-weight: 700; letter-spacing: .14em; color: #657c76; }
+.pos-dialog h2 { margin: 8px 0 10px; font-size: 26px; line-height: 1.2; color: #173f3a; }
+.pos-dialog p { margin: 0; color: #657570; font-size: 14px; line-height: 1.6; overflow-wrap: anywhere; }
+.pos-dialog-summary { margin: 24px 0 0; padding: 16px 18px; border: 1px solid #dce8e4; border-radius: 14px; background: #f3f7f3; }
+.pos-dialog-summary div { display: flex; justify-content: space-between; gap: 16px; padding: 6px 0; font-size: 14px; }
+.pos-dialog-summary dt { color: #657570; }
+.pos-dialog-summary dd { margin: 0; text-align: right; font-weight: 600; overflow-wrap: anywhere; min-width: 0; }
+.pos-dialog-summary div:last-child { border-top: 1px solid #dce8e4; margin-top: 8px; padding-top: 14px; font-size: 18px; }
+.pos-dialog-actions { display: flex; gap: 10px; margin-top: 28px; }
+.pos-dialog-actions button { flex: 1; min-height: 46px; padding: 12px 16px; border: 1px solid transparent; border-radius: 12px; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; }
+.pos-dialog-primary { background: #08766b; color: white; }
+.pos-dialog-primary:hover { background: #065e56; }
+.pos-dialog-actions .pos-dialog-secondary { background: transparent; border-color: #cddbd5; color: #36574e; }
+.pos-dialog-secondary:hover { background: #edf3ee; }
+.pos-dialog-actions button:focus-visible { outline: 3px solid #d2ab59; outline-offset: 3px; }
+.pos-dialog-actions button:disabled { opacity: .65; cursor: wait; }
+.pos-dialog .pos-dialog-progress { margin-top: 14px; font-size: 12px; text-align: center; }
+@media (max-width: 480px) {
+  .pos-dialog-content { padding: 24px; }
+  .pos-dialog-actions { flex-direction: column; }
+}

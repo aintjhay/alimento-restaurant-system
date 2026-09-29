@@ -1,0 +1,142 @@
+.pos-container .pos-orders-trigger {
+  align-self: center;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 40px;
+  margin: 0;
+  padding: 9px 14px;
+  border: 1px solid #087f75;
+  border-radius: 8px;
+  background: #fff;
+  color: #087f75;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+  box-shadow: none;
+  cursor: pointer;
+  transition: background-color .15s ease, border-color .15s ease, box-shadow .15s ease;
+}
+.pos-orders-trigger svg { width: 16px; height: 16px; flex-shrink: 0; }
+.pos-container .pos-orders-trigger > span {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+  border-radius: 0;
+  color: inherit;
+  font: inherit;
+  letter-spacing: normal;
+  box-shadow: none;
+}
+.pos-container .pos-orders-trigger:hover { background: #edf8f5; border-color: #066b62; }
+.pos-container .pos-orders-trigger:active { background: #dcefe9; }
+.pos-orders-panel { position: fixed; inset: 0 0 0 auto; margin: 0; width: min(740px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; box-sizing: border-box; border: 0; padding: 0; background: #f6faf9; color: #193e39; box-shadow: -12px 0 48px #123f3926; }
+.pos-orders-panel[open] { display: flex; flex-direction: column; animation: pos-orders-enter .2s ease-out; }
+.pos-orders-panel::backdrop { background: #102e3766; }
+.pos-orders-panel * { box-sizing: border-box; }
+.pos-orders-panel button, .pos-orders-panel input, .pos-orders-panel select { font: inherit; }
+.pos-orders-panel button { cursor: pointer; }
+.pos-orders-panel button:disabled { cursor: default; opacity: .45; }
+.pos-orders-panel button:focus-visible, .pos-orders-panel input:focus-visible, .pos-orders-panel select:focus-visible, .pos-orders-trigger:focus-visible { outline: 3px solid #d99427; outline-offset: 2px; }
+.pos-orders-heading { display: flex; justify-content: space-between; align-items: flex-start; padding: 26px 28px 20px; background: white; }
+.pos-orders-heading span { font-size: 11px; letter-spacing: 2px; font-weight: 700; color: #087f75; }
+.pos-orders-heading h2 { display: flex; align-items: center; gap: 10px; margin: 8px 0; font-size: 26px; }
+.pos-orders-heading p { margin: 0; color: #617571; font-size: 14px; }
+.pos-orders-heading button, .pos-orders-filters > button { border: 1px solid #d6e4e0; border-radius: 10px; background: white; color: #355b55; width: 40px; height: 40px; flex-shrink: 0; }
+.pos-orders-tabs { display: flex; gap: 8px; padding: 0 28px 18px; background: white; }
+.pos-orders-tabs button { flex: 1; border: 0; border-radius: 9px; padding: 12px; background: #edf4f2; color: #536d67; font-weight: 600; }
+.pos-orders-tabs button[aria-pressed=true] { background: #087f75; color: white; }
+.pos-orders-filters { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end; padding: 18px 28px; border-block: 1px solid #e0e9e6; }
+.pos-orders-filters label { display: flex; flex-direction: column; gap: 6px; color: #516963; font-size: 12px; font-weight: 600; }
+.pos-orders-search { flex: 1 1 100%; }
+.pos-orders-status { position: relative; width: 176px; max-width: 100%; }
+.pos-orders-status-label { display: block; margin-bottom: 6px; color: #516963; font-size: 12px; font-weight: 600; }
+.pos-orders-panel .pos-orders-status-trigger {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  width: 100%; height: 40px; padding: 8px 12px; margin: 0;
+  border: 1px solid #ceded9; border-radius: 8px; background: white;
+  color: #24463e; font-size: 12px; font-weight: 600; text-align: left;
+}
+.pos-orders-status-trigger svg { width: 11px; flex-shrink: 0; }
+.pos-orders-status-trigger[aria-expanded=true] { border-color: #087f75; }
+.pos-orders-status-options {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 5;
+  width: 100%; max-height: min(280px, 40vh); overflow-y: auto;
+  padding: 5px; border: 1px solid #d6e4df; border-radius: 10px;
+  background: #fff; box-shadow: 0 8px 24px #193e3926;
+}
+.pos-orders-panel .pos-orders-status-options button {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  width: 100%; min-height: 38px; margin: 0; padding: 9px;
+  border: 0; border-radius: 6px; background: transparent;
+  color: #36594f; font-size: 12px; text-align: left;
+}
+.pos-orders-status-options button[aria-selected=true] { background: #e6f4ef; color: #087f75; font-weight: 600; }
+.pos-orders-status-options button:hover,
+.pos-orders-panel .pos-orders-status-options button:focus-visible { background: #eef7f3; outline: 2px solid #087f75; outline-offset: -2px; }
+.pos-orders-status-options svg { width: 11px; flex-shrink: 0; }
+.pos-orders-filters input, .pos-orders-filters select { min-width: 0; height: 40px; padding: 8px 10px; border: 1px solid #ceded9; border-radius: 8px; background: white; color: #24463e; }
+.pos-orders-body { overflow-y: auto; flex: 1; padding: 20px 28px; }
+.pos-orders-list { display: grid; gap: 10px; }
+.pos-orders-row { display: flex; justify-content: space-between; gap: 16px; width: 100%; text-align: left; padding: 16px; border: 1px solid #dce8e3; border-radius: 12px; background: white; color: inherit; }
+.pos-orders-row:hover, .pos-orders-row[aria-pressed=true] { border-color: #087f75; background: #eef8f5; }
+.pos-orders-row > div { display: flex; flex-direction: column; gap: 7px; min-width: 0; overflow-wrap: anywhere; }
+.pos-orders-row small { font-size: 12px; color: #61736e; }
+.pos-orders-row span { font-size: 13px; }
+.pos-orders-row-total { text-align: right; align-items: flex-end; flex-shrink: 0; }
+.pos-orders-badge { padding: 4px 8px; border-radius: 6px; background: #fff0ce; color: #775011; text-transform: capitalize; }
+.pos-orders-badge--completed { background: #dcefe4; color: #286141; }
+.pos-orders-badge--cancelled { background: #f8e4e1; color: #963e35; }
+.pos-orders-empty { padding: 48px 20px; text-align: center; color: #607770; }
+.pos-orders-empty > svg { font-size: 32px; color: #087f75; }
+.pos-orders-pagination { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin: 18px 0; font-size: 13px; }
+.pos-orders-pagination button, .pos-orders-empty button { background: white; border: 1px solid #ceded9; border-radius: 7px; padding: 8px 12px; color: #087f75; }
+.pos-orders-detail { padding: 20px; margin-top: 20px; background: white; border: 1px solid #c9dfd8; border-radius: 12px; }
+.pos-orders-detail h3 { margin: 0 0 16px; }
+.pos-orders-line { display: flex; justify-content: space-between; gap: 16px; padding: 12px 0; border-bottom: 1px solid #e5eeea; font-size: 14px; }
+.pos-orders-line small { display: block; color: #637b71; margin-top: 5px; }
+.pos-orders-detail dl > div { display: flex; justify-content: space-between; margin: 8px 0; font-size: 14px; }
+.pos-orders-detail dd { margin: 0; }
+.pos-orders-payment { text-transform: capitalize; }
+.pos-orders-print { display: flex; align-items: center; justify-content: center; gap: 9px; width: 100%; border: 0; border-radius: 9px; background: #087f75; color: white; padding: 12px; }
+.pos-orders-footer { padding: 14px 24px; font-size: 12px; text-align: center; color: #5c746c; border-top: 1px solid #dce8e3; background: white; }
+@keyframes pos-orders-enter { from { transform: translateX(35px); opacity: .5; } to { transform: translateX(0); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .pos-orders-panel[open] { animation: none; } }
+@media (max-width: 520px) { .pos-orders-heading, .pos-orders-body, .pos-orders-filters { padding: 16px; } .pos-orders-tabs { padding-inline: 16px; } .pos-orders-row { padding: 12px; gap: 8px; } }
+
+/* Give a selected order the full workspace, with actions outside the scroll area. */
+.pos-orders-heading, .pos-orders-tabs, .pos-orders-filters, .pos-orders-footer { flex-shrink: 0; }
+.pos-orders-heading { padding: 16px 24px 12px; }
+.pos-orders-heading h2 { margin: 4px 0; }
+.pos-orders-tabs { padding: 0 24px 12px; }
+.pos-orders-filters { padding: 12px 24px; }
+.pos-orders-search { flex: 1 1 200px; }
+.pos-orders-body { min-height: 0; }
+.pos-orders-body--detail { display: flex; overflow: hidden; padding: 12px 24px; }
+.pos-orders-detail { display: flex; flex-direction: column; width: 100%; min-height: 0; margin: 0; padding: 0; overflow: hidden; }
+.pos-orders-detail-heading { flex-shrink: 0; padding: 14px 18px; border-bottom: 1px solid #e5eeea; }
+.pos-orders-back { display: inline-flex; align-items: center; gap: 8px; padding: 6px 0; margin-bottom: 8px; border: 0; background: transparent; color: #087f75; font-weight: 600; }
+.pos-orders-detail-heading h3 { margin: 0 0 6px; overflow-wrap: anywhere; }
+.pos-orders-detail-heading p { margin: 4px 0 0; font-size: 13px; color: #516963; overflow-wrap: anywhere; }
+.pos-orders-detail-content { flex: 1; min-height: 0; overflow-y: auto; padding: 0 18px 12px; overscroll-behavior: contain; }
+.pos-orders-line > div { min-width: 0; overflow-wrap: anywhere; }
+.pos-orders-line > span { flex-shrink: 0; }
+.pos-orders-detail-actions { flex-shrink: 0; padding: 12px 18px; border-top: 1px solid #dce8e3; background: #f6faf9; }
+.pos-orders-detail-total { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 10px; font-size: 20px; }
+.pos-orders-detail-actions p { margin: 8px 0 0; }
+.pos-orders-footer { padding: 10px 16px; }
+@media (max-width: 520px) {
+  .pos-orders-body--detail { padding: 8px; }
+  .pos-orders-heading { padding: 12px 16px; }
+  .pos-orders-detail-heading { padding: 10px 14px; }
+  .pos-orders-detail-content { padding-inline: 14px; }
+}
+@media (max-height: 600px) {
+  .pos-orders-heading span, .pos-orders-heading p, .pos-orders-footer { display: none; }
+  .pos-orders-heading h2 { font-size: 22px; }
+  .pos-orders-detail-heading { padding-block: 8px; }
+}

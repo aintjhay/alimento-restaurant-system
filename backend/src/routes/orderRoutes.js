@@ -14,6 +14,8 @@ const StoreSettings = require('../models/StoreSettings');
 const MenuItem = require('../models/MenuItem');
 const { isOpen, priceItems, validImage } = require('../services/storeService');
 
+const { firstPurchaseEligible } = require('../services/promotionEligibility');
+
 // POST - Create new order
 router.post('/', optionalAuthMiddleware, async (req, res) => {
     try {
@@ -39,7 +41,7 @@ router.post('/', optionalAuthMiddleware, async (req, res) => {
         try {
             if (!Array.isArray(req.body.items)) throw new Error('Invalid items.');
             const products = await MenuItem.find({ _id: { $in: req.body.items.map(i => i.menuItemId) } }).lean();
-            quote = priceItems(req.body.items, products, settings, portal ? 'portal' : 'pos');
+            quote = priceItems(req.body.items, products, settings, portal ? 'portal' : 'pos', new Date(), settings.promotions?.some(p => p.enabled && p.firstPurchaseOnly) ? await firstPurchaseEligible(req.user) : false);
             if (Math.abs(Number(req.body.totalAmount) - quote.totalAmount) > 0.01 || !Number.isFinite(Number(req.body.totalAmount))) return res.status(409).json({ success: false, message: 'Prices or promotions changed. Refresh your order total before paying.', quote });
         } catch (error) { return res.status(400).json({ success: false, message: error.message }); }
         if (req.body.orderType === 'Delivery' && !isValidPhPhone(req.body.customerContact)) {
@@ -74,7 +76,15 @@ router.post('/', optionalAuthMiddleware, async (req, res) => {
 
         const order = await require('../services/transaction')(async session => {
             const sequence = await Counter.findOneAndUpdate({ _id: 'orders-v2' }, { $inc: { value: 1 } }, { new: true, upsert: true, session });
-            const order = new Order({ ...orderData, orderNumber: `ORD-V2-${String(sequence.value).padStart(8, '0')}` });
+            // The shared counter write serializes checkouts before this history check.
+            // Transaction retries see any order committed by a concurrent checkout.
+            if (req.user?.role === 'customer' && settings.promotions?.some(p => p.enabled && p.firstPurchaseOnly)) {
+                const products = await MenuItem.find({ _id: { $in: req.body.items.map(i => i.menuItemId) } }).session(session).lean();
+                const currentQuote = priceItems(req.body.items, products, settings, 'portal', new Date(), await firstPurchaseEligible(req.user, session));
+                if (Math.abs(currentQuote.totalAmount - quote.totalAmount) > 0.01) throw new Error('First-purchase eligibility changed. Refresh your order total before paying.');
+                Object.assign(orderData, currentQuote);
+            }
+            const order = new Order({ ...orderData, orderNumber: `ORD-${String(sequence.value).padStart(4, '0')}` });
             if (['paid', 'payment_verified'].includes(order.paymentStatus)) { order.amountPaid = order.totalAmount; order.paymentTimeline.push({ amount: order.totalAmount, kind: 'payment', by: String(req.user.userId), at: new Date() }); }
             await order.validate();
             order.stockDeductions = await deductProductStock(order.items, session, order._id, String(req.user?.userId || 'guest'));
@@ -143,6 +153,7 @@ router.get('/', ...adminOnly, async (req, res) => {
         if (status) {
             query.status = status === 'active' ? { $in: ['pending', 'preparing', 'ready', 'out_for_delivery', 'served'] } : status;
         }
+        if (status === 'history') query.status = { $in: ['completed', 'cancelled'] };
         
         if (startDate || endDate) {
             query.createdAt = {};
@@ -163,6 +174,7 @@ router.get('/', ...adminOnly, async (req, res) => {
             const escape = value => value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             query.$or = [
                 { orderNumber: { $regex: escape(term), $options: 'i' } },
+                { customerName: { $regex: escape(term), $options: 'i' } },
                 { tableNumber: { $regex: escape(term.replace(/^table\s+/i, '')), $options: 'i' } }
             ];
         }

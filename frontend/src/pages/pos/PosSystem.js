@@ -1,13 +1,15 @@
 import { checkoutKey, finishCheckout } from '../../services/checkoutKey';
 import React, { useState, useEffect, useRef } from 'react';
 import ModifierModal from '../../components/pos/ModifierModal';
+import PosDialog from '../../components/pos/PosDialog';
+import OrdersPanel from '../../components/pos/OrdersPanel';
 import './PosSystem.css';
 import { quoteOrder, getStore, promoFor } from '../../services/storeService';
 import { authHeaders } from '../../services/api';
 import API_BASE_URL from '../../config/api';
 import { getFoodImage, getItemColor } from '../../utils/imageUtils';
 import {
-  FaSearch,
+  FaSearch, FaReceipt,
   FaTrash, FaPlus, FaMinus, FaCheck
 } from 'react-icons/fa';
 
@@ -84,6 +86,11 @@ import logoImg from '../../assets/images/logo/alimentologo.png';
   ];
 
 function PosSystem() {
+  const [ordersOpen, setOrdersOpen] = useState(false);
+  const [dialog, setDialog] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const submittingRef = useRef(false);
+  const showError = (message) => setDialog({ type: 'error', title: 'Order needs attention', message });
   // States
   const [menuItems, setMenuItems] = useState([]);
   const menuCache = useRef(new Map());
@@ -264,8 +271,8 @@ function PosSystem() {
 
   // Clear cart
   const clearCart = () => {
-    if (cart.length > 0 && window.confirm('Clear all items from cart?')) {
-      setCart([]);
+    if (cart.length > 0) {
+      setDialog({ type: 'clear', title: 'Clear this order?', message: 'All items will be removed from your cart.', action: 'Clear cart' });
     }
   };
 
@@ -332,23 +339,37 @@ function PosSystem() {
   };
 
   // Submit order
-  const handleSubmitOrder = async () => {
-    if (!quote) { alert(quoteError || 'Please wait for the order total to update.'); return; }
+  const handleSubmitOrder = async (confirmed = false) => {
+    if (submittingRef.current) return;
+    if (!quote) { showError(quoteError || 'Please wait for the order total to update.'); return; }
     if (cart.length === 0) {
-      alert('Please add items to the cart');
+      showError('Please add items to the cart');
       return;
     }
 
     // Check if using fallback data (items without valid IDs)
     const hasInvalidItems = cart.some(item => !item.id);
     if (hasInvalidItems) {
-      alert('❌ Cannot submit order: Menu data not loaded from server.\n\nPlease ensure the backend server is running:\n- Backend should be running on http://localhost:5000\n- Try refreshing the page and waiting for the menu to load');
+      showError('Menu data is unavailable. Refresh the page and wait for the menu to load before submitting.');
       return;
     }
 
-    if (!window.confirm(`Confirm order for Table ${tableNumber}?`)) {
+    if (!confirmed) {
+      setDialog({
+        type: 'confirm', title: 'Confirm this order?',
+        message: 'Review the details below before placing your order.', action: 'Confirm order',
+        summary: [
+          ['Order', orderType === 'Dine-in' ? `Table ${tableNumber} · Dine-in` : orderType],
+          ['Items', cart.reduce((count, item) => count + item.quantity, 0)],
+          ['Payment', paymentMethod === 'cash' ? 'Cash' : 'GCash'],
+          ['Total', `₱${calculateTotal().toFixed(2)}`]
+        ]
+      });
       return;
     }
+
+    submittingRef.current = true;
+    setIsSubmitting(true);
 
     const orderData = {
       tableNumber,
@@ -404,7 +425,15 @@ function PosSystem() {
           if (!paymentResponse.ok) { setCart([]); throw new Error(payment.message || 'Order saved; payment needs reconciliation.'); }
           window.location.assign(payment.data.checkoutUrl);
         }
-        alert(`✅ Order #${result.order?.orderNumber || 'N/A'} submitted successfully!\nTotal: ₱${calculateTotal().toFixed(2)}`);
+        setDialog({
+          type: 'success', title: 'Order placed!', action: 'Start next order',
+          message: orderData.paymentMethod === 'qrph' ? 'Your order is saved. Continue to GCash to complete payment.' : 'Your order has been submitted successfully.',
+          summary: [
+            ['Order number', result.order?.orderNumber || 'N/A'],
+            ['Order', orderType === 'Dine-in' ? `Table ${tableNumber} · Dine-in` : orderType],
+            ['Total', `₱${Number(result.order?.totalAmount ?? orderData.totalAmount).toFixed(2)}`]
+          ]
+        });
         setCart([]);
         setCustomerName('');
         setNotes('');
@@ -413,13 +442,15 @@ function PosSystem() {
       }
     } catch (error) {
       console.error('❌ Order submission error:', error);
-      alert(`Order submission failed: ${error.message}`);
+      showError(`Order submission failed: ${error.message}`);
 
       // Fallback to localStorage
       const failedOrders = JSON.parse(localStorage.getItem('failedOrders') || '[]');
       failedOrders.push({ ...orderData, error: error.message, timestamp: new Date().toISOString() });
       localStorage.setItem('failedOrders', JSON.stringify(failedOrders));
-      alert('Order saved locally. Check failed orders in localStorage.');
+    } finally {
+      submittingRef.current = false;
+      setIsSubmitting(false);
     }
   };
 
@@ -428,7 +459,7 @@ function PosSystem() {
   // eslint-disable-next-line no-unused-vars
   const handlePrintReceipt = () => {
     if (cart.length === 0) {
-      alert('Cannot print receipt: Cart is empty');
+      showError('Cannot print receipt: Cart is empty');
       return;
     }
 
@@ -715,7 +746,7 @@ function PosSystem() {
           </h1>
           <div className="header-stats">
             <span className="stat-item">
-              ₱{calculateTotal().toFixed(2)}
+              Cart: ₱{calculateTotal().toFixed(2)}
             </span>
           </div>
         </div>
@@ -897,11 +928,18 @@ function PosSystem() {
             <div className="cart-title-block">
               <h2>Order Cart</h2>
             </div>
-            {cart.length > 0 && (
-              <button onClick={clearCart} className="clear-cart-btn">
-                <FaTrash /> Clear All
+            <div className="pos-cart-header-actions">
+              <button type="button" className="pos-orders-trigger" aria-haspopup="dialog" onClick={() => setOrdersOpen(true)}>
+                <FaReceipt aria-hidden="true" />
+                <span>Orders</span>
               </button>
-            )}
+              {cart.length > 0 && (
+                <button type="button" onClick={clearCart} className="pos-clear-cart-icon"
+                  aria-label="Clear cart" title="Clear cart" aria-haspopup="dialog">
+                  <FaTrash aria-hidden="true" />
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="cart-items-container">
@@ -1026,6 +1064,7 @@ function PosSystem() {
                 <button
                   onClick={handlePlaceOrder}
                   className="place-order-btn"
+                  disabled={isSubmitting}
                 >
                   <FaCheck /> Place Order
                 </button>
@@ -1035,6 +1074,16 @@ function PosSystem() {
         </div>
       </div>
 
+      {ordersOpen && <OrdersPanel onClose={() => setOrdersOpen(false)} />}
+      <PosDialog
+        dialog={dialog}
+        busy={isSubmitting}
+        onClose={() => { if (!submittingRef.current) setDialog(null); }}
+        onConfirm={() => {
+          if (dialog.type === 'clear') { setCart([]); setDialog(null); }
+          else handleSubmitOrder(true);
+        }}
+      />
       <ModifierModal
         item={selectedItemForModal}
         isOpen={isModifierModalOpen}

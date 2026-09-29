@@ -22,6 +22,19 @@ function mockCheckout(t) {
 const handler = (path, method) => (req, res) => { req.get = () => 'unit-test-idempotency-key'; return router.stack.find(layer => layer.route?.path === path && layer.route.methods[method]).route.stack.at(-1).handle(req, res); };
 const response = () => ({ code: 200, status(code) { this.code = code; return this; }, set() { return this; }, json(body) { this.body = body; return this; } });
 
+test('order history filters terminal statuses and searches customer names literally', async t => {
+  let query;
+  const chain = { sort() { return this; }, select() { return this; }, skip() { return this; }, limit() { return this; }, lean: async () => [] };
+  t.mock.method(Order, 'find', value => { query = value; return chain; });
+  t.mock.method(Order, 'countDocuments', async () => 0);
+  const res = response();
+  await handler('/', 'get')({ user: { role: 'cashier' }, query: { status: 'history', search: 'Ana.*', startDate: '2026-09-27T16:00:00Z', endDate: '2026-09-28T15:59:59.999Z' } }, res);
+  assert.equal(res.code, 200);
+  assert.deepEqual(query.status, { $in: ['completed', 'cancelled'] });
+  assert.equal(query.$or.find(value => value.customerName).customerName.$regex, 'Ana\\.\\*');
+  assert.equal(query.createdAt.$gte.toISOString(), '2026-09-27T16:00:00.000Z');
+});
+
 test('delivery creation discards forged guest identity and issues a random tracking secret', async t => {
   mockCheckout(t);
   t.mock.method(Order.prototype, 'save', async function () { return this; });

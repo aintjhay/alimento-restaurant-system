@@ -4,13 +4,13 @@ function isOpen(settings, now = new Date()) {
   const day = new Date(now.getTime() + 8 * 3600000).getUTCDay();
   return !settings.closed && !(settings.closedDays || []).includes(day) && time >= settings.openingTime && time < settings.closingTime;
 }
-function promotionFor(product, settings, channel, now = new Date()) {
-  return (settings.promotions || []).filter(p => p.enabled && (p.channel === channel || p.channel === 'both') &&
+function promotionFor(product, settings, channel, now = new Date(), firstPurchaseEligible = false) {
+  return (settings.promotions || []).filter(p => p.enabled && (!p.firstPurchaseOnly || (channel === 'portal' && firstPurchaseEligible)) && (p.channel === channel || p.channel === 'both') &&
     (!p.category || p.category === product.category) && (!p.productId || p.productId === String(product._id || product.id)) &&
     (!p.startsAt || new Date(p.startsAt) <= now) && (!p.endsAt || new Date(p.endsAt) > now))
     .sort((a, b) => b.percent - a.percent)[0];
 }
-function priceItems(items, products, settings, channel, now = new Date()) {
+function priceItems(items, products, settings, channel, now = new Date(), firstPurchaseEligible = false) {
   if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Add between 1 and 100 items.');
   const result = items.map(item => {
     const product = products.find(p => String(p._id) === String(item.menuItemId));
@@ -30,7 +30,7 @@ function priceItems(items, products, settings, channel, now = new Date()) {
       return { name: definition.name, price: definition.price };
     });
     if (new Set(addons.map(a => a.name)).size !== addons.length) throw new Error('Duplicate add-ons.');
-    const promo = promotionFor(product, settings, channel, now);
+    const promo = promotionFor(product, settings, channel, now, firstPurchaseEligible);
     const unit = product.price + modifiers.reduce((s, m) => s + m.extraPrice, 0) + addons.reduce((s, a) => s + a.price, 0);
     const itemTotal = money(unit * item.quantity);
     const discountAmount = money(itemTotal * (promo?.percent || 0) / 100);

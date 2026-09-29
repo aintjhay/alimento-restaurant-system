@@ -33,7 +33,7 @@ export default function PromotionManagement() {
   const dirty = JSON.stringify(promotions) !== JSON.stringify(saved);
   const change = value => { setStore(s => ({ ...s, promotions: value })); setMessage(''); };
   const openEditor = (promo, index = null) => { opener.current = document.activeElement; setEditor({ promo: { ...promo }, index }); };
-  const addPromo = (name = '', percent = 20, channel = 'portal', category = '') => openEditor({ name, percent, channel, category, productId: '', enabled: false });
+  const addPromo = (name = '', percent = 20, channel = 'portal', category = '') => openEditor({ name, percent, channel, category, productId: '', enabled: false, firstPurchaseOnly: false });
   const editDraft = (key, value) => setEditor(current => ({ ...current, promo: { ...current.promo, [key]: value } }));
   const apply = event => {
     event.preventDefault();
@@ -69,7 +69,7 @@ export default function PromotionManagement() {
             {promotions.length === 0 ? <div className="promotions-empty"><FiTag aria-hidden="true" /><h3>Your next special starts here</h3><p>Add a promotion or choose a quick-start template below.</p></div> : <>
               {promotions.map((promo, index) => (filter === 'All' || Boolean(promo.enabled) === (filter === 'Enabled')) && <div className="promo-row" key={promo._id || index}>
                 <div className="promo-amount">{promo.percent}%<small>OFF</small></div>
-                <div className="promo-summary"><strong>{promo.name}</strong><p>{channelLabel(promo.channel)} &middot; {promo.category || 'All categories'}{promo.productId ? ` \u00b7 ${products.find(product => product._id === promo.productId)?.name || 'Selected product'}` : ''}</p>{(promo.startsAt || promo.endsAt) && <small>Scheduled &middot; {promo.startsAt ? new Date(promo.startsAt).toLocaleString() : 'Any start date'} &mdash; {promo.endsAt ? new Date(promo.endsAt).toLocaleString() : 'No end date'}</small>}</div>
+                <div className="promo-summary"><strong>{promo.name}</strong><p>{channelLabel(promo.channel)} &middot; {promo.category || 'All categories'}{promo.firstPurchaseOnly ? ' ? First purchase only' : ''}{promo.productId ? ` \u00b7 ${products.find(product => product._id === promo.productId)?.name || 'Selected product'}` : ''}</p>{(promo.startsAt || promo.endsAt) && <small>Scheduled &middot; {promo.startsAt ? new Date(promo.startsAt).toLocaleString() : 'Any start date'} &mdash; {promo.endsAt ? new Date(promo.endsAt).toLocaleString() : 'No end date'}</small>}</div>
                 <button className="promo-toggle" role="switch" aria-checked={Boolean(promo.enabled)} aria-label={`Enable ${promo.name}`} disabled={busy} onClick={() => change(promotions.map((item, i) => i === index ? { ...item, enabled: !item.enabled } : item))}><span className="promo-switch-track" /><span>{promo.enabled ? 'Enabled' : 'Disabled'}</span></button>
                 <button disabled={busy} onClick={() => openEditor(promo, index)} aria-label={`Edit ${promo.name}`}>Edit</button>
               </div>)}
@@ -92,7 +92,9 @@ export default function PromotionManagement() {
           <div className="promotion-fields">
           <label className="promotion-name">Name<input required maxLength={100} placeholder="e.g. Weekend favorites" value={p.name} onChange={e => editDraft('name', e.target.value)} /></label>
           <label>Discount %<input type="number" min="1" max="100" required value={p.percent} onChange={e => editDraft('percent', Number(e.target.value))} /></label>
-          <label>Where<select value={p.channel} onChange={e => editDraft('channel', e.target.value)}><option value="portal">Portal</option><option value="pos">POS</option><option value="both">Portal and POS</option></select></label>
+          <label>Where<select disabled={Boolean(p.firstPurchaseOnly)} value={p.channel} onChange={e => editDraft('channel', e.target.value)}><option value="portal">Portal</option><option value="pos">POS</option><option value="both">Portal and POS</option></select></label>
+          <label className="promotion-name">Customer eligibility<select value={p.firstPurchaseOnly ? 'first' : 'all'} onChange={e => setEditor(current => ({ ...current, promo: { ...current.promo, firstPurchaseOnly: e.target.value === 'first', ...(e.target.value === 'first' ? { channel: 'portal' } : {}) } }))}><option value="all">All customers</option><option value="first">First purchase only</option></select></label>
+          {p.firstPurchaseOnly && <div className="promotion-field-heading"><p>Signed-in portal customers with no previous non-cancelled orders. Pending orders count; cancelled orders allow another attempt. Guest and POS orders are excluded.</p></div>}
           <div className="promotion-field-heading"><h4>Eligible items</h4><p>Choose a category or a specific product.</p></div>
           <label>Category<select value={p.category} onChange={e => editDraft('category', e.target.value)}><option value="">All categories</option>{[...new Set(products.map(p => p.category))].map(c => <option key={c}>{c}</option>)}</select></label>
           <label>Product<select value={p.productId} onChange={e => editDraft('productId', e.target.value)}><option value="">All matching products</option>{products.map(product => <option key={product._id} value={product._id}>{product.name}</option>)}</select></label>

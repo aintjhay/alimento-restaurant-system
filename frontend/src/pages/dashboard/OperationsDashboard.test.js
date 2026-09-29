@@ -32,7 +32,7 @@ test('keeps old active orders visible, paginates, expands details, and updates s
   fireEvent.click(screen.getByRole('button', { name: 'ORD-0' }));
   expect(screen.getByText('2 × Chicken wings')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Close payment review' }));
-  fireEvent.click(screen.getAllByRole('button', { name: 'Start preparing' })[0]);
+  fireEvent.click(screen.getAllByRole('button', { name: 'Start prep' })[0]);
   await waitFor(() => expect(screen.getByLabelText('Status for ORD-0')).toHaveTextContent('Preparing'));
   expect(global.fetch).toHaveBeenCalledWith(expect.stringContaining('/orders/0/status'), expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ status: 'preparing' }) }));
   fireEvent.click(screen.getByRole('button', { name: /^All / }));
@@ -77,7 +77,7 @@ test.each([{ paymentStatus: 'paid' }, { paymentStatus: 'payment_verified' }, { p
 });
 
 test.each([
-  ['pending', 'Delivery', 'preparing', 'Start preparing'],
+  ['pending', 'Delivery', 'preparing', 'Start prep'],
   ['preparing', 'Delivery', 'ready', 'Mark ready'],
   ['ready', 'Delivery', 'out_for_delivery', 'Dispatch order'],
   ['out_for_delivery', 'Delivery', 'completed', 'Mark delivered'],

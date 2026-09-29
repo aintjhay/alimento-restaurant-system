@@ -1,10 +1,11 @@
 const router = require('express').Router();
 const Settings = require('../models/StoreSettings');
 const MenuItem = require('../models/MenuItem');
-const { authMiddleware, requireRole } = require('../middleware/authMiddleware');
+const { authMiddleware, optionalAuthMiddleware, requireRole } = require('../middleware/authMiddleware');
 const { isOpen, priceItems, validImage } = require('../services/storeService');
-router.get('/', async (_req, res) => {
-  try { const settings = await Settings.current(); res.set('Cache-Control', 'no-store').json({ ...settings, isOpen: isOpen(settings) }); }
+const { firstPurchaseEligible } = require('../services/promotionEligibility');
+router.get('/', optionalAuthMiddleware, async (req, res) => {
+  try { const settings = await Settings.current(); res.set('Cache-Control', 'no-store').json({ ...settings, isOpen: isOpen(settings), firstPurchaseEligible: await firstPurchaseEligible(req.user) }); }
   catch { res.status(503).json({ message: 'Store settings unavailable. Please try again.' }); }
 });
 router.put('/', authMiddleware, requireRole('admin'), async (req, res) => {
@@ -16,6 +17,7 @@ router.put('/', authMiddleware, requireRole('admin'), async (req, res) => {
     if (data.closedDays && (!Array.isArray(data.closedDays) || data.closedDays.some(d => !Number.isInteger(d) || d < 0 || d > 6))) throw new Error('Invalid closed days.');
     if (data.promotions?.length > 30) throw new Error('Use at most 30 promotions.');
     for (const p of data.promotions || []) if (p.startsAt && p.endsAt && new Date(p.startsAt) >= new Date(p.endsAt)) throw new Error('Promotion end must be after its start.');
+    for (const p of data.promotions || []) if (p.firstPurchaseOnly && p.channel !== 'portal') throw new Error('First-purchase promotions require the Portal channel.');
     const scheduleChanged = ['closed', 'closedDays', 'openingTime', 'closingTime'].some(key => data[key] !== undefined);
     const update = { $set: data };
     if (scheduleChanged) update.$push = { scheduleHistory: { effectiveAt: new Date(), closed: merged.closed, closedDays: merged.closedDays, openingTime: merged.openingTime, closingTime: merged.closingTime } };
@@ -23,13 +25,13 @@ router.put('/', authMiddleware, requireRole('admin'), async (req, res) => {
     res.json({ ...settings.toObject(), isOpen: isOpen(settings) });
   } catch (error) { res.status(400).json({ message: error.message }); }
 });
-router.post('/quote', async (req, res) => {
+router.post('/quote', optionalAuthMiddleware, async (req, res) => {
   try {
     const settings = await Settings.current();
     const items = req.body.items;
     if (!Array.isArray(items)) throw new Error('Invalid items.');
     const products = await MenuItem.find({ _id: { $in: items.map(i => i.menuItemId) } }).lean();
-    res.json(priceItems(items, products, settings, req.body.channel === 'pos' ? 'pos' : 'portal'));
+    res.json(priceItems(items, products, settings, req.body.channel === 'pos' ? 'pos' : 'portal', new Date(), await firstPurchaseEligible(req.user)));
   } catch (error) { res.status(400).json({ message: error.message }); }
 });
 module.exports = router;

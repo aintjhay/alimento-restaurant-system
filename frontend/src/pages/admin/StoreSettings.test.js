@@ -90,3 +90,14 @@ test('applied promotions can be filtered, edited, discarded, and retried after s
   expect(screen.queryByRole('button', { name: 'Edit Weekend special' })).not.toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Save changes' })).not.toBeInTheDocument();
 });
+
+test('first purchase switches to portal and persists', async () => {
+ render(<PromotionManagement />);
+ fireEvent.click(await screen.findByRole('button', { name: 'Add 50% cocktail promo' }));
+ fireEvent.change(screen.getByLabelText('Customer eligibility'), { target: { value: 'first' } });
+ expect(screen.getByLabelText('Where')).toHaveValue('portal');
+ expect(screen.getByLabelText('Where')).toBeDisabled();
+ fireEvent.click(screen.getByRole('button', { name: 'Apply changes' }));
+ fireEvent.click(screen.getByRole('button', { name: 'Save changes' }));
+ await waitFor(() => expect(saveStore).toHaveBeenCalledWith({ promotions: [expect.objectContaining({ firstPurchaseOnly: true, channel: 'portal' })] }));
+});

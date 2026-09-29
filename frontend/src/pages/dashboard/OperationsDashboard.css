@@ -387,11 +387,16 @@
   .ops-review-fields > div { grid-template-columns: 90px minmax(0, 1fr); }
 }
 
-.ops-status-actions { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; }
+.ops-table td { vertical-align: middle; }
+.ops-action-cell { width: 1%; }
+.ops-dashboard .ops-next-step { display: inline-flex; align-items: center; justify-content: space-between; gap: 12px; min-width: 132px; min-height: 40px; padding: 8px 12px; background: #e2f3ed; border-color: #b6ddd0; color: #00695c; font-weight: 600; }
+.ops-dashboard .ops-next-step:hover:not(:disabled) { background: #cce9df; border-color: #8cc8b5; }
 .ops-status-badge { display: inline-block; border-radius: 20px; padding: 5px 10px; background: #eef3f0; color: #476458; font-size: 11px; font-weight: 600; }
-.ops-status-completed, .ops-status-ready { background: #e2f3ed; color: #00695c; }
+.ops-status-ready { background: #e2f3ed; color: #00695c; }
+.ops-status-completed { background: #eef0f2; color: #52606d; }
 .ops-status-cancelled { background: #faece9; color: #a23d30; }
-.ops-status-preparing, .ops-status-pending { background: #fff4df; color: #895414; }
+.ops-status-pending { background: #fff4df; color: #895414; }
+.ops-status-preparing { background: #e8f1fc; color: #245a92; }
 .ops-review-drawer { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(580px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; background: #fff; color: #203330; box-shadow: -12px 0 48px #14352b26; }
 .ops-review-drawer::backdrop { background: #122b2566; }
 .ops-review-drawer .ops-review-panel { display: flex; flex-direction: column; width: 100%; min-height: 100%; max-height: 100%; border: 0; border-radius: 0; font-size: 13px; }

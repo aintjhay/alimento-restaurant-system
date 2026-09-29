@@ -3,6 +3,7 @@ const mongoose = require('mongoose');
 const promotion = new mongoose.Schema({
   name: { type: String, required: true, maxlength: 100 },
   enabled: { type: Boolean, default: false },
+  firstPurchaseOnly: { type: Boolean, default: false },
   percent: { type: Number, required: true, min: 1, max: 100 },
   channel: { type: String, enum: ['portal', 'pos', 'both'], default: 'portal' },
   category: { type: String, default: '' },

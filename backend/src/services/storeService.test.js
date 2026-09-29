@@ -44,3 +44,11 @@ test('receipt uploads must contain supported image data', () => {
   assert.equal(validImage('data:image/svg+xml;base64,PHN2Zz4='), false);
   assert.equal(validImage('data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=='), true);
 });
+
+test('first purchase requires eligibility and excludes POS', () => {
+ const s = { promotions: [{ name: 'Welcome', enabled: true, percent: 40, channel: 'both', firstPurchaseOnly: true }, { name: 'Regular', enabled: true, percent: 10, channel: 'both' }] };
+ const items = [{ menuItemId: 'a', quantity: 1 }];
+ assert.equal(priceItems(items, [product], s, 'portal', now, true).discount, 80);
+ assert.equal(priceItems(items, [product], s, 'portal', now).discount, 20);
+ assert.equal(priceItems(items, [product], s, 'pos', now, true).discount, 20);
+});

@@ -162,3 +162,23 @@ test('backup restores BSON types, document counts and indexes into an empty isol
     fs.rmSync(resolved, { recursive: true });
   }
 });
+
+test('first purchase enforces history, cancellation and concurrent checkout', async () => {
+ await Settings.updateOne({ key: 'store' }, { $set: { promotions: [{ name: 'Welcome', percent: 20, enabled: true, channel: 'portal', firstPurchaseOnly: true }] } });
+ const items = [{ menuItemId: String(product._id), quantity: 1 }];
+ const quote = user => request('/api/store/quote', { user, method: 'POST', body: { items, firstPurchaseEligible: true } });
+ assert.equal((await quote()).data.discount, 0);
+ assert.equal((await quote(admin)).data.discount, 0);
+ assert.equal((await quote(customer)).data.discount, 20);
+ const body = payload({ orderType: 'Delivery', totalAmount: 130, customerContact: '09171234567', paymentMethod: 'gcash', paymentProof: proof });
+ const submit = () => request('/api/orders', { user: customer, method: 'POST', key: crypto.randomUUID(), body });
+ const results = await Promise.all([submit(), submit()]);
+ assert.equal(results.filter(r => r.status === 201).length, 1, JSON.stringify(results));
+ assert.equal(await Order.countDocuments({ userId: customer.id }), 1);
+ assert.equal((await quote(customer)).data.discount, 0);
+ assert.equal((await submit()).status, 409);
+ const id = results.find(r => r.status === 201).data.order._id;
+ assert.equal((await request(`/api/orders/${id}/status`, { user: admin, method: 'PATCH', body: { status: 'cancelled' } })).status, 200);
+ assert.equal((await quote(customer)).data.discount, 20);
+ assert.equal((await submit()).status, 201);
+});

@@ -176,6 +176,11 @@ app.use((err, req, res, next) => {
 
 async function start() {
   await connectDB();
+  // Restore the iced tea temperature options if an earlier build removed them.
+  await require('./src/models/MenuItem').updateMany(
+    { name: /^ALIMENTO ICED TEA$/i, category: /^Coolers$/i, $or: [{ modifiers: { $exists: false } }, { modifiers: { $size: 0 } }] },
+    { $set: { price: 140, modifiers: [{ name: 'Temperature', required: true, options: [{ name: 'Hot', price: 75 }, { name: 'Cold', price: 140 }] }] } }
+  );
   const hello = await require('mongoose').connection.db.admin().command({ hello: 1 });
   if (!hello.setName && hello.msg !== 'isdbgrid') throw new Error('MongoDB must be a replica set or sharded cluster for order/payment transactions.');
   await Promise.all(['Order', 'Payment', 'StockMovement', 'Counter', 'CheckoutAttempt', 'Review'].map(name => require('./src/models/' + name).init()));

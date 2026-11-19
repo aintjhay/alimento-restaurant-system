@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import './KitchenDisplay.css';
 import './StationDisplay.css';
-import { LuMartini, LuBell, LuBellOff, LuMaximize, LuRefreshCw, LuFlame, LuChartColumn, LuClock, LuUndo2, LuCheck, LuArmchair, LuStickyNote, LuUser, LuTriangleAlert } from 'react-icons/lu';
+import { LuMartini, LuBell, LuBellOff, LuMaximize, LuRefreshCw, LuFlame, LuChartColumn, LuClock, LuCheck, LuArmchair, LuStickyNote, LuUser, LuTriangleAlert } from 'react-icons/lu';
 import StatusBoard, { getStationStatus } from './StatusBoard';
 import { isBarItem } from './stationItems';
 import { ConnectionStatus, MixedOrderProgress, getNewOrderIds, useOrderSound } from './StationUpdates';
@@ -97,58 +97,27 @@ function BartenderDisplay() {
 
 
 
-  const handleUpdateStatus = async (orderId, itemIndex, newStatus) => {
-    console.log('🍸 Bartender: Updating item', itemIndex, 'to status', newStatus, 'for order', orderId);
-    setUpdatingOrderId(orderId);
+  const handleBulkStatus = async (order, action) => {
+    if (!action || (!action.orderLevel && !action.indices.length)) return;
+    setUpdatingOrderId(order._id);
     try {
-      const payload = { 
-        status: newStatus,
-        itemIndex: itemIndex,
-        changedBy: 'bartender'
-      };
-      console.log('📤 Sending payload:', payload);
-      
-      const response = await fetch(`${API_BASE_URL}/api/orders/${orderId}/status`, {
+      const response = await fetch(`${API_BASE_URL}/api/orders/${order._id}/status`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json', ...authHeaders() },
-        body: JSON.stringify(payload)
+        body: JSON.stringify(action.orderLevel
+          ? { status: action.status, changedBy: 'bartender' }
+          : { status: action.status, itemIndices: action.indices, changedBy: 'bartender' })
       });
-      
-      console.log('📥 Response status:', response.status);
       const result = await response.json();
-      console.log('📥 Response body:', result);
-      
-      if ((result.success || response.ok) && result.order) {
-        console.log('✅ Update successful, updating local state');
-        // Update local state with the new order data
-        const barItemsWithIndices = (result.order.items || [])
-          .map((item, actualIndex) => ({
-            ...item,
-            actualIndex: actualIndex
-          }))
-          .filter(item => isBarItem(item));
-        
-        const updatedOrder = {
-          ...result.order,
-          _id: result.order._id || orderId,
-          barItems: barItemsWithIndices,
-          allItems: result.order.items || []
-        };
-        
-        console.log('Updated order:', updatedOrder);
-        
-        setOrders(prev => prev.map(order =>
-          order._id === orderId ? updatedOrder : order
-        ));
-      } else {
-        console.error('❌ Invalid response from server:', result);
-        alert('Failed to update item status: ' + (result.error || 'Unknown error'));
-      }
+      if (!response.ok || !result.order) throw new Error(result.error || 'Unable to update bar items.');
+      const barItems = (result.order.items || []).map((item, actualIndex) => ({ ...item, actualIndex })).filter(isBarItem);
+      const updatedOrder = { ...result.order, barItems, allItems: result.order.items || [] };
+      setOrders(previous => previous.map(item => item._id === order._id ? updatedOrder : item));
     } catch (error) {
-      console.error('❌ Status update error:', error);
-      alert('Failed to update item status: ' + error.message);
+      alert('Failed to update bar items: ' + error.message);
+    } finally {
+      setUpdatingOrderId(null);
     }
-    setUpdatingOrderId(null);
   };
 
   const getTimeElapsed = (createdAt, completedAt, status) => {
@@ -185,54 +154,21 @@ function BartenderDisplay() {
   ));
   counts.active = counts.pending + counts.preparing + counts.ready;
 
-  const getActionButtons = (order, itemIndex) => {
+  const getBarAction = order => {
     if (['completed', 'cancelled', 'served'].includes(order.originalStatus)) return null;
-    const isUpdating = updatingOrderId === order._id;
-    const readyLabel = order.orderType === 'Delivery' ? 'Ready for Dispatch' : order.orderType === 'Takeaway' ? 'Ready for Pickup' : 'Ready to Serve';
-    const handoverLabel = order.orderType === 'Delivery' ? 'Handed to Rider' : order.orderType === 'Takeaway' ? 'Collected' : 'Served';
-    const allItems = order.items || order.allItems || [];
-    
-    // Safety check: ensure itemIndex is valid
-    if (itemIndex < 0 || itemIndex >= allItems.length) {
-      console.warn(`Invalid itemIndex ${itemIndex} for order with ${allItems.length} items`);
-      return null;
+    const items = order.barItems || [];
+    const pending = items.filter(item => (item.itemStatus || order.originalStatus) === 'pending');
+    const preparing = items.filter(item => (item.itemStatus || order.originalStatus) === 'preparing');
+    if (pending.length) return { label: 'Start All Bar Items', status: 'preparing', indices: pending.map(item => item.actualIndex), icon: <LuMartini aria-hidden="true" /> };
+    if (preparing.length) return { label: 'Mark All Bar Items Ready', status: 'ready', indices: preparing.map(item => item.actualIndex), icon: <LuCheck aria-hidden="true" /> };
+    const allItems = order.allItems || [];
+    const statuses = allItems.map(item => item.itemStatus || order.originalStatus);
+    const ready = statuses.flatMap((status, index) => status === 'ready' ? [index] : []);
+    if (ready.length && statuses.every(status => ['ready', 'served', 'completed'].includes(status))) {
+      if (order.orderType === 'Delivery') return { label: 'Out for Delivery', status: 'out_for_delivery', orderLevel: true, icon: <LuMartini aria-hidden="true" /> };
+      return { label: 'Complete Order', status: 'served', indices: ready, icon: <LuCheck aria-hidden="true" /> };
     }
-    
-    const itemStatus = (allItems[itemIndex]?.itemStatus) || order.originalStatus;
-    
-    switch (itemStatus) {
-      case 'pending':
-        return (
-          <button className="kds-action-btn start-btn bar-theme" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating}>
-            {isUpdating ? <LuClock aria-hidden="true" /> : <LuMartini aria-hidden="true" />} Start Preparing
-          </button>
-        );
-      case 'preparing':
-        return (
-          <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'pending')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
-            <button className="kds-action-btn ready-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'ready')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {readyLabel}
-            </button>
-          </>
-        );
-      case 'ready':
-        return (
-          <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
-            <button className="kds-action-btn served-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'served')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {handoverLabel}
-            </button>
-          </>
-        );
-      case 'served':
-        return (
-          <button className="kds-action-btn completed-btn" disabled>
-            <LuCheck aria-hidden="true" /> {handoverLabel}
-          </button>
-        );
-      default: return null;
-    }
+    return null;
   };
 
   if (loading) {
@@ -300,6 +236,7 @@ function BartenderDisplay() {
       <StatusBoard orders={stationOrders} filter={filter} preparingLabel="Preparing">
             {order => {
               const urgency = ['pending', 'preparing', 'ready'].includes(order.status) ? getTimerUrgency(order.createdAt) : 'normal';
+              const action = getBarAction(order);
               return (
                 <div key={order._id} className={`kds-order-card status-${order.status} ${urgency === 'urgent' ? 'urgent' : ''} ${currentTime - (newOrderTimes[order._id] || 0) < 30000 ? 'new-order' : ''}`}>
                   <div className="kds-card-header">
@@ -334,10 +271,14 @@ function BartenderDisplay() {
                     {order.allItems.length > order.barItems.length && ` (${order.allItems.length - order.barItems.length} kitchen items)`}
                   </div>
 
+                  {action && (
+                    <button className={`kds-action-btn kds-start-all-btn ${action.status === 'preparing' ? 'start-btn' : action.status === 'ready' ? 'ready-btn' : 'served-btn'}`} onClick={() => handleBulkStatus(order, action)} disabled={updatingOrderId === order._id}>
+                      {updatingOrderId === order._id ? <LuClock aria-hidden="true" /> : action.icon} {action.label}
+                    </button>
+                  )}
+
                   <div className="kds-card-items">
                     {order.barItems.map((item, displayIdx) => {
-                      // Use the actualIndex stored during filtering
-                      const actualItemIndex = item.actualIndex;
                       return (
                         <div key={displayIdx} className="kds-item">
                           <span className="kds-item-qty bar-qty">{item.quantity}×</span>
@@ -361,9 +302,7 @@ function BartenderDisplay() {
                               {item.itemStatus === 'served' && <><LuCheck aria-hidden="true" /> Served</>}
                             </div>
                           </div>
-                          <div className="kds-item-actions">
-                            {actualItemIndex >= 0 && getActionButtons(order, actualItemIndex)}
-                          </div>
+
                         </div>
                       );
                     })}

@@ -3,7 +3,6 @@ import { Link } from 'react-router-dom';
 import API_BASE_URL from '../../config/api';
 import { authHeaders } from '../../services/api';
 import ForecastChart from '../../components/admin/ForecastChart';
-import PaymentAdjustment from '../../components/dashboard/PaymentAdjustment';
 import './OperationsDashboard.css';
 export const money = value => new Intl.NumberFormat('en-PH', {
   style: 'currency',
@@ -164,6 +163,7 @@ export default function OperationsDashboard() {
         throw new Error(result.message || 'Unable to confirm payment. Please retry.');
       }
       setOrders(current => current.map(item => item._id === order._id ? result.order : item));
+      setExpanded(null);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -236,7 +236,6 @@ export default function OperationsDashboard() {
                           {[['customerName', 'Customer'], ['customerContact', 'Contact'], ['customerAddress', 'Address'], ['notes', 'Notes']].map(([key, title]) => order[key] && <div key={key}><dt>{title}</dt><dd>{order[key]}</dd></div>)}
                         </dl>
                         <div className="ops-review-items"><h4>Items ordered</h4><ul>{(order.items || []).map((item, i) => <li key={i}>{item.quantity} &times; {item.name}{item.notes ? ` - ${item.notes}` : ''}</li>)}</ul></div>
-                        <PaymentAdjustment order={order} onSaved={saved => { setOrders(current => current.map(o => o._id === saved._id ? { ...o, ...saved } : o)); refresh(); }} />
                         {['pending', 'preparing', 'ready'].includes(status(order)) && <div className="ops-cancel-order">{cancelConfirm ? <><p>Cancel this order? This will stop fulfillment.</p><button disabled={busy !== null} onClick={async () => { await updateStatus(order, 'cancelled'); setCancelConfirm(false); }}>Confirm cancellation</button><button disabled={busy !== null} onClick={() => setCancelConfirm(false)}>Keep order</button></> : <button onClick={() => setCancelConfirm(true)}>Cancel order</button>}</div>}
                       </div>
                       <figure className="ops-review-receipt"><figcaption>Payment receipt<span>Customer attachment</span></figcaption>

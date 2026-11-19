@@ -507,6 +507,17 @@
   border: none;
 }
 
+.kds-start-all-btn {
+  width: fit-content;
+  max-width: 100%;
+  min-height: 38px;
+  margin: 0.5rem 0 0.85rem 1rem;
+  padding: 0.5rem 0.9rem;
+  border-radius: 7px;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
 .kds-action-btn.start-btn.bar-theme {
   background: #00796b;
 }
@@ -885,6 +896,10 @@
   .kds-items-count {
     font-size: 0.8rem;
     padding: 0.35rem 1.25rem 0;
+  }
+
+  .kds-start-all-btn {
+    margin-left: 1.25rem;
   }
 
   .kds-card-items {

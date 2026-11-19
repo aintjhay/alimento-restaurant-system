@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import './KitchenDisplay.css';
 import './StationDisplay.css';
 import './KitchenBoard.css';
-import { LuMartini, LuBell, LuBellOff, LuMaximize, LuRefreshCw, LuFlame, LuChartColumn, LuClock, LuUndo2, LuCheck, LuArmchair, LuStickyNote, LuUser, LuTriangleAlert } from 'react-icons/lu';
+import { LuMartini, LuBell, LuBellOff, LuMaximize, LuRefreshCw, LuFlame, LuChartColumn, LuClock, LuCheck, LuArmchair, LuStickyNote, LuUser, LuTriangleAlert } from 'react-icons/lu';
 import StatusBoard, { getStationStatus } from './StatusBoard';
 import { isBarItem } from './stationItems';
 import { ConnectionStatus, MixedOrderProgress, getNewOrderIds, useOrderSound } from './StationUpdates';
@@ -184,6 +184,35 @@ function KitchenDisplay() {
     setUpdatingOrderId(null);
   };
 
+  const handleBulkStatus = async (order, action) => {
+    const itemIndices = action.indices || [];
+    if (!action.orderLevel && !itemIndices.length) return;
+
+    setUpdatingOrderId(order._id);
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/orders/${order._id}/status`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', ...authHeaders() },
+        body: JSON.stringify(action.orderLevel
+          ? { status: action.status, changedBy: 'kitchen' }
+          : { status: action.status, itemIndices, changedBy: 'kitchen' })
+      });
+      const result = await response.json();
+      if (!response.ok || !result.order) throw new Error(result.error || 'Unable to start order items.');
+
+      const updatedOrder = {
+        ...result.order,
+        preparationItems: (result.order.items || []).map((item, actualIndex) => ({ ...item, actualIndex })),
+        allItems: result.order.items || []
+      };
+      setOrders(previous => previous.map(item => item._id === order._id ? updatedOrder : item));
+    } catch (error) {
+      alert('Failed to update order: ' + error.message);
+    } finally {
+      setUpdatingOrderId(null);
+    }
+  };
+
   const getTimeElapsed = (createdAt, completedAt, status) => {
     // If order is completed, use the time from creation to completion
     const endTime = status === 'completed' && completedAt ? new Date(completedAt) : new Date();
@@ -219,47 +248,20 @@ function KitchenDisplay() {
   ));
   counts.active = counts.pending + counts.preparing + counts.ready;
 
-  const getActionButtons = (order, itemIndex) => {
-    if (['completed', 'cancelled', 'served', 'out_for_delivery'].includes(order.originalStatus)) return null;
-    const isUpdating = updatingOrderId === order._id;
-    const readyLabel = 'Mark ready';
-    const handoverLabel = order.orderType === 'Delivery' ? 'Out for Delivery' : order.orderType === 'Takeaway' ? 'Collected' : 'Served';
-    const allItems = order.items || order.allItems || [];
-    const itemStatus = (allItems[itemIndex]?.itemStatus) || order.originalStatus;
-    
-    switch (itemStatus) {
-      case 'pending':
-        return (
-          <button className="kds-action-btn start-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating}>
-            {isUpdating ? <LuClock aria-hidden="true" /> : <LuFlame aria-hidden="true" />} Start Preparing
-          </button>
-        );
-      case 'preparing':
-        return (
-          <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'pending')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
-            <button className="kds-action-btn ready-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'ready')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {readyLabel}
-            </button>
-          </>
-        );
-      case 'ready':
-        return (
-          <>
-            <button className="kds-action-btn undo-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'preparing')} disabled={isUpdating} aria-label="Undo item status" title="Undo item status"><LuUndo2 aria-hidden="true" /></button>
-            <button className="kds-action-btn served-btn" onClick={() => handleUpdateStatus(order._id, itemIndex, 'served')} disabled={isUpdating}>
-              {isUpdating ? <LuClock aria-hidden="true" /> : <LuCheck aria-hidden="true" />} {handoverLabel}
-            </button>
-          </>
-        );
-      case 'served':
-        return (
-          <button className="kds-action-btn completed-btn" disabled>
-            <LuCheck aria-hidden="true" /> {handoverLabel}
-          </button>
-        );
-      default: return null;
+  const getOrderAction = order => {
+    const items = order.items || order.allItems || [];
+    if (!items.length || ['completed', 'cancelled', 'served', 'out_for_delivery'].includes(order.originalStatus)) return null;
+    const statuses = items.map(item => item.itemStatus || order.originalStatus);
+    const pending = statuses.flatMap((status, index) => status === 'pending' ? [index] : []);
+    const preparing = statuses.flatMap((status, index) => status === 'preparing' ? [index] : []);
+    const ready = statuses.flatMap((status, index) => status === 'ready' ? [index] : []);
+    if (pending.length) return { label: 'Start All Preparing', status: 'preparing', indices: pending, icon: <LuFlame aria-hidden="true" /> };
+    if (preparing.length) return { label: 'Mark All Ready', status: 'ready', indices: preparing, icon: <LuCheck aria-hidden="true" /> };
+    if (ready.length && statuses.every(status => ['ready', 'served', 'completed'].includes(status))) {
+      if (order.orderType === 'Delivery') return { label: 'Out for Delivery', status: 'out_for_delivery', orderLevel: true, icon: <LuMartini aria-hidden="true" /> };
+      return { label: 'Complete Order', status: 'served', indices: ready, icon: <LuCheck aria-hidden="true" /> };
     }
+    return null;
   };
 
   if (loading) {
@@ -335,6 +337,7 @@ function KitchenDisplay() {
       <StatusBoard orders={stationOrders} filter={filter} preparingLabel="Preparing" preparationOnly>
             {order => {
               const urgency = ['pending', 'preparing', 'ready'].includes(order.status) ? getTimerUrgency(order.createdAt) : 'normal';
+              const action = getOrderAction(order);
               return (
                 <div key={order._id} className={`kds-order-card status-${order.status} ${urgency} ${currentTime - (newOrderTimes[order._id] || 0) < 30000 ? 'new-order' : ''}`}>
                   <div className="kds-card-header">
@@ -369,10 +372,15 @@ function KitchenDisplay() {
                     {order.preparationItems.length} item{order.preparationItems.length !== 1 ? 's' : ''}
                   </div>
 
+                  {action && (
+                    <button className={`kds-action-btn kds-start-all-btn ${action.status === 'preparing' ? 'start-btn' : action.status === 'ready' ? 'ready-btn' : 'served-btn'}`} onClick={() => handleBulkStatus(order, action)} disabled={updatingOrderId === order._id}>
+                      {updatingOrderId === order._id ? <LuClock aria-hidden="true" /> : action.icon} {action.label}
+                    </button>
+                  )}
+
                   <div className="kds-card-items">
                     {order.preparationItems.map((item, displayIdx) => {
                       // Use the actualIndex stored during filtering
-                      const actualItemIndex = item.actualIndex;
                       return (
                         <div key={displayIdx} className="kds-item">
                           <span className={`kds-item-qty ${isBarItem(item) ? 'bar-qty' : 'kitchen-qty'}`}>{item.quantity}×</span>
@@ -396,9 +404,6 @@ function KitchenDisplay() {
                               {item.itemStatus === 'ready' && <><LuCheck aria-hidden="true" /> Ready</>}
                               {item.itemStatus === 'served' && <><LuCheck aria-hidden="true" /> Served</>}
                             </div>
-                          </div>
-                          <div className="kds-item-actions">
-                            {actualItemIndex >= 0 && getActionButtons(order, actualItemIndex)}
                           </div>
                         </div>
                       );

@@ -312,20 +312,9 @@ function PosSystem() {
     const currentQty = getItemQuantityInCart(item._id || item.id);
 
     if (currentQty === 0) {
-      // First time adding - add with quantity 1
-      const newItem = {
-        id: item._id || item.id,
-        name: item.name,
-        category: item.category,
-        price: item.price,
-        quantity: 1,
-        modifiers: [],
-        addons: [],
-        specialInstructions: ''
-      };
-      const updatedCart = [...cart, newItem];
-      setCart(updatedCart);
-      localStorage.setItem('portalCart', JSON.stringify(updatedCart));
+      // Use the same flow as clicking the item so required modifiers (such as
+      // temperature) are selected before it is added to the cart.
+      handleItemClick(item);
     }
   };
 

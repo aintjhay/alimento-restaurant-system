@@ -52,7 +52,33 @@ exports.getOrder = async (req, res) => {
 
 exports.updateOrderStatus = async (req, res) => {
     try {
-        const { status, itemIndex } = req.body;
+        const { status, itemIndex, itemIndices } = req.body;
+
+        // Update several order lines in one write, for the kitchen's "start all" action.
+        if (Array.isArray(itemIndices)) {
+            const order = await Order.findById(req.params.id);
+            if (!order) return res.status(404).json({ error: 'Order not found' });
+            const uniqueIndices = [...new Set(itemIndices)];
+            if (!uniqueIndices.length || uniqueIndices.some(index => !Number.isInteger(index) || index < 0 || index >= order.items.length)) {
+                return res.status(400).json({ error: 'Invalid item indices' });
+            }
+            for (const index of uniqueIndices) {
+                order.items[index].itemStatus = status;
+                order.items[index].itemStatusTimeline = order.items[index].itemStatusTimeline || [];
+                order.items[index].itemStatusTimeline.push({ status, timestamp: new Date(), changedBy: req.body.changedBy || 'system' });
+            }
+            const allItemsServed = order.items.every(item => ['served', 'completed'].includes(item.itemStatus));
+            const allItemsReady = order.items.every(item => ['ready', 'served', 'completed'].includes(item.itemStatus));
+            if (allItemsServed) {
+                order.status = 'completed';
+                order.completedAt = new Date();
+            } else if (allItemsReady && !['served', 'completed'].includes(order.status)) {
+                order.status = 'ready';
+            }
+            order.updatedAt = new Date();
+            await order.save();
+            return res.json({ success: true, order });
+        }
         
         // If itemIndex is provided, update only that item's status
         if (itemIndex !== undefined) {

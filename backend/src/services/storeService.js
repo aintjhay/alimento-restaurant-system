@@ -10,6 +10,9 @@ function promotionFor(product, settings, channel, now = new Date(), firstPurchas
     (!p.startsAt || new Date(p.startsAt) <= now) && (!p.endsAt || new Date(p.endsAt) > now))
     .sort((a, b) => b.percent - a.percent)[0];
 }
+function optionLabel(value) {
+  return String(value || '').replace(/\s*\([^)]*\)\s*$/, '').trim().toLowerCase();
+}
 function priceItems(items, products, settings, channel, now = new Date(), firstPurchaseEligible = false) {
   if (!Array.isArray(items) || !items.length || items.length > 100) throw new Error('Add between 1 and 100 items.');
   const result = items.map(item => {
@@ -18,7 +21,10 @@ function priceItems(items, products, settings, channel, now = new Date(), firstP
     if (!Number.isInteger(item.quantity) || item.quantity < 1 || item.quantity > 100) throw new Error('Invalid quantity.');
     const modifiers = (item.modifiers || []).map(mod => {
       const definition = (product.modifiers || []).find(m => m.name === mod.modifierName);
-      const option = definition?.options.find(o => o.name === mod.selectedOption);
+      // Older menu seeds included the displayed price in option names
+      // (for example "Cold (₱140)"). Match those to the same plain option.
+      const option = definition?.options.find(o => o.name === mod.selectedOption) ||
+        definition?.options.find(o => optionLabel(o.name) === optionLabel(mod.selectedOption));
       if (!option) throw new Error(`Invalid option for ${product.name}.`);
       return { modifierName: definition.name, selectedOption: option.name, extraPrice: definition.name === 'Temperature' ? option.price - product.price : option.price || 0 };
     });

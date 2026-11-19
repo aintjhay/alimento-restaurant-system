@@ -30,18 +30,26 @@ export const nextStep = order => {
     default: return null;
   }
 };
-function ReviewDrawer({ children, onClose }) {
+function ReviewDrawer({ children, onClose, registerClose }) {
   const dialog = useRef(null);
+  const [closing, setClosing] = useState(false);
+  const closeTimer = useRef(null);
+  const requestClose = () => {
+    if (closing) return;
+    setClosing(true);
+    closeTimer.current = setTimeout(onClose, 280);
+  };
   useEffect(() => {
     const node = dialog.current;
     const previous = document.activeElement;
     const overflow = document.body.style.overflow;
     document.body.style.overflow = 'hidden';
+    registerClose(requestClose);
     if (node.showModal) node.showModal();
     else node.setAttribute('open', '');
-    return () => { document.body.style.overflow = overflow; previous?.focus(); };
-  }, []);
-  return <dialog ref={dialog} className="ops-review-drawer" aria-label="Order and payment review" onCancel={event => { event.preventDefault(); onClose(); }} onClick={event => { if (event.target === event.currentTarget) onClose(); }}>{children}</dialog>;
+    return () => { registerClose(null); clearTimeout(closeTimer.current); document.body.style.overflow = overflow; previous?.focus(); };
+  }, [onClose, registerClose]);
+  return <dialog ref={dialog} className={`ops-review-drawer${closing ? ' is-closing' : ''}`} aria-label="Order and payment review" onCancel={event => { event.preventDefault(); requestClose(); }} onClick={event => { if (event.target === event.currentTarget) requestClose(); }}>{children}</dialog>;
 }
 export default function OperationsDashboard() {
   const [orders, setOrders] = useState([]);
@@ -63,6 +71,9 @@ export default function OperationsDashboard() {
   }, [search]);
   const [visible, setVisible] = useState(10);
   const [expanded, setExpanded] = useState(null);
+  const reviewClose = useRef(null);
+  const closeReview = useCallback(() => setExpanded(null), []);
+  const registerReviewClose = useCallback(close => { reviewClose.current = close; }, []);
   const [receiptZoom, setReceiptZoom] = useState(false);
   const [cancelConfirm, setCancelConfirm] = useState(false);
   useEffect(() => { setReceiptZoom(false); setCancelConfirm(false); }, [expanded]);
@@ -147,7 +158,7 @@ export default function OperationsDashboard() {
       setBusy(null);
     }
   };
-  const confirmPayment = async order => {
+  const confirmPayment = async (order, onSuccess) => {
     if (paymentInFlight.current) return;
     paymentInFlight.current = true;
     setBusy(order._id);
@@ -163,7 +174,7 @@ export default function OperationsDashboard() {
         throw new Error(result.message || 'Unable to confirm payment. Please retry.');
       }
       setOrders(current => current.map(item => item._id === order._id ? result.order : item));
-      setExpanded(null);
+      onSuccess?.();
     } catch (err) {
       setError(err.message);
     } finally {
@@ -223,10 +234,10 @@ export default function OperationsDashboard() {
                     hour: '2-digit',
                     minute: '2-digit'
                   })}</td><td className={delayed(order) ? 'ops-elapsed-warning' : ''}>{active(order) ? `${elapsed(order)} min` : '—'}</td><td className="ops-amount">{money(amount(order))}</td><td><span className={unpaid(order) ? 'ops-payment-due' : 'ops-payment'}>{label(payment(order))}</span>{unpaid(order) && <div className="ops-payment-action">{order.paymentMethod === 'qrph' ? <small>Awaiting payment provider confirmation</small> : <button disabled={busy !== null} aria-expanded={expanded === order._id} onClick={() => setExpanded(order._id)}>Review payment</button>}</div>}</td><td><span className={`ops-status-badge ops-status-${status(order)}`} aria-label={`Status for ${order.orderNumber || order._id}`}>{status(order) === 'completed' && String(order.orderType).toLowerCase() === 'delivery' ? 'Delivered' : label(status(order))}</span></td><td className="ops-action-cell">{nextStep(order) ? <button className="ops-next-step" disabled={busy !== null} onClick={() => updateStatus(order, nextStep(order)[0])}>{busy === order._id ? 'Saving...' : <>{nextStep(order)[1]} <span aria-hidden="true">{nextStep(order)[0] === 'completed' ? '\u2713' : '\u2192'}</span></>}</button> : <span className="ops-muted" aria-label="No further action">&mdash;</span>}</td></tr></React.Fragment>)}{!filtered.length && <tr><td colSpan="8" className="ops-empty">{!updated ? error ? 'Orders unavailable. Use Refresh to retry.' : 'Loading orders...' : searchQuery ? 'No matching orders. Try another order number or table.' : tab === 'active' ? 'No active orders. New orders will appear here automatically.' : `No ${tab === 'all' ? '' : tab + ' '}orders to show.`}</td></tr>}</tbody></table></div>{filtered.length > visible && <div className="ops-more"><button onClick={() => setVisible(count => count + 10)}>Show more ({filtered.length - visible} remaining)</button></div>}{page * 50 < totalRows && <button onClick={() => { setPage(p => p + 1); setVisible(v => v + 50); }} disabled={refreshing}>Next page</button>}{page > 1 && <button onClick={() => setPage(p => p - 1)} disabled={refreshing}>Previous page</button>}</section>
-    {orders.filter(order => order._id === expanded).map(order => <ReviewDrawer key={order._id} onClose={() => setExpanded(null)}><section className="ops-review-panel" aria-label={`Payment review for ${order.orderNumber || order._id}`}>
+    {orders.filter(order => order._id === expanded).map(order => <ReviewDrawer key={order._id} onClose={closeReview} registerClose={registerReviewClose}><section className="ops-review-panel" aria-label={`Payment review for ${order.orderNumber || order._id}`}>
                     <header className="ops-review-header">
                       <div><span className="ops-review-eyebrow">Order details</span><h3>Payment review <span>{order.orderNumber || order._id}</span></h3></div>
-                      <button onClick={() => setExpanded(null)} aria-label="Close payment review">Close</button>
+                      <button onClick={() => reviewClose.current?.()} aria-label="Close payment review">Close</button>
                     </header>
                     {error && <div className="ops-notice" role="alert">{error}</div>}<div className="ops-review-grid">
                       <div className="ops-review-summary">
@@ -245,7 +256,7 @@ export default function OperationsDashboard() {
                     {unpaid(order) && order.paymentMethod !== 'qrph' && <footer className="ops-payment-review">
                       <div><strong>Verify receipt of payment</strong><p>Check the actual transaction in your payment account or cash drawer. A receiving QR code alone is not proof of payment.</p>
                       {payment(order) === 'partially_paid' && <p>This order is partially paid. Confirm only after the remaining balance has been received.</p>}</div>
-                      <button className="ops-confirm-payment" disabled={busy !== null} onClick={() => confirmPayment(order)}>{busy === order._id ? 'Saving...' : 'Confirm payment received'}</button>
+                      <button className="ops-confirm-payment" disabled={busy !== null} onClick={() => confirmPayment(order, () => reviewClose.current?.())}>{busy === order._id ? 'Saving...' : 'Confirm payment received'}</button>
                     </footer>}
                   </section></ReviewDrawer>)}
     <div className="ops-insights"><section className="ops-panel"><div className="ops-panel-heading"><div><h2>Order value trend</h2><p className="ops-muted">Last 7 days · Order value including unpaid</p></div></div><div className="ops-chart" aria-label="Daily sales for the last seven days">{daily.map(day => <div className="ops-chart-column" key={dayKey(day.date)}><span>{updated ? money(day.value) : '—'}</span><div className="ops-chart-track"><div style={{

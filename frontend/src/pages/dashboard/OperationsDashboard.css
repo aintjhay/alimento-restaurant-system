@@ -399,6 +399,18 @@
 .ops-status-preparing { background: #e8f1fc; color: #245a92; }
 .ops-review-drawer { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(620px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; background: #fff; color: #203330; box-shadow: -16px 0 48px #14352b26; }
 .ops-review-drawer::backdrop { background: #122b2566; }
+.ops-review-drawer[open] { animation: ops-review-slide-in 320ms cubic-bezier(.16, 1, .3, 1) both; }
+.ops-review-drawer[open]::backdrop { animation: ops-review-backdrop-in 280ms cubic-bezier(.2, .75, .25, 1) both; }
+.ops-review-drawer[open].is-closing { animation: ops-review-slide-out 200ms ease-in both; }
+.ops-review-drawer[open].is-closing::backdrop { animation: ops-review-backdrop-out 180ms ease-in both; }
+@keyframes ops-review-slide-in { from { opacity: .75; transform: translateX(36px); } to { opacity: 1; transform: translateX(0); } }
+@keyframes ops-review-backdrop-in { from { background: #122b2500; } to { background: #122b2566; } }
+@keyframes ops-review-slide-out { from { opacity: 1; transform: translateX(0); } to { opacity: 0; transform: translateX(14px); } }
+@keyframes ops-review-backdrop-out { from { background: #122b2566; } to { background: #122b2500; } }
+@media (prefers-reduced-motion: reduce) {
+  .ops-review-drawer[open], .ops-review-drawer[open]::backdrop,
+  .ops-review-drawer[open].is-closing, .ops-review-drawer[open].is-closing::backdrop { animation-duration: 1ms; }
+}
 .ops-review-drawer .ops-review-panel { display: flex; flex-direction: column; width: 100%; height: 100%; min-height: 0; max-height: 100%; border: 0; border-radius: 0; font-size: 13px; }
 .ops-review-drawer .ops-review-header { flex-shrink: 0; padding: 20px 26px; background: #fff; }
 .ops-review-drawer .ops-review-header h3 { margin-top: 4px; font-size: 19px; letter-spacing: -.02em; }

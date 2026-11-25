@@ -23,6 +23,7 @@ import PromotionManagement from './pages/admin/PromotionManagement';
 import ProductManagement from './pages/admin/ProductManagement';
 import CategoryManagement from './pages/admin/CategoryManagement';
 import SalesReport from './pages/admin/SalesReport';
+import ChangePassword from './pages/admin/ChangePassword';
 
 export const ProtectedAdminRoute = ({ children, roles = ['admin'] }) => {
   const { isAuthenticated, user, loading } = useAuth();
@@ -62,6 +63,7 @@ function AppRoutes() {
             <Route path="/admin/products" element={<ProtectedAdminRoute><ProductManagement /></ProtectedAdminRoute>} />
             <Route path="/admin/categories" element={<ProtectedAdminRoute><CategoryManagement /></ProtectedAdminRoute>} />
             <Route path="/admin/sales" element={<ProtectedAdminRoute><SalesReport /></ProtectedAdminRoute>} />
+            <Route path="/admin/change-password" element={<ProtectedAdminRoute roles={['admin', 'staff', 'cashier', 'kitchen']}><ChangePassword /></ProtectedAdminRoute>} />
 
             <Route path="/login" element={<Navigate to="/admin/login" replace />} />
             <Route path="/dashboard" element={<Navigate to="/admin/dashboard" replace />} />

@@ -255,10 +255,38 @@ const logout = async (req, res) => {
   }
 };
 
+const changePassword = async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (typeof currentPassword !== 'string' || !currentPassword ||
+      typeof newPassword !== 'string' || Buffer.byteLength(newPassword, 'utf8') > 72 || newPassword.length < 12) {
+    return res.status(400).json({ success: false, message: 'Enter your current password and choose a new password with at least 12 characters.' });
+  }
+
+  try {
+    const user = await User.findById(req.user.userId).select('+passwordHash +sessionVersion');
+    if (!user || !user.passwordHash || !(await comparePassword(currentPassword, user.passwordHash))) {
+      return res.status(401).json({ success: false, message: 'Your current password is incorrect.' });
+    }
+
+    const passwordHash = await hashPassword(newPassword);
+    const updated = await User.updateOne(
+      { _id: user._id, passwordHash: user.passwordHash, sessionVersion: user.sessionVersion || 0 },
+      { $set: { passwordHash }, $inc: { sessionVersion: 1 } }
+    );
+    if (updated.modifiedCount !== 1) {
+      return res.status(409).json({ success: false, message: 'Your account changed during this request. Sign in again and retry.' });
+    }
+    return res.json({ success: true, message: 'Password changed. Please sign in again with your new password.' });
+  } catch {
+    return res.status(503).json({ success: false, message: 'Password change is temporarily unavailable. Please try again.' });
+  }
+};
+
 module.exports = {
   register,
   login,
   adminLogin,
   getCurrentUser,
-  logout
+  logout,
+  changePassword
 };

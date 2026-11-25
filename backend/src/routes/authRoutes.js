@@ -5,7 +5,8 @@ const {
   login,
   adminLogin,
   getCurrentUser,
-  logout
+  logout,
+  changePassword
 } = require('../controllers/authController');
 const { authMiddleware } = require('../middleware/authMiddleware');
 const { forgotPassword, resetPassword } = require('../controllers/passwordResetController');
@@ -33,6 +34,7 @@ router.post('/admin/login', adminLogin);
 
 // Logout user
 router.post('/logout', authMiddleware, logout);
+router.post('/change-password', authMiddleware, require('../middleware/authMiddleware').requireRole('admin', 'staff', 'cashier', 'kitchen'), changePassword);
 
 /**
  * Protected routes (require authentication)

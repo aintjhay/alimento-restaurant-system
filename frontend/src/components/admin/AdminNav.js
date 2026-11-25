@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { FiGrid, FiLayout, FiPercent, FiCoffee, FiMonitor, FiList, FiTag, FiPackage, FiBarChart2, FiLogOut, FiMenu, FiX, FiUser } from 'react-icons/fi';
+import { FiGrid, FiLayout, FiPercent, FiCoffee, FiMonitor, FiList, FiTag, FiPackage, FiBarChart2, FiLogOut, FiMenu, FiX, FiUser, FiKey } from 'react-icons/fi';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import './AdminPanel.css';
@@ -29,6 +29,7 @@ export default function AdminNav({ children, title }) {
           {group.links.map(([to, label, Icon]) => <NavLink key={to} to={to} onClick={() => setMenuOpen(false)}><Icon aria-hidden="true" /><span>{label}</span></NavLink>)}
         </div>)}</nav>
         <div className="admin-account"><div className="admin-account-details"><span className="admin-account-avatar"><FiUser aria-hidden="true" /></span><div><strong>{displayName}</strong><small>{user?.role || 'admin'}</small></div></div>
+          <NavLink className="admin-account-password" to="/admin/change-password" onClick={() => setMenuOpen(false)}><FiKey aria-hidden="true" /><span>Change password</span></NavLink>
           <button className="admin-signout" onClick={signOut}><FiLogOut aria-hidden="true" /><span>Sign out</span></button>
         </div>
       </div>
